@@ -17,7 +17,8 @@ Object.assign(state, {
   adm_handler: web.chain([
     store.web_admin(state, 'meta'),
     store.web_admin(state, 'logs'),
-    adm_handler
+    adm_handler,
+    require('./webadm').handler(state)
   ]),
   web_handler,
   wss_handler
@@ -49,17 +50,6 @@ async function detect_first_time_setup() {
     log('generating public/private key pair');
     state.hub_keys = await crypto.createKeyPair();
     await meta.put("hub-keys", state.hub_keys);
-  }
-}
-
-function adm_handler(chain, pass) {
-  const { req, res, url, qry } = chain;
-  const { meta, logs } = state;
-  res.end('< rawh hub admin >');
-  switch (url.pathname) {
-    case '/state':
-      log({ state });
-      break;
   }
 }
 

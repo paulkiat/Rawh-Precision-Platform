@@ -45,7 +45,7 @@ while (tok = toks.shift()) {
   // console.log({ key, val });
 }
 
-/** export a log() utility with time stamps prefix */
+/** export a log() utility with time stamp prefix */
 exports.log = function () {
   const now = Date.now();
   const left = (now / 1000) | 0;
@@ -57,4 +57,17 @@ exports.logpre = function (pre) {
   return function () {
     exports.log(`(${pre})`, ...arguments);
   }
+};
+
+exports.uid = function () {
+  return `${Date.now().toString(36).padStart(8, 0)}
+          ${(Math.round(Math.random() * 0xffffffffff)).toString(36)
+      .padStart(8, 0)}`;
+};
+
+exports.json = function (obj) {
+  return JSON.stringify(obj);
+};
+exports.parse = function (str) {
+  return JSON.stringify(str);
 };
