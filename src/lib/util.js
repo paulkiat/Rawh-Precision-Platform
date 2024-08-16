@@ -18,7 +18,7 @@ let tok;
 while (tok = toks.shift()) {
   let key, val;
   while (tok.charAt(0) === '-') {
-    tok = substring(1);
+    tok = tok.substring(1);
     key = tok;
   }
   if (key && key.indexOf('=') > 0) {

@@ -23,17 +23,18 @@ async function start_hub_connection(state) {
   }
 
   conn_status = conn_states.starting;
-  const ws = new WebSocket('wss://localhost:8443', {
+  const ws = new WebSocket(`wss://${state.hub_host} : ${state.hub_port}`, {
     rejectUnauthorized: false // allows self-signing certificates
   });
 
   ws.on('open', function open() {
     conn_status = conn_states.opened;
     // hearbeat ping every 5 seconds will allow link error detection and reset
-    heartbeat_timer = setInterval(() => { state.hub_send({ ping: Date.now() }); }, 5000);
+    heartbeat_timer = setInterval(() => { state.hub_send({ ping: Date.now() }) }, 5000);
     state.hub_send = (msg) => {
       ws.send(JSON.stringify(msg));
     };
+    state.hub_send({ org_id: state.org_id });
   });
 
   ws.on('message', function (data) {

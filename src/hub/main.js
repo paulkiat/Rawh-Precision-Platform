@@ -10,8 +10,8 @@ const web = require('../lib/web');
 const crypto = require('../lib/crypto');
 const store = require('../lib/store');
 const state = {
-  adm_port: args.prod ? 80 : args['adm-port'] || 8000,
-  web_port: args.prod ? 443 : args['web-port'] || 8443,
+  adm_port: args['adm-port'] || (args.prod ? 80 : 8000),
+  web_port: args['web-port'] || (args.prod ? 443 : 8443),
   adm_handler,
   web_handler,
   wss_handler

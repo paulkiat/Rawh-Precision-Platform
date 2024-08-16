@@ -5,7 +5,7 @@ const log = require('./util').logpre('store');
 
 async function open(dir = "data-store") {
   const statuskey = "...status";
-  const status = { opens: 0, openlast: 0, gets: 0, puts: 0, acts: 0, lastacts: 0 };
+  const status = { opens: 0, openlast: 0, gets: 0, puts: 0, lists: 0, acts: 0, lastacts: 0 };
   const state = { status };
 
   const db = state.db = new Level(dir, { valueEncoding: 'json' });
@@ -29,6 +29,12 @@ async function open(dir = "data-store") {
     return await db.put(key, value);
   };
 
+  const list = async function (opt = {}) {
+    status.lists++;
+    status.acts++;
+    return await db.iterator(opt).all();
+  };
+
   state.status = Object.assign(status, await get(statuskey, status));
   status.openlast = Date.now();
   status.opens++;
@@ -43,7 +49,8 @@ async function open(dir = "data-store") {
 
   return {
     get,
-    put
+    put,
+    list
   };
 };
 

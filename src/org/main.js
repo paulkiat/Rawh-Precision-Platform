@@ -1,5 +1,6 @@
 /** main organizational server / broker / meta-data server */
 
+const { env } = process;
 const { args } = require('../lib/util');
 const { server, client } = require('../lib/net').zmq;
 const log = require('../lib/util').logpre('org');
@@ -7,8 +8,11 @@ const web = require('../lib/web');
 const crypto = require('../lib/crypto');
 const store = require('../lib/store');
 const state = {
-  adm_port: args.prod ?  80 : args['adm-port'] || 9000,
-  web_port: args.prod ? 443 : args['web-port'] || 9443,
+  org_id: env['ORG_ID'] || args['org-id'],
+  hub_host: env['HUB_HOST'] || args['hub-host'] || (args.prod ? "meta.rawh.ai" : "localhost"),
+  hub_port: env['HUB_PORT'] || args['hub-port'] || (args.prod ? 443 : 8443 ),
+  adm_port: ['adm-port'] || (args.prod ?  80 : 9000),
+  web_port: ['web-port'] || (args.prod ? 443 : 9443),
   adm_handler
 };
 
@@ -24,7 +28,7 @@ const state = {
 async function init_data_store() {
   log('initializing data store');
   state.meta = await store.open("org-meta-data");
-  state.org_id = await state.meta.get("org-id", process.env['ORG-ID']);
+  state.org_id = await state.meta.get("org-id", state.org_id);
   if (!state.org_id) {
     log({ exit_on_missing_org_id: state.org_id });
     process.exit();
