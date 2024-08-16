@@ -27,7 +27,7 @@ const state = {
  */
 async function init_data_store() {
   log('initializing data store');
-  state.meta = await store.open("org-meta-data");
+  state.meta = await store.open("data/org-meta");
   state.org_id = await state.meta.get("org-id", state.org_id);
   if (!state.org_id) {
     log({ exit_on_missing_org_id: state.org_id });
@@ -40,7 +40,11 @@ async function init_data_store() {
 
 async function init_log_store() {
   log('initializing log store');
-  state.log = await store.open("org-log-store");
+  state.log = await store.open("data/org-logs");
+  state.logr = function () {
+    log('*', ...arguments);
+    state.log.put(Date.now().toString(36), [...arguments]);
+  };
 }
 
 async function detect_first_time_setup() {
@@ -89,4 +93,5 @@ function adm_handler(req, res) {
   await start_broker_listener();
   await require('./hub-link').start_hub_connection(state);
   if (args.test) await test_broker();
+  state.logr("service started");
 })();

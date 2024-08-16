@@ -2,7 +2,7 @@
  * main hub for rawh that services customer/orgs
  * acts as the master for all org meta-data
  * collects log and usage data from orgs
- */
+*/
 
 const { args } = require('../lib/util');
 const log = require('../lib/util').logpre('hub');
@@ -28,12 +28,12 @@ const state = {
 
 async function init_data_store() {
   log('initializing data store');
-  state.meta = await store.open("hub-meta-data");
+  state.meta = await store.open("data/hub-meta");
 }
 
 async function init_log_store() {
   log('initializing log store');
-  state.log = await store.open("hub-log-store");
+  state.log = await store.open("data/hub-logs");
 }
 
 async function detect_first_time_setup() {
@@ -47,10 +47,31 @@ async function detect_first_time_setup() {
 }
 
 function adm_handler(req, res) {
+  const { meta, logs } = state;
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const qry = Object.fromEntries(url.searchParams.entries());
   res.end('< rawh hub admin >');
-  switch (req.url) {
+  switch (url.pathname) {
     case '/state':
       log({ state });
+      break;
+    case '/meta.get':
+      meta.get(qry.key).then(rec => {
+        log(rec);
+      })
+      break;
+    case '/meta.keys':
+      meta.list({ ...qry, keys: true, values: false, }).then(rec => {
+        log(rec.map(a => a[0]));
+      });
+      break;
+    case '/meta.recs':
+      meta.list({ ...qry, keys: true, values: false, }).then(recs => {
+        for (let rec of recs) {
+          log(rec);
+        }
+        log(rec.map(a => a[0]));
+      });
       break;
   }
 }
