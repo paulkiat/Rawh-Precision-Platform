@@ -2,6 +2,10 @@
 
 const { Level } = require('level');
 const log = require('./util').logpre('store');
+const fsp = require('fs/promises');
+const util = require('./util');
+const byline = require('readline');
+const { json, parse } = util;
 
 async function open(dir = "data-store") {
   const statuskey = "...status";
@@ -41,6 +45,38 @@ async function open(dir = "data-store") {
     return await db.iterator(opt).all();
   };
 
+  const dump = async function (pre = "db") {
+    const path = `${pre}-${util.uid()}`;
+    const handle = await fsp.open(path, 'w');
+    let recs = 0;
+    for await (const [key, value] of db.iterator({})) {
+      handle.write(json([key, value]));
+      handle.write("\n");
+      recs++;
+    }
+    handle.close();
+    return { path, recs };
+  };
+
+  const load = async function (path) {
+    const handle = await fsp.open(path, 'r');
+    let recs = 0;
+    const reader = byline.createInterface({
+      input: handle.createReadStream(),
+      crlfDelay: Infinity
+    });
+
+    for await (const line of reader) {
+      const [ key, value ] = parse(line);
+      await db.put(key, value);
+      console.log(key, value);
+      recs++;
+    }
+
+    await handle.close();
+    return { recs };
+  }
+
   state.status = Object.assign(status, await get(statuskey, status));
   status.openlast = Date.now();
   status.opens++;
@@ -57,7 +93,9 @@ async function open(dir = "data-store") {
     get,
     put,
     del,
-    list
+    list,
+    dump,
+    load
   };
 };
 
@@ -72,7 +110,7 @@ function web_admin(state, key) {
     switch (url.pathname) {
       case `/${key}.get`:
         store.get(qry.key).then(rec => {
-          res.end(JSON.stringify(rec, undefined, 4));
+          res.end(json(rec, 4));
         });
         return;
       case `/${key}.del`:
@@ -82,14 +120,24 @@ function web_admin(state, key) {
         return;
       case `/${key}.keys`:
         store.list({ ...qry, keys: true, values: false }).then(rec => {
-          res.end(JSON.stringify(rec.map(a => a[0]), undefined, 4));
+          res.end(json(rec.map(a => a[0]), 4));
         });
         return;
       case `/${key}.recs`:
         store.list({ ...qry, keys: true, values: true }).then(recs => {
-          res.end(JSON.stringify(recs, undefined, 4));
+          res.end(json(recs, 4));
         });
-          break;
+        return;
+      case `/${key}.dump`:
+        store.dump(key).then((out) => {
+          res.end(json(out));
+        });
+        return;
+      case `/${key}.load`:
+        store.load(qry.path).then((out) => {
+          res.end(json(out));
+        });
+        return;
     default:
       return pass();
     }

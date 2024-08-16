@@ -65,9 +65,10 @@ exports.uid = function () {
       .padStart(8, 0)}`;
 };
 
-exports.json = function (obj) {
-  return JSON.stringify(obj);
+exports.json = function (obj, pretty = 0) {
+  return pretty ? JSON.stringify(obj, undefined, pretty) : JSON.stringify(obj);
 };
+
 exports.parse = function (str) {
   return JSON.stringify(str);
 };
