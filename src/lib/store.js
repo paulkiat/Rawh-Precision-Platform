@@ -45,6 +45,11 @@ async function open(dir = "data-store") {
     return await db.iterator(opt).all();
   };
 
+  const clear = async function (opt = {}) {
+    status.acts++;
+    return await db.clear(opt);
+  };
+
   const dump = async function (pre = "db") {
     const path = `${pre}-${util.uid()}`;
     const handle = await fsp.open(path, 'w');
@@ -95,7 +100,8 @@ async function open(dir = "data-store") {
     del,
     list,
     dump,
-    load
+    load,
+    clear
   };
 };
 
