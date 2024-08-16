@@ -9,13 +9,19 @@ const log = require('../lib/util').logpre('hub');
 const web = require('../lib/web');
 const crypto = require('../lib/crypto');
 const store = require('../lib/store');
-const state = {
+const state = { };
+
+Object.assign(state, {
   adm_port: args['adm-port'] || (args.prod ? 80 : 8000),
   web_port: args['web-port'] || (args.prod ? 443 : 8443),
-  adm_handler,
+  adm_handler: web.chain([
+    store.web_admin(state, 'meta'),
+    store.web_admin(state, 'logs'),
+    adm_handler
+  ]),
   web_handler,
   wss_handler
-};
+});
 
 /**
  * INITIALIZATION
@@ -46,32 +52,13 @@ async function detect_first_time_setup() {
   }
 }
 
-function adm_handler(req, res) {
+function adm_handler(chain, pass) {
+  const { req, res, url, qry } = chain;
   const { meta, logs } = state;
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const qry = Object.fromEntries(url.searchParams.entries());
   res.end('< rawh hub admin >');
   switch (url.pathname) {
     case '/state':
       log({ state });
-      break;
-    case '/meta.get':
-      meta.get(qry.key).then(rec => {
-        log(rec);
-      })
-      break;
-    case '/meta.keys':
-      meta.list({ ...qry, keys: true, values: false, }).then(rec => {
-        log(rec.map(a => a[0]));
-      });
-      break;
-    case '/meta.recs':
-      meta.list({ ...qry, keys: true, values: false, }).then(recs => {
-        for (let rec of recs) {
-          log(rec);
-        }
-        log(rec.map(a => a[0]));
-      });
       break;
   }
 }
@@ -85,6 +72,7 @@ function web_handler(req, res) {
   // log({ req, res });
   res.end('< rawh hub >');
 }
+
 (async () => {
   await init_data_store();
   await init_log_store();

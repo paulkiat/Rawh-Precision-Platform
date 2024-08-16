@@ -7,14 +7,20 @@ const log = require('../lib/util').logpre('org');
 const web = require('../lib/web');
 const crypto = require('../lib/crypto');
 const store = require('../lib/store');
-const state = {
+const state = { };
+
+Object.assign(state, {
   org_id: env['ORG_ID'] || args['org-id'],
   hub_host: env['HUB_HOST'] || args['hub-host'] || (args.prod ? "meta.rawh.ai" : "localhost"),
   hub_port: env['HUB_PORT'] || args['hub-port'] || (args.prod ? 443 : 8443 ),
   adm_port: ['adm-port'] || (args.prod ?  80 : 9000),
   web_port: ['web-port'] || (args.prod ? 443 : 9443),
-  adm_handler
-};
+  adm_handler: web.chain([
+    store.web_admin(state, 'meta'),
+    store.web_admin(state, 'logs'),
+    adm_handler
+  ]),
+});
 
 /**
  * INITIALIZATION
@@ -80,9 +86,10 @@ async function test_broker() {
   }
 }
 
-function adm_handler(req, res) {
+function adm_handler(chain, pass) {
+  const { req, res, url, qry } = chain;
   log({ web_request: req.url });
-  res.end('< rawh org admin >');
+  res.end("< rawh org admin >");
 }
 
 (async () => {

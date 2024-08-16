@@ -54,7 +54,35 @@ async function open(dir = "data-store") {
   };
 };
 
+/** http(s) endpoint handler for storing admin/exploration */
+function web_admin(state, key) {
+  return function (chain, pass) {
+    const { req, res, url, qry } =  chain;
+    const store = state[key];
+    switch (url.pathname) {
+      case `/${key}.get`:
+      store.get(qry.key).then(rec => {
+        res.end(JSON.stringify(rec, undefined, 4));
+      });
+        return;
+    case `/${key}.keys`:
+      store.list({ ...qry, keys: true, values: false }).then(rec => {
+        res.end(JSON.stringify(rec.map(a => a[0]), undefined, 4));
+      });
+        return;
+    case `/${key}.recs`:
+      store.list({ ...qry, keys: true, values: true }).then(recs => {
+        res.end(JSON.stringify(recs, undefined, 4));
+      });
+        break;
+    default:
+      return pass();
+    }
+  }
+}
+
 /** add functions to module exports */
 Object.assign(exports, {
-  open
+  open,
+  web_admin
 });

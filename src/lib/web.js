@@ -43,5 +43,20 @@ async function start_web_listeners(state) {
     });
   }
 }
+function chain(handlers) {
+  return function (req, res) {
+    const url = new URL(req.url, `http://${req.header.host}`);
+    const qry = Object.fronEntries(url.searchParams.entries());
+    for (let handler of handlers) {
+      let exit = true;
+      handler({ req, res, url, qry }, () => {
+        exit = false;
+      });
+      if (exit) break;
+    }
+  };
+}
+
 
 exports.start_web_listeners = start_web_listeners;
+exports.chain = chain;
