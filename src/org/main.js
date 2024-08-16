@@ -3,9 +3,14 @@
 const { args } = require('../lib/util');
 const { server, client } = require('../lib/net').zmq;
 const log = require('../lib/util').logpre('org');
+const web = require('../lib/web');
 const crypto = require('../lib/crypto');
 const store = require('../lib/store');
-const state = {};
+const state = {
+  adm_port: args.prod ?  80 : args['adm-port'] || 9000,
+  web_port: args.prod ? 443 : args['web-port'] || 9443,
+  adm_handler
+};
 
 /**
  * INITIALIZATION
@@ -67,10 +72,16 @@ async function test_broker() {
   }
 }
 
+function adm_handler(req, res) {
+  log({ web_request: req.url });
+  res.end('< rawh org admin >');
+}
+
 (async () => {
   await init_data_store();
   await init_log_store();
   await detect_first_time_setup();
+  await web.start_web_listeners(state);
   await start_broker_listener();
   await require('./hub-link').start_hub_connection(state);
   if (args.test) await test_broker();

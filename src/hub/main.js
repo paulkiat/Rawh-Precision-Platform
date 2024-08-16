@@ -6,11 +6,12 @@
 
 const { args } = require('../lib/util');
 const log = require('../lib/util').logpre('hub');
+const web = require('../lib/web');
 const crypto = require('../lib/crypto');
 const store = require('../lib/store');
 const state = {
-  web_port: args.prod ? 80 : args['web-port'] || 8000,
-  ssl_port: args.prod ? 443 : args['ssl-port'] || 8443,
+  adm_port: args.prod ? 80 : args['adm-port'] || 8000,
+  web_port: args.prod ? 443 : args['web-port'] || 8443,
   adm_handler,
   web_handler,
   wss_handler
@@ -46,7 +47,7 @@ async function detect_first_time_setup() {
 }
 
 function adm_handler(req, res) {
-  res.end('< rawh admin >');
+  res.end('< rawh hub admin >');
   switch (req.url) {
     case '/state':
       log({ state });
@@ -61,12 +62,12 @@ function wss_handler(ws, message) {
 
 function web_handler(req, res) {
   // log({ req, res });
-  res.end('< rawh admin >');
+  res.end('< rawh hub >');
 }
 (async () => {
   await init_data_store();
   await init_log_store();
   await detect_first_time_setup();
-  await require('./web').start_web_listeners(state);
+  await web.start_web_listeners(state);
   // log({ state });
 })();
