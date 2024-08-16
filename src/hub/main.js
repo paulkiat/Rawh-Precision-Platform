@@ -18,7 +18,7 @@ Object.assign(state, {
     store.web_admin(state, 'meta'),
     store.web_admin(state, 'logs'),
     adm_handler,
-    require('./webadm').handler(state)
+    require('./adm_web').handler(state)
   ]),
   web_handler,
   wss_handler

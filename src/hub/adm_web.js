@@ -1,6 +1,6 @@
 /** simple curl-able web admin api */
 
-const orgadm = require('./orgadm');
+const orgadm = require('./adm_org');
 const util = require('../lib/util');
 const log = prelog('./webadm.js');
 const { json } = util;
