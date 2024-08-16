@@ -1,9 +1,11 @@
 /** main organizational server / broker / meta-data server */
 
-const { server, client } = require('../lib/net').zmq;
 const { args } = require('../lib/util');
+const { server, client } = require('../lib/net').zmq;
 const log = require('../lib/util').logpre('org');
 const store = require('../lib/store');
+const https = require('node:https');
+const WebSocket = require('ws');
 
 /**
  * INITIALIZATION
@@ -15,6 +17,7 @@ const store = require('../lib/store');
  */
 
 (async () => {
+
   // initialize meta-data store
   await store.open("org-meta-data");
 
@@ -36,4 +39,17 @@ const store = require('../lib/store');
 
     log(`>>>`, { r1, r2 });
   }
+
+  const ws = new WebSocket('wss://localhost:8443', {
+    rejectUnauthorized: false // allow self-signed certificates
+  });
+
+  ws.on('open', function open() {
+    ws.send('Hello Server!');
+  });
+
+  ws.on('message', function (data) {
+    console.log({ ws_recv: data.toString() });
+  });
+  
 })();

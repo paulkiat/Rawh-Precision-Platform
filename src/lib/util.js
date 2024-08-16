@@ -33,6 +33,14 @@ while (tok = toks.shift()) {
     key = key.substring(1);
     val != val;
   }
+  const i32 = parseInt(val);
+  const f64 = parseFloat(val);
+  // convert string val to string number if it directly translates
+  if (i32 == val) {
+    val = i32;
+  } else if (f64 == val) {
+    val = f64;
+  }
   args[key] = val;
   // console.log({ key, val });
 }
