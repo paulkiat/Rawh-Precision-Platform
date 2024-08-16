@@ -10,7 +10,10 @@ const crypto = require('../lib/crypto');
 const store = require('../lib/store');
 const state = {
   web_port: args.prod ? 80 : args['web-port'] || 8000,
-  ssl_port: args.prod ? 443 : args['ssl-port'] || 8443
+  ssl_port: args.prod ? 443 : args['ssl-port'] || 8443,
+  adm_handler,
+  web_handler,
+  wss_handler
 };
 
 /**
@@ -34,16 +37,32 @@ async function init_log_store() {
 
 async function detect_first_time_setup() {
   const { meta, logs } = state;
-  state.keys = await meta.get("  keys");
-  if (!state.keys) {
+  state.hub_keys = await meta.get("hub-keys");
+  if (!state.hub_keys) {
     log('generating public/private key pair');
-    state.keys = await crypto.createKeyPair();
-    await meta.put("  keys", state.keys);
+    state.hub_keys = await crypto.createKeyPair();
+    await meta.put("hub-keys", state.hub_keys);
   }
 }
 
+function adm_handler(req, res) {
+  res.end('< rawh admin >');
+  switch (req.url) {
+    case '/state':
+      log({ state });
+      break;
+  }
+}
 
+function wss_handler(ws, message) {
+  log({ ws_message: message.toString() });
+  ws.send('hello enemy!');
+}
 
+function web_handler(req, res) {
+  // log({ req, res });
+  res.end('< rawh admin >');
+}
 (async () => {
   await init_data_store();
   await init_log_store();

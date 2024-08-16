@@ -2,9 +2,9 @@ version: "0.1"
 
 services:
   broker:
-    container_name: rawh-org
+    container_name: precision-org
     build:
       context: ../../..
       dockerfile: src/dock/org/Dockerfile
     ports:
-      - "8080:8080"
+      - "3000:3000"

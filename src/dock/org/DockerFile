@@ -1,7 +1,9 @@
 FROM node:18-slim
+EXPOSE 3000
 WORKDIR /customer
-COPY src/hub/org/package.json /customer
 RUN apt-get -y update; apt-get -y install curl libzmq3-dev openssl
-EXPOSE 8080
+COPY src/hub/org/package.json /customer
+COPY src/lib/ customer/src/lib
+COPY src/org customer/src/org
 RUN npm i
-CMD gs-app-server
+CMD node src/org/main

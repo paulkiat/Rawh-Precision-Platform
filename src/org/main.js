@@ -19,6 +19,14 @@ const state = {};
 async function init_data_store() {
   log('initializing data store');
   state.meta = await store.open("org-meta-data");
+  state.org_id = await state.meta.get("org-id", process.env['ORG-ID']);
+  if (!state.org_id) {
+    log({ exit_on_missing_org_id: state.org_id });
+    process.exit();
+  } else {
+    log({ org_id: state.org_id });
+    await state.meta.put("org-id", state.org_id);
+  }
 }
 
 async function init_log_store() {
@@ -28,11 +36,11 @@ async function init_log_store() {
 
 async function detect_first_time_setup() {
   const { meta, logs } = state;
-  state.keys = await meta.get("  keys");
-  if (!state.keys) {
+  state.org_keys = await meta.get("org-keys");
+  if (!state.org_keys) {
     log('generating public/private key pair');
-    state.keys = await crypto.createKeyPair();
-    await meta.put("  keys", state.keys);
+    state.org_keys = await crypto.createKeyPair();
+    await meta.put("org-keys", state.org_keys);
   }
 }
 

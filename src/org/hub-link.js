@@ -1,14 +1,14 @@
 const log = require('../lib/util').logpre('link');
 const WebSocket = require('ws');
-const states = {
+const conn_states = {
   unknown: 0,
   starting: 1,
   opened: 2,
   authenticated: 3
 };
 
-let status = states.unknown;
-let timer;
+let conn_status = conn_states.unknown;
+let heartbeat_timer;
 
 /**
  * maintains a persistant connection to the rawh hub
@@ -16,23 +16,22 @@ let timer;
  * as a channel to push usage and event logging to rawh
  */
 
-async function start_hub_connection(context) {
-  if (status !== states.unknown) {
-    log({ exit_on_invalid_state: status });
+async function start_hub_connection(state) {
+  if (conn_status !== conn_states.unknown) {
+    log({ exit_on_invalid_state: conn_status });
     return;
   }
 
-  status = states.starting;
+  conn_status = conn_states.starting;
   const ws = new WebSocket('wss://localhost:8443', {
     rejectUnauthorized: false // allows self-signing certificates
   });
 
   ws.on('open', function open() {
-    status = states.opened;
-    timer = setInterval(() => {
-      context.hub_send({ ping: Date.now() });
-    }, 2500);
-    context.hub_send = (msg) => {
+    conn_status = conn_states.opened;
+    // hearbeat ping every 5 seconds will allow link error detection and reset
+    heartbeat_timer = setInterval(() => { state.hub_send({ ping: Date.now() }); }, 5000);
+    state.hub_send = (msg) => {
       ws.send(JSON.stringify(msg));
     };
   });
@@ -42,12 +41,12 @@ async function start_hub_connection(context) {
   });
  
   ws.on('close', () => {
-    status = states.unknown;
-    context.hub_send = (msg) => {
+    conn_status = conn_states.unknown;
+    state.hub_send = (msg) => {
       log('hub link down. message dropped')
     }
-    clearTimeout(timer);
-    setTimeout(() => { start_hub_connection(context) }, 5000);
+    clearTimeout(heartbeat_timer);
+    setTimeout(() => { start_hub_connection(state) }, 5000);
   });
 
   ws.on('error', (error) => {
