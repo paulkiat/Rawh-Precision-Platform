@@ -1,4 +1,5 @@
 /** ZeroMQ export helpers for client/server nodes */
+
 const { Request, Reply } = require('zeromq');
 const logz = require('./util').logpre('zmq');
 const proto = "tcp";
@@ -28,6 +29,7 @@ function zmq_client(host = "127.0.0.1", port) {
 
   async function recv() {
     const [result] = await sock.receive();
+    return JSON.parse(result);
   }
 
   async function call(request) {
@@ -35,7 +37,7 @@ function zmq_client(host = "127.0.0.1", port) {
     return await recv();
   }
 
-  return ({ call, send, recv });
+  return { call, send, recv };
 }
 
 Object.assign(exports, {

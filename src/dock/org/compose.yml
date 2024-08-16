@@ -1,0 +1,10 @@
+version: "0.1"
+
+services:
+  broker:
+    container_name: rawh-org
+    build:
+      context: ../../..
+      dockerfile: src/dock/org/Dockerfile
+    ports:
+      - "8080:8080"

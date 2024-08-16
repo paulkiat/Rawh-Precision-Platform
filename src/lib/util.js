@@ -34,7 +34,7 @@ while (tok = toks.shift()) {
     val != val;
   }
   args[key] = val;
-  console.log({ key, val });
+  // console.log({ key, val });
 }
 
 /** export a log() utility with time stamps prefix */
@@ -42,7 +42,7 @@ exports.log = function () {
   const now = Date.now();
   const left = (now / 1000) | 0;
   const right = now - (left * 1000);
-  console.log(`[${left.toString(36).padStart(6, 0)}:${right.toString().padStart(3, 0)}]`, ...arguments);
+  console.log(`[${left.toString(36).padStart(6, 0)}:${right.toString().padStart(3,0)}]`, ...arguments);
 };
 
 exports.logpre = function (pre) {
