@@ -1,11 +1,11 @@
-/** a very simple key/value store based on level (loca -disk backed) */
+/** a very simple key/value store based on level db (local-disk backed) */
 
 const { Level } = require('level');
 const log = require('./util').logpre('store');
 
 async function open(dir = "data-store") {
   const statuskey = "...status";
-  const status = { opens: 0, openlast: 0, gets: 0, puts: 0, lists: 0, acts: 0, lastacts: 0 };
+  const status = { opens: 0, openlast: 0, gets: 0, puts: 0, dels: 0, lists: 0, acts: 0, lastacts: 0 };
   const state = { status };
 
   const db = state.db = new Level(dir, { valueEncoding: 'json' });
@@ -29,7 +29,13 @@ async function open(dir = "data-store") {
     return await db.put(key, value);
   };
 
-  const list = async function (opt = {}) {
+  const del = async function (key) {
+    status.dels++;
+    status.acts++;
+    return await db.del(key).catch(error => 0);
+  };
+
+  const list = async function (opt = { limit: 100 }) {
     status.lists++;
     status.acts++;
     return await db.iterator(opt).all();
@@ -50,6 +56,7 @@ async function open(dir = "data-store") {
   return {
     get,
     put,
+    del,
     list
   };
 };
@@ -59,22 +66,30 @@ function web_admin(state, key) {
   return function (chain, pass) {
     const { req, res, url, qry } =  chain;
     const store = state[key];
+    if (qry.limit !== undefined) {
+      qry.limit = parseInt(qry.limit);
+    }
     switch (url.pathname) {
       case `/${key}.get`:
-      store.get(qry.key).then(rec => {
-        res.end(JSON.stringify(rec, undefined, 4));
-      });
+        store.get(qry.key).then(rec => {
+          res.end(JSON.stringify(rec, undefined, 4));
+        });
         return;
-    case `/${key}.keys`:
-      store.list({ ...qry, keys: true, values: false }).then(rec => {
-        res.end(JSON.stringify(rec.map(a => a[0]), undefined, 4));
-      });
+      case `/${key}.del`:
+        store.del(qry.key).then(ok => {
+          res.end(ok === undefined ? 'ok' : 'fail' );
+        });
         return;
-    case `/${key}.recs`:
-      store.list({ ...qry, keys: true, values: true }).then(recs => {
-        res.end(JSON.stringify(recs, undefined, 4));
-      });
-        break;
+      case `/${key}.keys`:
+        store.list({ ...qry, keys: true, values: false }).then(rec => {
+          res.end(JSON.stringify(rec.map(a => a[0]), undefined, 4));
+        });
+        return;
+      case `/${key}.recs`:
+        store.list({ ...qry, keys: true, values: true }).then(recs => {
+          res.end(JSON.stringify(recs, undefined, 4));
+        });
+          break;
     default:
       return pass();
     }
