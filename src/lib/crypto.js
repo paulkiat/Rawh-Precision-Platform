@@ -46,3 +46,4 @@ exports.createKeyPair = function (passphrase = '') {
      });
   });
 };
+

@@ -72,7 +72,7 @@ function zmq_proxy(port = 6000) {
         break;
       case 'pub':
         for (let tid of subs) {
-          send([ tid, json([ topto, msg, cid ]));
+          send( tid, json([ topto, msg, cid ]));
         }
         break;
       default:
