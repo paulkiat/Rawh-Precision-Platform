@@ -53,11 +53,11 @@ async def zmq_node(host="127.0.0.1", port=6000):
       if topic:
         handler = handlers.get(topic) or (handlers.get(self_key))
         if handler:
-          handler(msg, cid)
+          handler(msg, cid, topic)
         else:
           print('missing handler for topic', topic)
       else:
-        print('no topic recv', {"msg": msg, "cid": cid})
+        print('no topic recv', {"msg": msg, "cid": cid, "topic": topic})
 
   asnycio.create_task(receiver())
 
@@ -75,13 +75,12 @@ async def zmq_node(host="127.0.0.1", port=6000):
 # Example usage
 async def main():
   node = await zmq_node()
-  await node["subscribe"]("example_topic", lambda msg, cid: print(f"Message from {cid}: {msg}"))
-  # await node["publish"]("example_topic", "Hello, World!")
+  await node["subscribe"]("count_topic", lambda msg, cid, topic: print(f"'{topic}' msg from [{cid}]: '[{msg}]'"))
 
   counter = 0
-  while True:
-    message = f"Hello, World! {counter}"
-    await node ["publish"]("example_topic", message)
+  while counter < 20:
+    message = f"count = {counter}"
+    await node ["publish"]("count_topic", message)
     counter += 1
     await asyncio.sleep(1) # Pause for 1 second (or any desired interval)
 

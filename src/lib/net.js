@@ -1,12 +1,11 @@
 /** ZeroMQ export helpers for client/server nodes */
 
-const zeromq = require('zeromq');
+const zeromq = require("zeromq");
 const util = require('./util');
 const log = util.logpre('zmq');
 const { Dealer, Router } = zeromq;
 const { args, json } = util;
 const proto = "tcp";
-
 const settings = {
   heartbeat: 1000,
   dead_client: 5000
@@ -142,12 +141,12 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
       if (topic) {
         const handler = handlers[topic] || handlers[self_key];
         if (handler) {
-          handler(msg, cid);
+          handler(msg, cid, topic);
         } else {
           log( id, { missing_handler_for_topic: topic });
         }
       } else {
-         log(id, 'no.topic.recv', { msg, cid });
+         log(id, 'no.topic.recv', { msg, cid, topic });
       }
     }
   }());
