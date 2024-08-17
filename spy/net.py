@@ -8,7 +8,7 @@ async def zmq_client(host="127.0.0.1", port=6000):
   context = zmq.asyncio.Context()
   sock = context.socket(zmq.DEALER)
   sock.connect(f"tcp://{host}:{port}")
-  printf('Client connected to {host}:{port}')
+  print(f'Client connected to {host}:{port}')
 
   async def send(request):
     await sock.send_json(request)
@@ -24,35 +24,53 @@ async def zmq_client(host="127.0.0.1", port=6000):
 
 async def zmq_node(host="127.0.0.1", port=6000):
   client = await zmq_client(host, port)
+  seed = asyncio.get_event_loop().time()
+  self_key = "{self}"
   handlers = {}
+  lastHB = float('inf')
+
+  async def heartbeat():
+    while True:
+      await client['send'](seed)
+      await asyncio.sleep(5) # Assuming 5 seconds for the heartbeat interval
+
+  asyncio.create_task(heartbeat())
 
   async def receiver():
+    nonlocal lastHB
     while True:
-      [ topic, msg, cid ] = await client.recv()
+      rec = await client['recv']()
+      if isinstance(rec, int):
+        if rec != lastHB:
+          if lastHB != float('inf'):
+            for topic in handlers:
+              await client['send'](["sub", None if topic == self_key else topic])
+              print('proxy re-sub', topic)
+            lastHB = rec
+          continue
 
+      topic, msg, cid = rec
       if topic:
-        handler = handlers.get(topic, handlers.get("{self}"))
+        handler = handlers.get(topic) or (handlers.get(self_key))
         if handler:
           handler(msg, cid)
         else:
-          print(f"Missing handler for topic: {topic}")
+          print('missing handler for topic', topic)
       else:
-        print("No topic received", {"msg": msg, "cid": cid})
+        print('no topic recv', {"msg": msg, "cid": cid})
 
   asnycio.create_task(receiver())
 
-  async def publish(topic, message):
-    await client['send']([ "pub", topic, message ])
+  api = {
+    "publish": lambda topic, message: asyncio.create_task(client['send']["pub", topic, message]),
+    "subscribe": lambda topic, handler: _subscribe(topic, handler),
+    "on_direct": lambda hanbdler: _subscribe(None, handler)
+  }
 
-  async def subscribe(topic, handler):
+  async def _subscribe(topic, handler):
     await client['send']([ "sub", topic ])
-    handlers[topic] = handler
-  
-  async def on_direct(handler):
-    await client['send']([ "sub", ""])
-    handler["{self}"] = handler
-
-  return { 'publish': publish, 'subscribe': subscribe, 'on_direct': on_direct }
+    handlers[topic if topic else self_key] = handler
+  return api
 
 # Example usage
 async def main():
