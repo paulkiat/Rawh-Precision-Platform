@@ -58,7 +58,14 @@ async def zmq_node(host="127.0.0.1", port=6000):
 async def main():
   node = await zmq_node()
   await node["subscribe"]("example_topic", lambda msg, cid: print(f"Message from {cid}: {msg}"))
-  await node["publish"]("example_topic", "Hello, World!")
+  # await node["publish"]("example_topic", "Hello, World!")
+
+  counter = 0
+  while True:
+    message = f"Hello, World! {counter}"
+    await node ["publish"]("example_topic", message)
+    counter += 1
+    await asyncio.sleep(1) # Pause for 1 second (or any desired interval)
 
   # Create an asyncio Event that is never set
   # and wait on it to keep the event loop running

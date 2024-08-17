@@ -4,6 +4,7 @@ const zeromq = require('zeromq');
 const { Dealer, Router } = zeromq;
 const util = require('./util');
 const log = util.logpre('zmq');
+const { args, json } = util;
 const proto = "tcp";
 
 async function zmq_server(port, onmsg, opt = { sync: false }) {
@@ -11,31 +12,37 @@ async function zmq_server(port, onmsg, opt = { sync: false }) {
   const cidmap = {};
   
   await sock.bind(`${proto}://*:${port}`);
-  log('Server bound', proto, 'port', port, 'opt', opt);
+  log('server bound', proto, 'port', port, 'opt', opt);
   
-  for await (const [id, msg] of sock) {
-    const cid = id.readUint32BE(1).toString(36);
-    cidmap[cid] = id;
-    const req = JSON.parse(msg);
-    const rep = await onmsg(req, cid, (cid, msg) => {
-      sock.send([ cidmap[cid], msg ]);
-    });
-    if (rep !== undefined) {
-      const pro = sock.send([ id, JSON.stringify(rep) ]);
-      if (opt.sync) await pro;
+  (async function () {
+    for await (const [id, msg] of sock) {
+      const cid = id.readUint32BE(1).toString(36);
+      cidmap[cid] = id;
+      const req = JSON.parse(msg);
+      const rep = await onmsg(req, cid, (cid, msg) => {
+        sock.send([cidmap[cid], msg]);
+      });
+      if (rep !== undefined) {
+        const pro = sock.send([id, json(rep)]);
+        if (opt.sync) await pro;
+      }
     }
-  }
-
-  log('Server done');
+  }());
+  
+  return {
+    send: function (cid, msg) {
+      sock.send([cidmap[cid], json(msg)]);
+    }
+  };
 }
 
 function zmq_client(host = "127.0.0.1", port) {
   const sock = new Dealer;
   sock.connect(`${proto}://${host}:${port}`);
-  log(`Client connected to ${host}:${port}`);
+  log(`client connected to ${host}:${port}`);
 
   async function send(request) {
-    await sock.send(JSON.stringify(request));
+    await sock.send(json(request));
   }
 
   async function recv() {
@@ -52,8 +59,10 @@ function zmq_client(host = "127.0.0.1", port) {
 }
 
 function zmq_proxy(port = 6000) {
-  const topics = {};
+  const topics = { };
+  const clients = { };
   const server = zmq_server(port, (recv, cid, send) => {
+    clients[cid] = Date.now();
     const [ action, topic, msg ] = recv;
     const topto = topic || cid;
     const subs = topics[topto] = topics[topto] || [];
@@ -63,7 +72,7 @@ function zmq_proxy(port = 6000) {
         break;
       case 'pub':
         for (let tid of subs) {
-          send([ tid, JSON.stringify([ topto, msg, cid ]) ]);
+          send([ tid, json([ topto, msg, cid ]));
         }
         break;
       default:
@@ -71,6 +80,9 @@ function zmq_proxy(port = 6000) {
         break;
     }
   });
+  setInterval(() => {
+    // heartbeat all clients
+  }, 1000);
 }
 
 /** broker node capable of pub, sub, and direct messaging */
@@ -115,19 +127,17 @@ Object.assign(exports, {
   zmq: {
     server: zmq_server,
     client: zmq_client,
-    proxy: zmq_proxy
+    proxy: zmq_proxy,
+    node: zmq_node
   }
 });
 
 if (require.main === module) {
-  if (true) (async function () {
-    // await zmq_proxy();
-    // const sub = await zmq_sub();
-    // const pub = await zmq_pub();
-    // sub.listen('cats', catmsg => {
-    //   log({ catmsg });
-    // })
-    // pub.send('cats', "a cat message");
+  if (args.run === "proxy") {
+    zmq_proxy(args.port);
+  }
+ 
+  if (args.test === "proxy") (async function () {
     log('--- test proxy ---');
     zmq_proxy();
     const n1 = zmq_node();
@@ -145,7 +155,7 @@ if (require.main === module) {
     n2.publish('cats', "a cats message");
   }());
 
-  if (false) (async function () {
+  if (args.test === "server") (async function () {
     log('--- test clients/server ---');
     zmq_server(7000, async (msg, sock) => {
       log('server got', { msg, sock });
