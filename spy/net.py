@@ -8,7 +8,7 @@ async def zmq_client(host="127.0.0.1", port=6000):
   context = zmq.asyncio.Context()
   sock = context.socket(zmq.DEALER)
   sock.connect(f"tcp://{host}:{port}")
-  print(f'Client connected to {host}:{port}')
+  print(f'connected to {host}:{port}')
 
   async def send(request):
     await sock.send_json(request)

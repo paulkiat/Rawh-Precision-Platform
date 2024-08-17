@@ -1,0 +1,8 @@
+FROM node:18-slim
+EXPOSE 6000
+WORKDIR /proxy
+RUN apt-get -y update; apt-get -y install curl libzmq3-dev openssl
+COPY src/dock/org/package.json /proxy
+COPY src/lib /proxy/src/lib
+RUN npm i
+CMD node src/lib/net --run=proxy

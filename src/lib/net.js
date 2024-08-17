@@ -3,6 +3,8 @@
 const zeromq = require("zeromq");
 const util = require('./util');
 const log = util.logpre('zmq');
+const os = require('os');
+
 const { Dealer, Router } = zeromq;
 const { args, json } = util;
 const proto = "tcp";
@@ -21,7 +23,7 @@ function zmq_server(port, onmsg, opt = { sync: false }) {
 
   (async function () {
     await sock.bind(`${proto}://*:${port}`);
-    log('server bound', proto, 'port', port, 'opt', opt);
+    log('listening on', proto, 'port', port, 'opt', opt);
   
     for await (const [id, msg] of sock) {
       const cid = id.readUint32BE(1).toString(36);
@@ -47,7 +49,7 @@ function zmq_server(port, onmsg, opt = { sync: false }) {
 function zmq_client(host = "127.0.0.1", port) {
   const sock = new Dealer;
   sock.connect(`${proto}://${host}:${port}`);
-  log(`client connected to ${host}:${port}`);
+  log(` connected to ${host}:${port}`);
 
   async function send(request) {
     await sock.send(json(request));
@@ -69,7 +71,9 @@ function zmq_client(host = "127.0.0.1", port) {
 function zmq_proxy(port = 6000) {
   const seed = Date.now();
   const topics = { };
-  const clients = { };
+  const clients = {};
+  log(`proxy host`, host_addrs());
+
   const server = zmq_server(port, (recv, cid, send) => {
     clients[cid] = Date.now();
     if (typeof recv == 'number') {
@@ -168,8 +172,24 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
   return api;
 }
 
+function host_addrs() {
+  const networkInterfaces = os.networkInterfaces();
+  const addr = [];
+
+  for (const interface in networkInterfaces) {
+    for (const networkInterface of networkInterfaces[interface]) {
+      if (networkInterface.family === 'IPv4' && !networkInterface.internal) {
+        addr.push(networkInterface.address)
+      }
+    }
+  }
+
+  return addr;
+}
+
 Object.assign(exports, {
   zmq: {
+    host_addrs,
     server: zmq_server,
     client: zmq_client,
     proxy: zmq_proxy,
@@ -183,6 +203,10 @@ if (require.main === module) {
     zmq_proxy(args.port);
   }
  
+  if (args.run === 'addsr') {
+    console.log(host_addrs());
+  }
+
   if (args.test === "proxy1") (async function () {
     log('--- test proxy bounding ---');
     const n1 = zmq_node;
