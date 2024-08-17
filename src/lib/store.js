@@ -7,13 +7,16 @@ const util = require('./util');
 const byline = require('readline');
 const { json, parse } = util;
 
-async function open(dir = "data-store") {
-
-  const state = { };
-
-  const db = state.db = new Level(dir, { valueEncoding: 'json' });
+async function open(dir = "data-store", opt = { valueEncoding: 'json' }) {
+  const db = new Level(dir, opt);
   await db.open({ createIfMissing: true });
+  return wrap(db);
+};
 
+function wrap(db) {
+  const sub = function (pre, opt = {}) {
+    return db.sublevel([pre, opt]);
+  };
 
   const get = async function (key, defval) {
     return await (db.get(key).catch(error => defval));
@@ -68,15 +71,16 @@ async function open(dir = "data-store") {
     };
 
   return {
-    get,
-    put,
-    del,
-    list,
-    dump,
-    load,
-    clear
+      sub,
+      get,
+      put,
+      del,
+      list,
+      dump,
+      load,
+      clear
   };
-};
+}
 
 /** http(s) endpoint handler for storing admin/exploration */
 function web_admin(state, key) {
