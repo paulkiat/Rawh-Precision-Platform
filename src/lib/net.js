@@ -1,7 +1,7 @@
 /** ZeroMQ export helpers for client/server nodes */
 
 const zeromq = require('zeromq');
-const { Request, Reply, Dealer, Router } = zeromq;
+const { Dealer, Router } = zeromq;
 const util = require('./util');
 const log = util.logpre('zmq');
 const proto = "tcp";
@@ -73,11 +73,8 @@ function zmq_proxy(port = 6000) {
   });
 }
 
-let next_node_id = 1;
-
 /** broker node capable of pub, sub, and direct messaging */
 function zmq_node(host = "127.0.0.1", port = 6000) {
-  const id = (next_node_id++).toString().padStart(4, 0);
   const client = zmq_client(host, port);
   const handlers = {};
 
@@ -105,7 +102,7 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
       client.send([ "sub", topic ]);
       handlers[topic] = handler;
     },
-    ondirect: (handler) => {
+    on_direct: (handler) => {
       client.send([ "sub", undefined ]);
       handlers["{self}"] = handler;
     }
@@ -135,14 +132,14 @@ if (require.main === module) {
     zmq_proxy();
     const n1 = zmq_node();
     const n2 = zmq_node();
-    n1.ondirect((msg, cid) => {
+    n1.on_direct((msg, cid) => {
       log('n1-direct', { msg, from: cid });
     });
     n1.subscribe('cats', (msg, cid) => {
       log({ n1: 'from-sub-cats', msg, from: cid });
       n1.publish(cid, `thanks for: ${msg}`);
     });
-    n2.ondirect((msg, cid) => {
+    n2.on_direct((msg, cid) => {
       log({n2:'from-direct', msg, from: cid });
     });
     n2.publish('cats', "a cats message");
