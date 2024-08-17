@@ -15,6 +15,11 @@ async function create(state, name, creator) {
   return uid;
 }
 
+async function get(state, uid) {
+  const { meta } = state;
+  await meta.get(`org:${uid}`)
+}
+
 Object.assign(exports, {
   create
 });

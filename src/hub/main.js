@@ -17,7 +17,6 @@ Object.assign(state, {
   adm_handler: web.chain([
     store.web_admin(state, 'meta'),
     store.web_admin(state, 'logs'),
-    adm_handler,
     require('./adm_web').handler(state)
   ]),
   web_handler,

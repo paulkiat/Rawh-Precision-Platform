@@ -8,45 +8,30 @@ const byline = require('readline');
 const { json, parse } = util;
 
 async function open(dir = "data-store") {
-  const statuskey = "...status";
-  const status = { opens: 0, openlast: 0, gets: 0, puts: 0, dels: 0, lists: 0, acts: 0, lastacts: 0 };
-  const state = { status };
+
+  const state = { };
 
   const db = state.db = new Level(dir, { valueEncoding: 'json' });
   await db.open({ createIfMissing: true });
 
-  const sync = async function () {
-    await put(statuskey, status);
-    status.lastacts = status.acts;
-    // log({ status });
-  };
 
   const get = async function (key, defval) {
-    status.gets++;
-    status.acts++;
     return await (db.get(key).catch(error => defval));
   };
 
   const put = async function (key, value) {
-    status.puts++;
-    status.acts++;
     return await db.put(key, value);
   };
 
   const del = async function (key) {
-    status.dels++;
-    status.acts++;
     return await db.del(key).catch(error => 0);
   };
 
   const list = async function (opt = { limit: 100 }) {
-    status.lists++;
-    status.acts++;
     return await db.iterator(opt).all();
   };
 
   const clear = async function (opt = {}) {
-    status.acts++;
     return await db.clear(opt);
   };
 
@@ -72,27 +57,15 @@ async function open(dir = "data-store") {
     });
 
     for await (const line of reader) {
-      const [ key, value ] = parse(line);
+      const [key, value] = parse(line);
       await db.put(key, value);
       console.log(key, value);
       recs++;
     }
 
-    await handle.close();
-    return { recs };
-  }
-
-  state.status = Object.assign(status, await get(statuskey, status));
-  status.openlast = Date.now();
-  status.opens++;
-  await sync();
-
-  setInterval(async () => {
-    const { status } = state;
-    if (status.acts !== status.lastacts) {
-      await sync();
-    }
-  }, 1000);
+      await handle.close();
+      return { recs };
+    };
 
   return {
     get,
@@ -137,6 +110,11 @@ function web_admin(state, key) {
       case `/${key}.dump`:
         store.dump(key).then((out) => {
           res.end(json(out));
+        });
+        return;
+      case `/${key}.clear`:
+        store.clear().then((out) => {
+          res.end(json(out || "ok"));
         });
         return;
       case `/${key}.load`:

@@ -2,7 +2,7 @@
 
 const orgadm = require('./adm_org');
 const util = require('../lib/util');
-const log = prelog('./webadm.js');
+const log = util.logpre('adm');
 const { json } = util;
 
 function handler(state) {
