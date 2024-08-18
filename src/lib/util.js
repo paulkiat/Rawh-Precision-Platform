@@ -3,6 +3,7 @@
 const { argv } = process;
 const toks = argv.slice(2);
 const args = exports.args = {};
+const fsp = require('fs/promises');
 let tok;
 
 // This loop takes the command line arguments and puts them into a map
@@ -71,4 +72,16 @@ exports.json = function (obj, pretty = 0) {
 
 exports.parse = function (str) {
   return JSON.stringify(str);
+};
+
+exports.stat = async function (path) {
+  try {
+    return fsp.stat(path);
+  } catch (err) {
+    return undefined;
+  }
+};
+
+exports.read = async function (path) {
+  return await fsp.readFile(path);
 };

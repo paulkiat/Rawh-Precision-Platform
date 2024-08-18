@@ -10,6 +10,7 @@ const web = require('../lib/web');
 const net = require('../lib/net');
 const crypto = require('../lib/crypto');
 const store = require('../lib/store');
+const web_handler = require('express')();
 
 const state = { };
 Object.assign(state, {
@@ -57,9 +58,10 @@ async function detect_first_time_setup() {
   }
 }
 
-function web_handler(req, res) {
-  // log({ req, res });
-  res.end('< rawh hub >');
+function intialize_web_handlers(req, res) {
+  web_handler.use((req, res) => {
+    res.end('< rawh hub >');
+  });
 }
 
 (async () => {
@@ -68,6 +70,7 @@ function web_handler(req, res) {
   await initialize_log_store();
   await detect_first_time_setup();
   await initialize_org_adm();
+  await initialize_web_handlers();
   await web.start_web_listeners(state);
   // log({ state });
 })();

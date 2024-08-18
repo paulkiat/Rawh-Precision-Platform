@@ -7,10 +7,12 @@ const log = require('../lib/util').logpre('org');
 const web = require('../lib/web');
 const crypto = require('../lib/crypto');
 const store = require('../lib/store');
+const web_handler = require('express')();
 
 const state = { };
 Object.assign(state, {
   org_id: env['ORG_ID'] || args['org-id'],
+  ssl_dir: env['SSL_DIR'] || args['ssl-dir'], // for customer supplied ssl key & cert files
   hub_host: env['HUB_HOST'] || args['hub-host'] || (args.prod ? "meta.rawh.ai" : "localhost"),
   hub_port: env['HUB_PORT'] || args['hub-port'] || (args.prod ? 443 : 8443 ),
   adm_port: ['adm-port'] || (args.prod ?  80 : 9000),
@@ -20,6 +22,7 @@ Object.assign(state, {
     store.web_admin(state, 'logs'),
     adm_handler
   ]),
+  web_handler
 });
 
 /**
@@ -63,6 +66,18 @@ async function detect_first_time_setup() {
   }
 }
 
+async function setup_express() {
+  // setup express
+  web_handler
+    // .use(require('compression'))
+    .use(require('serve-static')('web/org', { index: ['index.html'] }))
+    .use((req, res) => {
+      res.writeHead(404, { 'Content-type': 'text/plain' });
+      res.end('404  Not Found');
+    })
+    ;
+}
+
 async function start_service_broker() {
   log('starting service broker');
   proxy();
@@ -79,6 +94,7 @@ function adm_handler(chain, pass) {
   await init_log_store();
   await detect_first_time_setup();
   await web.start_web_listeners(state);
+  await setup_express();
   await start_service_listener();
   await require('./hub-link').start_hub_connection(state);
   state.logr("org services started");

@@ -1,4 +1,6 @@
-const log = require('./util').logpre('web');
+const util = require('../lib/util');
+const log = util.logpre('web');
+const path = require('path');
 const http = require('node:http');
 const https = require('node:https');
 const WebSocket = require('ws');
@@ -20,9 +22,29 @@ async function start_web_listeners(state) {
 
   // generate new https key if missing or over 300 days old
   if (!state.ssl || Date.now() - state.web.date > 300 * 24 * 60 * 60 * 1000) {
-    log('generating https private key and x509 cert');
-    state.ssl = await crypto.createWebKeyAndCert();
-    await meta.put("ssl-keys", state.ssl);
+    let found = false;
+    if (state.ssl_dir) {
+      // look for key.pem and cert.pem file in a given directory
+      const dir = util.stat(state.ssl_dir);
+      if (dir && dir.isDirectory()) {
+        const key = util.stat(path.join(state.ssl_dir, 'key.pem'));
+        const crt = util.stat(path.join(state.ssl_dir, 'cert.pem'));
+        if (key && key.isFile() && crt && crt.isFile()) {
+          state.ssl = {
+            key: await util.read(key),
+            cert: await util.read(crt),
+            date: Math.round(key.mtimeMs)
+          };
+          await meta.put("ssl-keys", state.ssl);
+          found = true;
+        }
+      }
+    }
+    if (!found) {
+      log('generating https private key and x509 cert');
+      state.ssl = await crypto.createWebKeyAndCert();
+      await meta.put("ssl-keys", state.ssl);
+    }
   }
 
   // open secure web port handle customer/org requests
