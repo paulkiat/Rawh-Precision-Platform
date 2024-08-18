@@ -14,8 +14,8 @@ async function open(dir = "data-store", opt = { valueEncoding: 'json' }) {
 };
 
 function wrap(db) {
-  const sub = function (pre, opt = {}) {
-    return db.sublevel([pre, opt]);
+  const sub = function (pre, opt = { valueEncoding: 'json' }) {
+    return wrap( db.sublevel([pre, opt]));
   };
 
   const get = async function (key, defval) {

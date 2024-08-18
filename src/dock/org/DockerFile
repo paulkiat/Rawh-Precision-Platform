@@ -1,9 +1,9 @@
 FROM node:18-slim
 EXPOSE 3000
 WORKDIR /customer
-RUN apt-get -y update; apt-get -y install curl libzmq3-dev openssl
+RUN apt-get -y update; apt-get -y install curl libzmq3-dev openssl python3
 COPY src/hub/org/package.json /customer
 COPY src/lib/ customer/src/lib
 COPY src/org customer/src/org
 RUN npm i
-CMD node src/org/main
+CMD node src/org/main --prod

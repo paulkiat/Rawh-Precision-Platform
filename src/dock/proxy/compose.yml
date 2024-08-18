@@ -6,5 +6,5 @@ services:
     build:
       context: ../../..
       dockerfile: src/dock/proxy/Dockerfile
-  ports:
-    - "6000:6000"
+    ports:
+      - "6000:6000"

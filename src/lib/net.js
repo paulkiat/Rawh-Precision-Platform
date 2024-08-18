@@ -188,14 +188,12 @@ function host_addrs() {
 }
 
 Object.assign(exports, {
-  zmq: {
     host_addrs,
     server: zmq_server,
     client: zmq_client,
     proxy: zmq_proxy,
     node: zmq_node,
     set: zmq_settings
-  }
 });
 
 if (require.main === module) {

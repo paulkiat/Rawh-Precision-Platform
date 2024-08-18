@@ -2,13 +2,13 @@
 
 const { env } = process;
 const { args } = require('../lib/util');
-const { server, client } = require('../lib/net').zmq;
+const { proxy } = require('../lib/net');
 const log = require('../lib/util').logpre('org');
 const web = require('../lib/web');
 const crypto = require('../lib/crypto');
 const store = require('../lib/store');
-const state = { };
 
+const state = { };
 Object.assign(state, {
   org_id: env['ORG_ID'] || args['org-id'],
   hub_host: env['HUB_HOST'] || args['hub-host'] || (args.prod ? "meta.rawh.ai" : "localhost"),
@@ -28,7 +28,7 @@ Object.assign(state, {
  * 1. open meta-data data-store
  * 2. open log-data data-store
  * 3. detect first-time setup, create pub/priv key pair
- * 4. starts broker listener
+ * 4. start broker/proxy listener
  * 5. start hub connection
  */
 async function init_data_store() {
@@ -63,27 +63,9 @@ async function detect_first_time_setup() {
   }
 }
 
-async function start_broker_listener() {
-  log('start broker listener');
-  server(3000, async req => {
-    log(`<<< ${JSON.stringify(req)}`);
-    req.ok = 1;
-    return req;
-  });
-}
-
-async function test_broker() {
-  const client1 = client("127.0.0.1", 3000);
-  const client2 = client("127.0.0.1", 3000);
-  
-  // test clients
-  for (let i = 0; i < 0; i++) {
-
-    const r1 = await client1.call({ seed: 1, i });
-    const r2 = await client2.call({ seed: 2, i });
-
-    log(`>>>`, { r1, r2 });
-  }
+async function start_service_broker() {
+  log('starting service broker');
+  proxy();
 }
 
 function adm_handler(chain, pass) {
@@ -97,8 +79,7 @@ function adm_handler(chain, pass) {
   await init_log_store();
   await detect_first_time_setup();
   await web.start_web_listeners(state);
-  await start_broker_listener();
+  await start_service_listener();
   await require('./hub-link').start_hub_connection(state);
-  if (args.test) await test_broker();
-  state.logr("service started");
+  state.logr("org services started");
 })();

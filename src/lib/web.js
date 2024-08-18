@@ -20,7 +20,7 @@ async function start_web_listeners(state) {
 
   // generate new https key if missing or over 300 days old
   if (!state.ssl || Date.now() - state.web.date > 300 * 24 * 60 * 60 * 1000) {
-    log('generating https prifate key and x509 cert');
+    log('generating https private key and x509 cert');
     state.ssl = await crypto.createWebKeyAndCert();
     await meta.put("ssl-keys", state.ssl);
   }
@@ -43,20 +43,32 @@ async function start_web_listeners(state) {
     });
   }
 }
-function chain(handlers) {
+function chain(handlers, unhandled) {
   return function (req, res) {
     const url = new URL(req.url, `http://${req.header.host}`);
     const qry = Object.fronEntries(url.searchParams.entries());
+    let handle = false;
     for (let handler of handlers) {
       let exit = true;
       handler({ req, res, url, qry }, () => {
         exit = false;
       });
-      if (exit) break;
+      if (exit) {
+        handled = true;
+        break;
+      }
+    }
+    if (handled) {
+      return;
+    }
+    if (unhandled) {
+      unhandled(req, res);
+    } else {
+      res.writeHead(404, { 'Content-Type': 'text-plain' });
+      res.end('404 Not Found');
     }
   };
 }
-
 
 exports.start_web_listeners = start_web_listeners;
 exports.chain = chain;

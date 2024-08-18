@@ -1,11 +1,10 @@
 /** simple curl-able web admin api */
 
-const orgadm = require('./adm_org');
 const util = require('../lib/util');
 const log = util.logpre('adm');
 const { json } = util;
 
-function handler(state) {
+function setup(state) {
   return function (chain, pass) {
     admin_handler(state, chain, pass);
   }
@@ -13,7 +12,8 @@ function handler(state) {
 
 function admin_handler(state, chain, pass) {
   const { req, res, url, qry } = chain;
-  const { meta, logs } = state;
+  const { meta, logs, adm_org } = state;
+  const { name, creator, uid } = qry;
   switch (url.pathname) {
     case '/state':
       log({ state });
@@ -21,20 +21,26 @@ function admin_handler(state, chain, pass) {
     case '/uid':
       return res.end(util.uid());
     case 'org/create':
-      const { name, creator } = qry;
-      orgadm.create(state, name, creator)
-        .then((uid) => {
-          res.end(json({ orgid: uid }));
+      adm_org(name, creator)
+        .then (uid => res.end(json({ orgid: uid })))
+        .catch (error => res.end(json({ error })));
+      return;
+    case '/org.byname':
+      adm_org.get_by_name(name)
+        .then(kv => {
+          const [ uid, rec ] = kv;
+          res.end(json({ uid, rec }));
         })
-        .catch(err => {
-          log({ err });
-          res.end('error creating org');
-        });
+        .catch(error => res.end(json({ error })));
+      return;
+    case '/org.byuid':
+      adm_org.get_by_uid(uid)
+        .then (rec => res.end(json(rec)))
+        .catch (error => res.end(json({ error })));
       return;
     default:
-      break;
+        return pass();
   }
-  res.end('< rawh hub admin >');
 }
 
-exports.handler = handler;
+exports.setup = setup;
