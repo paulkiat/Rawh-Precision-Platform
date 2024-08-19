@@ -34,21 +34,21 @@ Object.assign(state, {
  * 4. start https listening endpoints
  */
 
-async function initialize_data_store() {
+async function setup_data_store() {
   log('initializing data store');
   state.meta = await store.open("data/hub-meta");
 }
 
-async function initialize_log_store() {
+async function setup_log_store() {
   log('initializing log store');
   state.log = await store.open("data/hub-logs");
 }
 
-async function initialize_org_adm() {
+async function setup_org_adm() {
   state.adm_org = require('./adm_org');
   state.adm_org.init(state);
 }
-async function detect_first_time_setup() {
+async function setup_keys() {
   const { meta, logs } = state;
   state.hub_keys = await meta.get("hub-keys");
   if (!state.hub_keys) {
@@ -58,7 +58,7 @@ async function detect_first_time_setup() {
   }
 }
 
-function intialize_web_handlers(req, res) {
+function setup_web_handlers(req, res) {
   web_handler.use((req, res) => {
     res.end('< rawh hub >');
   });
@@ -66,11 +66,11 @@ function intialize_web_handlers(req, res) {
 
 (async () => {
   log('rawh hub addr', net.host_addrs());
-  await initialize_data_store();
-  await initialize_log_store();
-  await detect_first_time_setup();
-  await initialize_org_adm();
-  await initialize_web_handlers();
+  await setup_data_store();
+  await setup_log_store();
+  await setup_keys();
+  await setup_org_adm();
+  await setup_web_handlers();
   await web.start_web_listeners(state);
   // log({ state });
 })();

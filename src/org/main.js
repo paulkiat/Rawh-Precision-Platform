@@ -17,6 +17,7 @@ Object.assign(state, {
   hub_port: env['HUB_PORT'] || args['hub-port'] || (args.prod ? 443 : 8443 ),
   adm_port: ['adm-port'] || (args.prod ?  80 : 9000),
   web_port: ['web-port'] || (args.prod ? 443 : 9443),
+  proxy_port: env['PROXY_PORT'] || args['proxy-port'] || 6000,
   adm_handler: web.chain([
     store.web_admin(state, 'meta'),
     store.web_admin(state, 'logs'),
@@ -34,7 +35,7 @@ Object.assign(state, {
  * 4. start broker/proxy listener
  * 5. start hub connection
  */
-async function initialize_data_store() {
+async function setup_data_store() {
   log('initializing data store');
   state.meta = await store.open("data/org-meta");
   state.org_id = state.org_id || await state.meta.get("org-id", state.org_id);
@@ -46,7 +47,7 @@ async function initialize_data_store() {
   await state.meta.put("org-id", state.org_id);
 }
 
-async function initialize_log_store() {
+async function setup_log_store() {
   log('initializing log store');
   state.log = await store.open("data/org-logs");
   state.logr = function () {
@@ -77,9 +78,13 @@ async function setup_express() {
     ;
 }
 
-async function start_service_broker() {
+async function start_org_proxy() {
   log('starting service broker');
-  proxy();
+  proxy(state.proxy_port);
+}
+
+async function setup_org_node() {
+  require('./node').init(state);
 }
 
 function adm_handler(chain, pass) {
@@ -89,12 +94,13 @@ function adm_handler(chain, pass) {
 }
 
 (async () => {
-  await initialize_data_store();
-  await initialize_log_store();
+  await setup_data_store();
+  await setup_log_store();
   await initialize_keys();
   await setup_express();
   await web.start_web_listeners(state);
-  await start_service_broker();
+  await start_org_proxy();
+  await start_org_node();
   await require('./hub-link').start_hub_connection(state);
   state.logr("org services started");
 })();

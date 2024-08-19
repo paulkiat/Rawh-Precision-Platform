@@ -70,7 +70,7 @@ async function handle(state, msg) {
     link.send({ org_key_public: state.org_keys.public });
   }
   if (msg.challenge) {
-    const ok = crypto.verify('rawh', msg.challenge, state.hub_key_public);
+    const ok = crypto.verify("rawh", msg.challenge, state.hub_key_public);
     if (ok) {
       link.send({ challenge: crypto.sign(state.org_id, state.org_keys_private) });
     } else {
