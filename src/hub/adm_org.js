@@ -1,8 +1,10 @@
 /** api for managing org data */
+/** swim-lane pre-flight checklist */
 const util = require('../lib/util');
 const log = util.logpre('org');
 const env = { };
 
+/**01|-> init(sate) ----------->*/
 function init(state) {
   const { meta } = state;
   Object.assign(env, {
@@ -11,13 +13,13 @@ function init(state) {
     orgs: meta.sub('org')
   })
 }
-
-async function create(name, creator) {
+/**02|-------- create your creator ----> */
+async function create(name, creator) { 
   const { orgs } = env;
   const uid = util.uid();
-  const exists = get_by_name(name);
-  // prevent creating two orgs with the same name
+  const exists = await get_by_name(name);
 
+  // prevent creating two orgs with the same name
   if (exists) {
     throw "duplicate org name";
   }
@@ -31,11 +33,13 @@ async function create(name, creator) {
   return { uid };
 }
 
+async function update(uid, rec) {
+  const { orgs } = env; // User Action---> Objects Re-Action, 
+  await orgs.put(uid, rec);
+}
 async function get_by_uid(uid) {
   const { orgs } = env;
-  const rec = await orgs.get(uid);
-  if (!rec) throw `no org with uid: ${uid}`;
-  return rec;
+  return await orgs.get(uid);
 }
 
 async function get_by_name(name) {
@@ -48,12 +52,13 @@ async function get_by_name(name) {
       return [ uid, rec ];
     }
   }
-  throw `no org named: ${name}`;
+  return undefined;
 }
 
 Object.assign(exports, {
-  create,
   init,
+  create,
+  update,
   get_by_uid,
   get_by_name
 });

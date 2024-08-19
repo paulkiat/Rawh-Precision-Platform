@@ -28,14 +28,24 @@ function admin_handler(state, chain, pass) {
     case '/org.byname':
       adm_org.get_by_name(name)
         .then(kv => {
-          const [ uid, rec ] = kv;
-          res.end(json({ uid, rec }));
+          if (!kv) {
+            res.end(json({ error: "`no org: ${name" }));
+          } else {
+            const [uid, rec] = kv;
+            res.end(json({ uid, rec }));
+          }
         })
         .catch(error => res.end(json({ error })));
       return;
     case '/org.byuid':
       adm_org.get_by_uid(uid)
-        .then (rec => res.end(json(rec)))
+        .then(rec => {
+          if (rec) {
+            res.end(json(rec));
+          } else {
+            res.end(json({ error: `no org id: ${uid}` }));
+         }
+        })
         .catch (error => res.end(json({ error })));
       return;
     default:

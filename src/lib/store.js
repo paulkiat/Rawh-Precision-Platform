@@ -14,6 +14,8 @@ async function open(dir = "data-store", opt = { valueEncoding: 'json' }) {
 };
 
 function wrap(db) {
+  // a sub-level is like a prefix with the added benefit
+  // of a global db operations being bound by it (like clear)
   const sub = function (pre, opt = { valueEncoding: 'json' }) {
     return wrap( db.sublevel([pre, opt]));
   };

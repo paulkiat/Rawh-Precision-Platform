@@ -34,20 +34,19 @@ Object.assign(state, {
  * 4. start broker/proxy listener
  * 5. start hub connection
  */
-async function init_data_store() {
+async function initialize_data_store() {
   log('initializing data store');
   state.meta = await store.open("data/org-meta");
-  state.org_id = await state.meta.get("org-id", state.org_id);
+  state.org_id = state.org_id || await state.meta.get("org-id", state.org_id);
   if (!state.org_id) {
     log({ exit_on_missing_org_id: state.org_id });
     process.exit();
-  } else {
-    log({ org_id: state.org_id });
-    await state.meta.put("org-id", state.org_id);
   }
+  log({ org_id: state.org_id });
+  await state.meta.put("org-id", state.org_id);
 }
 
-async function init_log_store() {
+async function initialize_log_store() {
   log('initializing log store');
   state.log = await store.open("data/org-logs");
   state.logr = function () {
@@ -56,7 +55,7 @@ async function init_log_store() {
   };
 }
 
-async function detect_first_time_setup() {
+async function initialize_keys() {
   const { meta, logs } = state;
   state.org_keys = await meta.get("org-keys");
   if (!state.org_keys) {
@@ -64,6 +63,7 @@ async function detect_first_time_setup() {
     state.org_keys = await crypto.createKeyPair();
     await meta.put("org-keys", state.org_keys);
   }
+  state.hub_key_public = await meta.get("hub-key-public");
 }
 
 async function setup_express() {
@@ -90,9 +90,9 @@ function adm_handler(chain, pass) {
 }
 
 (async () => {
-  await init_data_store();
-  await init_log_store();
-  await detect_first_time_setup();
+  await initialize_data_store();
+  await initialize_log_store();
+  await initialize_keys();
   await web.start_web_listeners(state);
   await setup_express();
   await start_service_listener();

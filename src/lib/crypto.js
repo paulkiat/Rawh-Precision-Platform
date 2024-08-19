@@ -1,5 +1,6 @@
 const { mkdir, rm, readFile } = require('node:fs/promises');
 const { execSync } = require('child_process');
+const { generateKeyPair, createSign, createVerify } = require('crypto');
 
 // create private key and self-signed X509 cert for https server
 exports.createWebKeyAndCert = async function () {
@@ -18,7 +19,6 @@ exports.createWebKeyAndCert = async function () {
 
 // create public / private key pair for signing / verifying messages
 exports.createKeyPair = function (passphrase = '') {
-  const { generateKeyPair } = require('crypto');
 
   return new Promise((resolve, reject) => {
     generateKeyPair('rsa', {
@@ -46,4 +46,18 @@ exports.createKeyPair = function (passphrase = '') {
      });
   });
 };
+
+exports.sign = function (message, key, passphrase = '') {
+  const signer = createSign('sha256');
+  signer.update(message);
+  signer.end();
+  return signer.sign({ key, passphrase }, 'base64');
+}
+
+exports.verify = function (message, signature, publicKey) { 
+  const verifier = createVerify('sha256');
+  verifier.update(message);
+  verifier.end();
+  return verifier.verify(publicKey, signature, 'base64');
+}
 
