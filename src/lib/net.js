@@ -157,9 +157,15 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
 
   const api = {
     publish: (topic, message) => {
+      if (Array.isArray(topic)) {
+        topic = topic.join('/');
+      }
       client.send([ "pub", topic, message ]);
     },
     subscribe: (topic, handler) => {
+      if (Array.isArray(topic)) {
+        topic = topic.join('/');
+      }
       client.send([ "sub", topic ]);
       handlers[topic] = handler;
     },

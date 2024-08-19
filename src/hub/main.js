@@ -31,7 +31,7 @@ Object.assign(state, {
  * 1. open meta-data data-store
  * 2. open log-data data-store
  * 3. detect first-time setup, create pub/priv key pair
- * 4. start https listening endpoints
+ * 4. start http / https listening endpoints
  */
 
 async function setup_data_store() {

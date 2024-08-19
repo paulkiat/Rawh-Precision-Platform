@@ -21,10 +21,17 @@ if (!state.app_id) {
 }
 
 async function connect_to_proxy() {
-  const node = state.node = net.node(state.proxy_host, state.proxy_port);
-  node.subscribe(state.app_id, (msg, cid, topic) => {
-    log({ topic, msg, cid });
+  const { app_id, proxy_host, proxy_port } = state;
+  const node = state.node = net.node(proxy_host, proxy_port);
+  node.subscribe(app_id, (msg, cid, topic) => {
+    log('app_id', { topic, msg, cid });
   });
+  node.subscribe([ app_id, "config" ], (msg, cid, topic) => {
+    log('config', { topic, msg, cid });
+  });
+  node.on_direct((msg, cid, topic) => {
+    log('direct', { topic, cid, msg });
+  })
 }
 
 async function validate_app() {
@@ -33,7 +40,7 @@ async function validate_app() {
   state.node.publish("app-up", state.app_id);
 }
 
-async function initialize_app_handlers() {
+async function setup_app_handlers() {
   app_handler
     .use(require('serve-static')('web/org', { index: [ "index.html" ]}))
     .use((req, res) => {
@@ -46,6 +53,6 @@ async function initialize_app_handlers() {
 (async () => {
   await connect_to_proxy();
   await validate_app();
-  await initialize_app_handlers();
+  await setup_app_handlers();
   await web.start_web_listeners(state);
 })();

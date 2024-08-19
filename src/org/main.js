@@ -32,9 +32,11 @@ Object.assign(state, {
  * 1. open meta-data data-store
  * 2. open log-data data-store
  * 3. detect first-time setup, create pub/priv key pair
- * 4. start broker/proxy listener
- * 5. start hub connection
+ * 4. start proxy listener (aka broker)
+ * 5. start node services (app listeners, etc)
+ * 5. start connection to rawh hub
  */
+
 async function setup_data_store() {
   log('initializing data store');
   state.meta = await store.open("data/org-meta");
