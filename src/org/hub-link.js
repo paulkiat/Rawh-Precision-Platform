@@ -77,6 +77,9 @@ async function handle(state, msg) {
       log({ failed_hub_key: "rawh" });
     }
   }
+  if (msg.welcome) {
+    log({ hub_connected: msg.welcome });
+  }
 }
 
 exports.start_hub_connection = start_hub_connection;

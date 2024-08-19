@@ -1,3 +1,4 @@
+const ms_days_300 = 330 * 24 * 60 * 60 * 1000;
 const util = require('../lib/util');
 const log = util.logpre('web');
 const path = require('path');
@@ -12,16 +13,22 @@ async function start_web_listeners(state) {
   if (!https) {
     return log('missing https support');
   }
-  const { meta, logs, adm_handler, web_handler, wss_handler } = state;
+  const { meta, logs, adm_handler, web_handler, app_handler, wss_handler } = state;
 
   // admin web port listens only locally
   log('starting adm listener', state.adm_port);
   servers.adm = http.createServer(adm_handler).listen(state.adm_port, 'localhost');
 
-  state.ssl = await meta.get("ssl-keys");
+  // app web port listens to http, but should only allow requests
+  // from localhost or the organizational web proxy
+  if (app_handler) {
+    log('starting app listener', state.app_port);
+    servers.app = http.createServer(app_handler).listen(state.app_port);
+  }
 
   // generate new https key if missing or over 300 days old
-  if (!state.ssl || Date.now() - state.web.date > 300 * 24 * 60 * 60 * 1000) {
+  if (web_handler && (state.ssl || Date.now() - state.web.date > 300 * 24 * 60 * 60 * 1000)) {
+    state.ssl - await meta.get("ssl-keys");
     let found = false;
     if (state.ssl_dir) {
       // look for key.pem and cert.pem file in a given directory

@@ -65,6 +65,11 @@ async function link_handler(state, msg, send, socket) {
     case "upgrading.2":
       break;
     case "verified":
+      if (!sock_stat.verified) {
+        log({ org_connected: org_rec.name });
+        send({ welcome: "rawh" });
+      }
+      sock_stat.verified = true.
       break;
     case "failed":
       break;
@@ -75,8 +80,9 @@ async function link_handler(state, msg, send, socket) {
 setInterval(() => {
   for (let [org_id, socket] of Object.entries(connected)) {
     const { stat } = socket;
+    const { org_rec } = stat;
     if (stat.ping && Date.now() - stat.ping > 6000) {
-      log({ org_disconnect: org_id });
+      log({ org_disconnect: org_rec ? org_recname: org_id });
       socket.close();
       delete connected(org_id);
     }

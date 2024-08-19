@@ -67,7 +67,6 @@ async function initialize_keys() {
 }
 
 async function setup_express() {
-  // setup express
   web_handler
     // .use(require('compression'))
     .use(require('serve-static')('web/org', { index: ['index.html'] }))
@@ -93,9 +92,9 @@ function adm_handler(chain, pass) {
   await initialize_data_store();
   await initialize_log_store();
   await initialize_keys();
-  await web.start_web_listeners(state);
   await setup_express();
-  await start_service_listener();
+  await web.start_web_listeners(state);
+  await start_service_broker();
   await require('./hub-link').start_hub_connection(state);
   state.logr("org services started");
 })();
