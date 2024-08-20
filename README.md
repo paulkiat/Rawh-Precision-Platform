@@ -50,7 +50,7 @@ cd -
 
 The Org web server in `5555` will proxy calls to the app server under
 the `/app/[appname]` urls. Each app also serves their own content directly
-for testing. `localhost:7000/app/sample1` is served through `localhost:5555/app/sample1`
+for testing. `localhost:7001/app/sample1` is served through `localhost:5555/app/sample1`
 for example.
 
 In production, you would not use the `--app-port` setting to the org server.

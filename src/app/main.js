@@ -50,8 +50,9 @@ async function setup_app_handlers() {
   app_handler
     .use((req, res, next) => {
       const url = req.url;
+      const app_url = `/app/${state.app_id}`;
       // limit requests to contents of /app (eg: ignore hub and org)
-      if (!(url === "/app" || url.startsWith("/app/"))) {
+      if (!(url === app_url || url.startsWith(`${app_url}/`))) {
           res.writeHead(404, {'Content-Type': 'text/plain'});
           res.end('404 Invalid URL');
       } else {
