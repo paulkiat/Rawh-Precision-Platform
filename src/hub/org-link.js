@@ -26,6 +26,7 @@ async function link_handler(state, msg, send, socket) {
   if (!org_rect) {
     log({ invalid_org_id: org_id });
     socket.close();
+    return;
   }
   if (msg.ping) {
     sock_stat.ping = Date.now();

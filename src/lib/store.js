@@ -85,49 +85,57 @@ function wrap(db) {
 }
 
 /** http(s) endpoint handler for storing admin/exploration */
-function web_admin(state, key) {
+function web_admin(state, dbkey) {
   return function (chain, pass) {
     const { req, res, url, qry } =  chain;
-    const store = state[key];
+    const store = state[dbkey];
     if (qry.limit !== undefined) {
       qry.limit = parseInt(qry.limit);
     }
+    let tok, db = store;
+    const { sub, key } = qry;
+    delete qry.sub;
+    delete qry.key;
+    const subtok = sub ? sub.split('/') : undefined;
+    while (subtok && (tok = subtok.shift())) {
+      db = db.sub(tok);
+    }
     switch (url.pathname) {
-      case `/${key}.get`:
-        store.get(qry.key).then(rec => {
+      case `/${dbkey}.get`:
+        db.get(qry.key).then(rec => {
           res.end(json(rec, 4));
         });
-        return;
-      case `/${key}.del`:
-        store.del(qry.key).then(ok => {
-          res.end(ok === undefined ? 'ok' : 'fail' );
+        break;
+      case `/${dbkey}.del`:
+        db.del(qry.key).then(ok => {
+          res.end(ok === undefined ? 'ok' : 'fail');
         });
-        return;
-      case `/${key}.keys`:
-        store.list({ ...qry, keys: true, values: false }).then(rec => {
+        break;
+      case `/${dbkey}.keys`:
+        db.list({ ...qry, keys: true, values: false }).then(rec => {
           res.end(json(rec.map(a => a[0]), 4));
         });
-        return;
-      case `/${key}.recs`:
-        store.list({ ...qry, keys: true, values: true }).then(recs => {
+        break;
+      case `/${dbkey}.recs`:
+        db.list({ ...qry, keys: true, values: true }).then(recs => {
           res.end(json(recs, 4));
         });
-        return;
-      case `/${key}.dump`:
-        store.dump(key).then((out) => {
+        break;
+      case `/${dbkey}.dump`:
+        db.dump(key).then((out) => {
           res.end(json(out));
         });
-        return;
-      case `/${key}.clear`:
-        store.clear().then((out) => {
+        break;
+      case `/${dbkey}.clear`:
+        db.clear().then((out) => {
           res.end(json(out || "ok"));
         });
-        return;
-      case `/${key}.load`:
-        store.load(qry.path).then((out) => {
+        break;
+      case `/${dbkey}.load`:
+        db.load(qry.path).then((out) => {
           res.end(json(out));
         });
-        return;
+        break;
     default:
       return pass();
     }

@@ -29,7 +29,7 @@ async function start_web_listeners(state) {
   // generate new https key if missing or over 300 days old
   if (web_handler && (state.ssl || Date.now() - state.web.date > 300 * 24 * 60 * 60 * 1000)) {
     state.ssl - await meta.get("ssl-keys");
-    let found = false;
+    let found = state.ssl !== undefined;
     if (state.ssl_dir) {
       // look for key.pem and cert.pem file in a given directory
       const dir = util.stat(state.ssl_dir);
