@@ -44,7 +44,7 @@ function admin_handler(state, chain, pass) {
             res.end(json(rec));
           } else {
             res.end(json({ error: `no org id: ${uid}` }));
-         }
+          }
         })
         .catch (error => res.end(json({ error })));
       return;

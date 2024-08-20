@@ -30,7 +30,7 @@ async function create(name, creator) {
     created: Date.now(),
     state: 'pending'
   });
-  return { uid };
+  return uid;
 }
 
 async function update(uid, rec) {
@@ -47,7 +47,6 @@ async function get_by_name(name) {
   const list = await orgs.list({ limit: Infinity });
   log({ name, list });
   for (let [uid, rec] of list) {
-    log({ uid, rec });
     if (rec.name === name) {
       return [ uid, rec ];
     }
