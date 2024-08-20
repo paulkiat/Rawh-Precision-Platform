@@ -6,7 +6,7 @@ const net = require('../lib/net');
 const web = require('../lib/web');
 const app_handler = require('express')();
 
-const state = {};
+const state = { };
 Object.assign(state, {
   app_id: env['APP_ID'] || args(['app-id']),
   app_port: args['app-port'] || (args.prod ? 80 : 7000),
@@ -31,13 +31,19 @@ async function connect_to_proxy() {
   });
   node.on_direct((msg, cid, topic) => {
     log('direct', { topic, cid, msg });
-  })
+  });
+  node.on_connect(validate_app);
 }
 
 async function validate_app() {
   // fetch app cert from meta-data server (thru proxy)
-  log({ starting_app: state.app_id });
-  state.node.publish("app-up", state.app_id);
+  const { app_id, app_port } = state;
+  log({ registering_app: state.app_id });
+  state.node.publish("app-up", {
+    app_id,
+    web_port: app_port,
+    web_addr: net.host_addr()
+  });
 }
 
 async function setup_app_handlers() {

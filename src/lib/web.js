@@ -21,7 +21,7 @@ async function start_web_listeners(state) {
 
   // app web port listens to http, but should only allow requests
   // from localhost or the organizational web proxy
-  if (app_handler) {
+  if (state.app_port && app_handler) {
     log('starting app listener', state.app_port);
     servers.app = http.createServer(app_handler).listen(state.app_port);
   }

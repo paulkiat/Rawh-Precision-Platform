@@ -7,6 +7,7 @@ const log = require('../lib/util').logpre('org');
 const web = require('../lib/web');
 const crypto = require('../lib/crypto');
 const store = require('../lib/store');
+const node = require('./node');
 const web_handler = require('express')();
 
 const state = { };
@@ -15,15 +16,16 @@ Object.assign(state, {
   ssl_dir: env['SSL_DIR'] || args['ssl-dir'], // for customer supplied ssl key & cert files
   hub_host: env['HUB_HOST'] || args['hub-host'] || (args.prod ? "meta.rawh.ai" : "localhost"),
   hub_port: env['HUB_PORT'] || args['hub-port'] || (args.prod ? 443 : 8443 ),
-  adm_port: ['adm-port'] || (args.prod ?  80 : 9000),
-  web_port: ['web-port'] || (args.prod ? 443 : 9443),
+  adm_port: args['adm-port'] || (args.prod ?  80 : 9000),
+  web_port: args['web-port'] || (args.prod ? 443 : 9443),
+  app_port: args['app-port'],
   proxy_port: env['PROXY_PORT'] || args['proxy-port'] || 6000,
   adm_handler: web.chain([
     store.web_admin(state, 'meta'),
     store.web_admin(state, 'logs'),
-    adm_handler
   ]),
-  web_handler
+  web_handler,
+  app_handler: web_handler
 });
 
 /**
@@ -69,10 +71,10 @@ async function initialize_keys() {
   state.hub_key_public = await meta.get("hub-key-public");
 }
 
-async function setup_express() {
+async function setup_express_handlers() {
   web_handler
-    // .use(require('compression'))
     .use(require('serve-static')('web/org', { index: ['index.html'] }))
+    .use(node.web_handler)
     .use((req, res) => {
       res.writeHead(404, { 'Content-type': 'text/plain' });
       res.end('404  Not Found');
@@ -86,13 +88,7 @@ async function start_org_proxy() {
 }
 
 async function setup_org_node() {
-  require('./node').init(state);
-}
-
-function adm_handler(chain, pass) {
-  const { req, res, url, qry } = chain;
-  log({ web_request: req.url });
-  res.end("< rawh org admin >");
+  node.init(state);
 }
 
 (async () => {

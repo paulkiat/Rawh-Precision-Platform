@@ -123,6 +123,7 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
   const handlers = {};
   const seed = Date.now();
   let lastHB = Infinity;
+  let on_reconnect;
 
   setInterval(() => client.send(seed), settings.heartbeat);
 
@@ -136,6 +137,9 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
               client.send([ "sub", topic === self_key ? undefined : topic ]);
               log('proxy re-sub', topic);
             }
+          }
+          if (on_reconnect) {
+            on_reconnect();
           }
           lastHB = rec;
         }
@@ -173,6 +177,9 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
       client.send([ "sub", undefined ]);
       handlers[self_key] = handler;
     },
+    on_reconnect: (fn) => {
+      on_reconnect = fn;
+    }
   };
 
   return api;
