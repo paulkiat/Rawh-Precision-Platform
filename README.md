@@ -46,6 +46,22 @@ cd -
 ```node src/app/main.js --app-id=sample1 --app-port=7002```
 
 
+## LevelDB NoSQL Storage
+
+The Hub and Org servers use LevelDB as a back-end NoSQl store
+for meta-data and logging. This is a REST api available from
+localhost only. By default the *hub* webmin port is `8000` and
+the *org* webmin port is `9000`.
+
+To query *all* records in the meta-data store on the hub, for example:
+
+```
+curl "http://localhost:8000/meta.recs"
+```
+
+Look in `src/util/store.js` under the `web_admin()` function to
+get a list of supported commands from the switch statement.
+
 ## Building Docker Images
 
 * TODO
