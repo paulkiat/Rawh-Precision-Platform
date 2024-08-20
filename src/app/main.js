@@ -48,9 +48,19 @@ async function validate_app() {
 
 async function setup_app_handlers() {
   app_handler
-    .use(require('serve-static')('web/org', { index: [ "index.html" ]}))
+    .use((req, res, next) => {
+      const url = req.url;
+      // limit requests to contents of /app (eg: ignore hub and org)
+      if (!(url === "/app" || url.startsWith("/app/"))) {
+          res.writeHead(404, {'Content-Type': 'text/plain'});
+          res.end('404 Invalid URL');
+      } else {
+          next();
+      }
+    })
+    .use(require('serve-static')('web', { index: ["index.html"] }))
     .use((req, res) => {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.writeHead(404, {'Content-Type': 'text/plain'});
       res.end('404 Not Found');
     })
   ;

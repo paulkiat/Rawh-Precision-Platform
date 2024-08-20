@@ -4,7 +4,7 @@ services:
   broker:
     container_name: precision-org
     build:
-      context: ../../..
-      dockerfile: src/dock/org/Dockerfile
+      context: ../..
+      dockerfile: src-dock/org/Dockerfile
     ports:
       - "3000:3000"

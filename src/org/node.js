@@ -20,15 +20,15 @@ function logProvider() {
 exports.init = function (state, web_handler) {
   node = state.node = net.node('localhost', state.proxy_port);
   node.subscribe('app-up', (msg, cid, topic) => {
-    log({ topic, cid, msg });
     const { app_id, web_port, web_addr } = msg;
+    log({  app_up: app_id, host: web_addr, port: web_port});
     node.publish(cid, { too_u: { "dog": "poo" } });
     node.publish([app_id, "config"], { config: { for: "real" } })
     apps[app_id] = { host: web_addr[0], port: web_port };
     const root = `app/${app_id}`;
     router.use(root, createProxyMiddleware({
       target: `http://${web_addr[0]}:${web_port}`,
-      pathRewrite: { [`^${root}`]: '/' },
+      // pathRewrite: { [`^${root}`]: '/' },
       logProvider
     }))
   });

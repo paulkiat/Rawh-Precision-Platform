@@ -4,7 +4,7 @@ services:
   proxy:
     container_name: precision-org
     build:
-      context: ../../..
-      dockerfile: src/dock/proxy/Dockerfile
+      context: ../..
+      dockerfile: src-dock/proxy/Dockerfile
     ports:
       - "6000:6000"
