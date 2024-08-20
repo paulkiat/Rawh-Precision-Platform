@@ -13,7 +13,12 @@ const link = {
   state: link_states.offline,
   send: undefined,
   end: undefined,
-}
+};
+const link_err = {
+  msg: undefined,
+  count: 0,
+  repeat: 10
+};
 
 let heartbeat_timer;
 
@@ -41,6 +46,10 @@ async function start_hub_connection(state) {
     heartbeat_timer = setInterval(() => { link.send({ ping: Date.now() }) }, 2500);
     link.send = (msg) => ws.send(json(msg));
     link.send({ org_id: state.org_id });
+    // reset error state on successful connection
+    link_err.msg = undefined;
+    link_err.count = 1;
+    link_err.repeat = 10;
   });
 
   ws.on('message', function (data) {
@@ -54,11 +63,28 @@ async function start_hub_connection(state) {
       log('hub link down. message dropped')
     }
     clearTimeout(heartbeat_timer);
+    // retry connection to hub on a downed link
     setTimeout(() => { start_hub_connection(state) }, 5000);
   });
 
   ws.on('error', (error) => {
-    log('hub_conn_error', json(error));
+    const msg = json(error);
+    if (msg === link_err.msg) {
+      if ((++link_err.count) % link_err.repeat === 0) {
+        link_err.repeat = Math.min(50, link_err.repeat + 10);
+      } else {
+          return;
+      }
+    } else {
+        link_err.count = 1;
+        link_err.repeat = 10;
+    }
+    link_err.msg = msg;
+    if (link_err.count > 1) {
+      log('hub_con_error', msg, `[repeated ${link_err.count} times]`);
+    } else {
+      log('hub_conn_error', msg);
+    }
   });
 }
 
