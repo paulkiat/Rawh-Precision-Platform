@@ -41,7 +41,7 @@ Object.assign(state, {
  */
 
 async function setup_data_store() {
-  log('initializing data store');
+  log({ initialize: 'data store'});
   state.meta = await store.open("data/org-meta");
   state.org_id = state.org_id || await state.meta.get("org-id", state.org_id);
   if (!state.org_id) {
@@ -53,7 +53,7 @@ async function setup_data_store() {
 }
 
 async function setup_log_store() {
-  log('initializing log store');
+  log({ initialize: 'log store' });
   state.log = await store.open("data/org-logs");
   state.logr = function () {
     log('*', ...arguments);
@@ -89,7 +89,7 @@ async function setup_web_handlers() {
 }
 
 async function start_org_proxy() {
-  log('starting service broker');
+  log({ initialize: "service_broker" });
   proxy(state.proxy_port);
 }
 

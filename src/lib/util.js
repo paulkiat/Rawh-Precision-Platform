@@ -4,6 +4,9 @@ const { argv } = process;
 const toks = argv.slice(2);
 const args = exports.args = {};
 const fsp = require('fs/promises');
+const util = require('util');
+const dayjs = require('dayjs');
+let oneline = true;
 let tok;
 
 // This loop takes the command line arguments and puts them into a map
@@ -48,11 +51,28 @@ while (tok = toks.shift()) {
 
 /** export a log() utility with time stamp prefix */
 exports.log = function () {
-  const now = Date.now();
-  const left = (now / 1000) | 0;
-  const right = now - (left * 1000);
-  console.log(`[${left.toString(36).padStart(6, 0)}:${right.toString().padStart(3,0)}]`, ...arguments);
+  if (online) {
+    console.log(
+      dayjs().format('YYMMDD.HHmmss |'),
+      [...arguments]
+        .map(v => util.inspect(v, {
+          maxArrayLength: null,
+          breakLength: Infinity,
+          colors: true,
+          compact: true,
+          sorted: false,
+          depth: undefined
+        }))
+        .join(' ')
+    );
+  } else {
+    console.log(dayjs().format('YYMMDD.HHmmss |'), ...argumnets);
+  }
 };
+
+exports.logone = function (b = true) {
+  oneline = b;
+}
 
 exports.logpre = function (pre) {
   return function () {

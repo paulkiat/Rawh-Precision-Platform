@@ -16,13 +16,15 @@ async function start_web_listeners(state) {
   const { meta, logs, adm_handler, web_handler, app_handler, wss_handler } = state;
 
   // admin web port listens only locally
-  log('starting adm listener', state.adm_port);
-  servers.adm = http.createServer(adm_handler).listen(state.adm_port, 'localhost');
+  if (adm_handler) {
+    log({ start_adm_listener: state.adm_port });
+    servers.adm = http.createServer(adm_handler).listen(state.adm_port, 'localhost');
+  }
 
   // app web port listens to http, but should only allow requests
   // from localhost or the organizational web proxy
   if (state.app_port && app_handler) {
-    log('starting app listener', state.app_port);
+    log({ starting_app_listener: state.app_port });
     servers.app = http.createServer(app_handler).listen(state.app_port);
   }
 
@@ -56,7 +58,7 @@ async function start_web_listeners(state) {
 
   // open secure web port handle customer/org requests
   if (web_handler) {
-    log('starting web listener', state.web_port);
+    log({ start_web_listener: state.web_port });
     servers.web = https.createServer({
       key: state.ssl.key,
       cert: state.ssl.cert

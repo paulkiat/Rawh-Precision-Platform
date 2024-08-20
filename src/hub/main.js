@@ -32,12 +32,12 @@ Object.assign(state, {
  */
 
 async function setup_data_store() {
-  log('initializing data store');
+  log({ initializing: 'data store' });
   state.meta = await store.open("data/hub-meta");
 }
 
 async function setup_log_store() {
-  log('initializing log store');
+  log({ initializing: 'log store' });
   state.log = await store.open("data/hub-logs");
 }
 
@@ -73,7 +73,7 @@ function setup_web_handlers() {
 }
 
 (async () => {
-  log('rawh hub addr', net.host_addrs());
+  log({ rawh_hub_addr: net.host_addrs() });
   await setup_data_store();
   await setup_log_store();
   await setup_keys();

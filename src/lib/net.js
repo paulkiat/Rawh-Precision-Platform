@@ -26,7 +26,7 @@ function zmq_server(port, onmsg, opt = { sync: false }) {
     log('listening on', proto, 'port', port, 'opt', opt);
   
     for await (const [id, msg] of sock) {
-      const cid = id.readUint32BE(1).toString(36);
+      const cid = id.readUInt32BE(1).toString(36);
       cidmap[cid] = id;
       const req = JSON.parse(msg);
       const rep = await onmsg(req, cid, (cid, msg) => {
@@ -49,7 +49,7 @@ function zmq_server(port, onmsg, opt = { sync: false }) {
 function zmq_client(host = "127.0.0.1", port) {
   const sock = new Dealer;
   sock.connect(`${proto}://${host}:${port}`);
-  log(` connected to ${host}:${port}`);
+  log({ connected: `${host}:${port}` });
 
   async function send(request) {
     await sock.send(json(request));
@@ -72,7 +72,7 @@ function zmq_proxy(port = 6000) {
   const seed = Date.now();
   const topics = { };
   const clients = {};
-  log(`proxy host`, host_addrs());
+  log({ proxy_host: host_addrs() });
 
   const server = zmq_server(port, (recv, cid, send) => {
     clients[cid] = Date.now();
