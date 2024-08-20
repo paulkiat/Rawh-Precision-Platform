@@ -86,33 +86,33 @@ function wrap(db) {
 
 /** http(s) endpoint handler for storing admin/exploration */
 function web_admin(state, dbkey) {
-  return function (chain, pass) {
-    const { req, res, url, qry } =  chain;
+  return function (req, res, next) {
+    const { url, query } =  req.parsed;
     const store = state[dbkey];
-    if (qry.limit !== undefined) {
-      qry.limit = parseInt(qry.limit);
+    if (query.limit !== undefined) {
+      query.limit = parseInt(qry.limit);
     }
     let tok, db = store;
-    const { sub, key } = qry;
-    delete qry.sub;
-    delete qry.key;
+    const { sub, key } = query;
+    delete query.sub;
+    delete query.key;
     const subtok = sub ? sub.split('/') : undefined;
     while (subtok && (tok = subtok.shift())) {
       db = db.sub(tok);
     }
     switch (url.pathname) {
       case `/${dbkey}.get`:
-        db.get(qry.key).then(rec => {
+        db.get(query.key).then(rec => {
           res.end(json(rec, 4));
         });
         break;
       case `/${dbkey}.del`:
-        db.del(qry.key).then(ok => {
+        db.del(query.key).then(ok => {
           res.end(ok === undefined ? 'ok' : 'fail');
         });
         break;
       case `/${dbkey}.keys`:
-        db.list({ ...qry, keys: true, values: false }).then(rec => {
+        db.list({ ...query, keys: true, values: false }).then(rec => {
           res.end(json(rec.map(a => a[0]), 4));
         });
         break;
@@ -137,7 +137,7 @@ function web_admin(state, dbkey) {
         });
         break;
     default:
-      return pass();
+      return next();
     }
   }
 }

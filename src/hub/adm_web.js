@@ -5,15 +5,15 @@ const log = util.logpre('adm');
 const { json } = util;
 
 function setup(state) {
-  return function (chain, pass) {
-    admin_handler(state, chain, pass);
+  return function (req, res, next) {
+    admin_handler(req, res, next, state);
   }
 }
 
-function admin_handler(state, chain, pass) {
-  const { req, res, url, qry } = chain;
+function admin_handler(req, res, next, state) {
+  const { url, query } = req.parsed;
   const { meta, logs, adm_org } = state;
-  const { name, creator, uid } = qry;
+  const { name, creator, uid } = query;
   switch (url.pathname) {
     case '/state':
       log({ state });
@@ -49,7 +49,7 @@ function admin_handler(state, chain, pass) {
         .catch (error => res.end(json({ error })));
       return;
     default:
-        return pass();
+        return next();
   }
 }
 

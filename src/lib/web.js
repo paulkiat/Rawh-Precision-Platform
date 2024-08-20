@@ -72,32 +72,21 @@ async function start_web_listeners(state) {
     });
   }
 }
-function chain(handlers, unhandled) {
+function parse_query(handlers, unhandled) {
   return function (req, res) {
     const url = new URL(req.url, `http://${req.header.host}`);
-    const qry = Object.fronEntries(url.searchParams.entries());
-    let handle = false;
-    for (let handler of handlers) {
-      let exit = true;
-      handler({ req, res, url, qry }, () => {
-        exit = false;
-      });
-      if (exit) {
-        handled = true;
-        break;
-      }
-    }
-    if (handled) {
-      return;
-    }
-    if (unhandled) {
-      unhandled(req, res);
-    } else {
-      res.writeHead(404, { 'Content-Type': 'text-plain' });
-      res.end('404 Not Found');
-    }
+    const query = Object.fromEntries(url.searchParams.entries());
+    req.parsed = { url, query };
+    next();
   };
 }
 
+function four_oh_four() {
+  return function (req, res, next) {
+    res.writeHead(404, { 'Content Type': 'text/plain' });
+    res.end('404 Not Found');
+  }
+}
 exports.start_web_listeners = start_web_listeners;
-exports.chain = chain;
+exports.parse_query = parse_query;
+exports.four_oh_four = four_oh_four;

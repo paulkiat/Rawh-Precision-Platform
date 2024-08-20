@@ -8,19 +8,16 @@ const { args } = require('../lib/util');
 const log = require('../lib/util').logpre('hub');
 const web = require('../lib/web');
 const net = require('../lib/net');
-const crypto = require('../lib/crypto');
 const store = require('../lib/store');
+const crypto = require('../lib/crypto');
+const adm_handler = require('express')();
 const web_handler = require('express')();
 
 const state = { };
 Object.assign(state, {
   adm_port: args['adm-port'] || (args.prod ? 80 : 8000),
   web_port: args['web-port'] || (args.prod ? 443 : 8443),
-  adm_handler: web.chain([
-    store.web_admin(state, 'meta'),
-    store.web_admin(state, 'logs'),
-    require('./adm_web').setup(state)
-  ]),
+  adm_handler,
   web_handler,
   wss_handler: require('./org-link.js').setup(state)
 });
@@ -58,10 +55,21 @@ async function setup_keys() {
   }
 }
 
-function setup_web_handlers(req, res) {
-  web_handler.use((req, res) => {
-    res.end('< rawh hub >');
-  });
+function setup_web_handlers() {
+  const static = require('serve-static')('web/hub', { index: ["index.html" ]});
+  // localhost only admin / test interface
+  adm_handler
+    .use(web.parse_query())
+    .use(store.web_admin(state, 'meta'))
+    .use(store.web_admin(state, 'logs'))
+    .use(require('./adm_web').setup(state))
+    .use(static)
+    .use(web.four_oh_four)
+  // production https web interface
+  web_handler
+    .use(static)
+    .use(web.four_oh_four)
+    ;
 }
 
 (async () => {

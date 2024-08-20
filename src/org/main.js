@@ -5,9 +5,10 @@ const { args } = require('../lib/util');
 const { proxy } = require('../lib/net');
 const log = require('../lib/util').logpre('org');
 const web = require('../lib/web');
-const crypto = require('../lib/crypto');
-const store = require('../lib/store');
 const node = require('./node');
+const store = require('../lib/store');
+const crypto = require('../lib/crypto');
+const adm_handler = require('express')();
 const web_handler = require('express')();
 
 const state = { };
@@ -20,10 +21,10 @@ Object.assign(state, {
   web_port: args['web-port'] || (args.prod ? 443 : 9443),
   app_port: args['app-port'],
   proxy_port: env['PROXY_PORT'] || args['proxy-port'] || 6000,
-  adm_handler: web.chain([
-    store.web_admin(state, 'meta'),
-    store.web_admin(state, 'logs'),
-  ]),
+  adm_handler: adm_handler
+    .use(web.parse_query())
+    .use(store.web_admin(state, 'meta'))
+    .use(store.web_admin(state, 'meta')),
   web_handler,
   app_handler: web_handler
 });
@@ -60,7 +61,7 @@ async function setup_log_store() {
   };
 }
 
-async function initialize_keys() {
+async function setup_keys() {
   const { meta, logs } = state;
   state.org_keys = await meta.get("org-keys");
   if (!state.org_keys) {
@@ -71,14 +72,19 @@ async function initialize_keys() {
   state.hub_key_public = await meta.get("hub-key-public");
 }
 
-async function setup_express_handlers() {
+async function setup_web_handlers() {
+  const static = require('serve-static')('web/hub', { index: ["index.html" ]});
+  // localhost only admin / test interface
+  adm_handler
+    .use(web.parse_query())
+    .use(store.web_admin(state, 'meta'))
+    .use(store.web_admin(state, 'logs'))
+    .use(static)
+    .use(web.four_oh_four)
+  // production https web interface
   web_handler
-    .use(require('serve-static')('web/org', { index: ['index.html'] }))
-    .use(node.web_handler)
-    .use((req, res) => {
-      res.writeHead(404, { 'Content-type': 'text/plain' });
-      res.end('404  Not Found');
-    })
+    .use(static)
+    .use(web.four_oh_four)
     ;
 }
 
@@ -94,11 +100,11 @@ async function setup_org_node() {
 (async () => {
   await setup_data_store();
   await setup_log_store();
-  await initialize_keys();
-  await setup_express();
-  await web.start_web_listeners(state);
+  await setup_keys();
+  await setup_web_handlers();
   await start_org_proxy();
   await start_org_node();
+  await web.start_web_listeners(state);
   await require('./hub-link').start_hub_connection(state);
   state.logr("org services started");
 })();
