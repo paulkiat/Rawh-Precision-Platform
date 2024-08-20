@@ -81,10 +81,9 @@ async function start_hub_connection(state) {
     }
     link_err.msg = msg;
     if (link_err.count > 1) {
-      log('hub_con_error', msg, `[repeated ${link_err.count} times]`);
-    } else {
-      log('hub_conn_error', msg);
+      errobj.repeated = link_err.count;
     }
+    log(errobj);
   });
 }
 
