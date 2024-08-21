@@ -132,5 +132,5 @@ async function query_match(msg, reply) {
 
   await setup_node();
   await register_service();
-  await doc_load({ name: "foo" });
+  // await doc_load({ name: "foo" });
 })();
