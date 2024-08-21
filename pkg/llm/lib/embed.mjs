@@ -4,15 +4,11 @@
 import { HuggingFaceTransformersEmbeddings } from "langchain/embeddings/hf_transformers"; 
 import { env } from '@xenova/transformers';
 
-env.allowRemoteModels = true; // disable after first test & cached
-env.localModelPath = 'models';
-env.cacheDir = 'Model';
-
 const state = {
   init: false,
-  modelDir: env.cacheDir,
+  modelDir: "models",
   modelName: "Xenova/all-MiniLM-L12-v2",
-  allowRemoteModels: false
+  allowRemoteModels: true
 }
 
 export async function setup(opt = { }) {
