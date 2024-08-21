@@ -132,5 +132,11 @@ async function query_match(msg, reply) {
 
   await setup_node();
   await register_service();
-  // await doc_load({ name: "foo" });
+
+  state.node.locate('*', (msg) => {
+    log({ locate_said: msg });
+  });
+  state.node.locate([ "doc-load", state.app_id ], (msg) => {
+    log({ locate_said: msg });
+  });
 })();

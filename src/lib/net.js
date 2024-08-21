@@ -69,6 +69,7 @@ function zmq_client(host = "127.0.0.1", port) {
 function zmq_proxy(port = 6000) {
   const seed = Date.now();
   const topics = { }; // map topics to cid interest lists
+  const direct = { }; // map direct handlers to cid interest lists
   const clients = { };
   let toplist = [];
   let topstar = [];
@@ -85,18 +86,18 @@ function zmq_proxy(port = 6000) {
   };
 
   const server = zmq_server(port, (recv, cid, send) => {
-    clients[cid] = util.uid();
+    // update last heartbeat time
+    clients[cid] = Date.now();
     if (typeof recv == 'number') {
       // let heartbeat keep client data fresh
       // log ({ cid, heartbeat: recv });
       return;
     }
     const [ action, topic, msg, callto, mid ] = recv;
-    const topcids = (topics[topic] = topics[topic] || []);
     const sent = [ ];
     switch (action) {
       case 'sub':
-        topcids.push(cid);
+        (topics[topic] = topics[topic] || []).push(cid);
         toplist = Object.keys(topics);
         topstar = toplist.filter(t => t.endsWith("/*"));
         break;
@@ -118,13 +119,24 @@ function zmq_proxy(port = 6000) {
         blast(send, topics['*'] || [], tmsg, sent);
         break;
       case 'call':
-        send(callto, [ topic, msg, cid, mid ]);
+        send(callto, [topic, msg, cid, mid]);
         break;
       case 'repl':
-        send(callto, [ '', msg, cid, mid ]);
+        send(callto, ['', msg, cid, mid]);
         break;
       case 'repl':
-        send(cid, [ '', { topic, nodes: topics[topics[topic]]}, '', mid ]);
+        send(cid, ['', { topic, nodes: topics[topics[topic]] }, '', mid]);
+        break;
+      case 'handle':
+        (direct[topic] = direct[topic] || []).push(cid);
+        break;
+      case 'locate':
+        // returns a list of topic subscribers and direct listeners
+        send(cid, ['', {
+          topic,
+          subs: topics[topic],
+          direct: direct[topic]
+        }, '', mid]);
         break;
       default:
         log({ invalid_action: action });
@@ -140,7 +152,10 @@ function zmq_proxy(port = 6000) {
         log({ removing_client: cid });
         delete clients[cid]
         for (let [key, topic] of Object.entries(topics)) {
-          topics[key] = topics.filter(match => match !== cid);
+          topics[key] = topic.filter(match => match !== cid);
+        }
+        for (let [key, topic] of Object.entries(direct)) {
+          direct[key] = topic.filter(match => match !== cid);
         }
         continue;
       }
@@ -256,6 +271,7 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
       client.send([ "call", flat(topic), message, cid, ""]);
     },
     handle: (topic, handler) => {
+      client.send([ "handle", flat(topic) ]);
       handlers[flat(topic)] = handler;
     },
     // get a list of nodes listening to a specific topic
