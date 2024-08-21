@@ -7,10 +7,15 @@
 
 ## Developer Setup
 
+* requires node 18 or newer
+* requires 15GB of free disk space
+
+
 ### Mac Setup
 
 * `brew install zmq`
 * `npm i`
+* `scripts/seed-model.sh`
 
 
 ## Testing Setup
@@ -82,7 +87,14 @@ Look in `src/util/store.js` under the `web_admin()` function to
 get a list of supported commands from the switch statement.
 
 
+## LLM API package
+
+`src/llm` was just added which contain llm-related services. To run these,
+the `script/seed-model.sh` needs to be run to get a basic quantized
+llama-2-7b model for running locally and testing.
+
 ## Building Docker Images
 
-* TODO
+This is still TBD, but will involve running a script like `scripts/build.sh`
+where each docker image will have its own build directory inder `src-dock`
 
