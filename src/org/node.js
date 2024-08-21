@@ -14,11 +14,12 @@ function logProvider() {
     info: log,
     warn: log,
     error: log
-  };
+  };  
 }
 
 exports.init = function (state, web_handler) {
   node = state.node = net.node('localhost', state.proxy_port);
+
   // handle app web services announcements
   node.subscribe('web-up', (msg, cid) => {
     const { app_id, web_port, web_addr } = msg;
@@ -34,10 +35,16 @@ exports.init = function (state, web_handler) {
     }))
   });
 
+  // handle doc loading/embedding events
   node.subscribe('doc-up', (msg, cid) => {
     const { app_id, net_addrs, type } = msg;
     log({ doc_svc_up: app_id, host: net_addrs, type });
   });
+
+  // test
+  node.subscribe('*', (msg, cid, topic) => {
+    log({ suball: msg, topic });
+  })
 };
 
 exports.web_handler = router;

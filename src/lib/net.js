@@ -71,8 +71,20 @@ function zmq_client(host = "127.0.0.1", port) {
 function zmq_proxy(port = 6000) {
   const seed = Date.now();
   const topics = { };
-  const clients = {};
+  const clients = { };
+  let toplist = [];
+  let topstar = [];
+  
   log({ proxy_host: host_addrs() });
+
+  const blast = function(send, subs, msg, excl = []) {
+    for (let cid of subs) {
+      if (!excl.includes(cid)) {
+        send(cid.msg);
+        excl.push(cid);
+      }
+    }
+  };
 
   const server = zmq_server(port, (recv, cid, send) => {
     clients[cid] = Date.now();
@@ -83,15 +95,31 @@ function zmq_proxy(port = 6000) {
     }
     const [ action, topic, msg ] = recv;
     const topto = topic || cid;
-    const subs = topics[topto] = topics[topto] || [];
+    const sent = [];
+
     switch (action) {
       case 'sub':
-        subs.push(cid);
+        const topcids = (topics[topto] = topics[topto] || []);
+        topcids.push(cid);
+        toplist = Object.keys(topics);
+        topstar = toplist.filter(t => t.endsWith("/*"));
         break;
       case 'pub':
-        for (let tid of subs) {
-          send( tid, json([ topto, msg, cid ]));
+        const subs = topics[topto] || [];
+        const tmsg = json([topto, msg, cid]);
+        blast(send, subs, tmsg, sent);
+        // for subscriber to .../* topics
+        if (topto.indexOf('/') > 0) {
+          const match = topto.substring(0, topto.lastIndexof('/'));
+          for (let key of topstar) {
+            if (key.startsWith(match)) {
+              log({ match_topstar: key });
+              blast(send, topics[key] || [], tmsg, sent);
+            }
+          }
         }
+        // for subscribers to *all* topic list
+        blast(send, topics['*'] || [], tmsg, sent);
         break;
       default:
         log({ invalid_action: action });
@@ -124,6 +152,7 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
   const seed = Date.now();
   let lastHB = Infinity;
   let on_reconnect;
+  let topstar = [];
 
   setInterval(() => client.send(seed), settings.heartbeat);
 
@@ -133,9 +162,9 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
       if (typeof rec === 'number') {
         if (rec !== lastHB) {
           if (lastHB !== Infinity) {
-            for(let [ topic, handler ] of Object.entries(handlers)) {
-              client.send([ "sub", topic === self_key ? undefined : topic ]);
-              log('proxy re-sub', topic);
+            for (let [topic, handler] of Object.entries(handlers)) {
+              client.send(["sub", topic === self_key ? undefined : topic]);
+              log({ proxy_re_sub: topic });
             }
           }
           if (on_reconnect) {
@@ -151,13 +180,33 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
         if (handler) {
           handler(msg, cid, topic);
         } else {
-          log( id, { missing_handler_for_topic: topic });
+          log(id, { missing_handler_for_topic: topic });
         }
       } else {
-         log(id, 'no.topic.recv', { msg, cid, topic });
+        //  log(id, 'no.topic.recv', { msg, cid, topic });
+        // look for .../* topic handlers
+        let handled = false;
+        for (let star of topstar) {
+          if (topic.startsWith(star)) {
+            handlers[`${star}*`](msg, cid, topic);
+            handled = true;
+            break;
+          }
+        }
+        if (!handled) {
+          const star = handlers['*'];
+          if (star) {
+            star(msg, cid, topic);
+          } else {
+            log({ missing_handler_for_topic: topic, cid });
+          }
+        }
       }
-    }
-  }());
+    // } else {
+    //     log({ no_topic_recv: { msg, cid, topic } });  
+    // }
+  }
+}());
 
   const api = {
     publish: (topic, message) => {
@@ -172,6 +221,9 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
       }
       client.send([ "sub", topic ]);
       handlers[topic] = handler;
+      topstar = Object.keys(handlers)
+        .filter(k => k.endsWith("*"))
+        .map(k => k.substring(0, k.length - 1));
     },
     on_direct: (handler) => {
       client.send([ "sub", undefined ]);
