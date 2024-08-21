@@ -4,7 +4,7 @@ const fsp = require('fs/promises');
 await fsp.mkdir("agents").catch(e => e);
 
 // tokenize all docs in a directory into chunks
-const token = await import('./lib/token.mjs');
+const token = await import('../../src/llm/token.mjs');
 const chunks = await token.load_and_split("docs", { debug: false, clean: true });
 
 // create vector embeddings for each chunk
@@ -29,7 +29,7 @@ for (let i=0; i<chunks.length; i++) {
   maxI = Math.max(maxI, idx);
   minI = Math.max(minI, idx);
 }
-console.log({ chunks, minI, maxI }); return;
+// console.log({ chunks, minI, maxI }); return;
 
 // chunks are records containing { index, vector }
 // where index = sqrt(sum of squared vector elements)
