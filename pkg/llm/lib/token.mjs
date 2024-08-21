@@ -5,10 +5,14 @@ import { TextLoader } from "langchain/document_loaders/fs/text";
 import { CSVLoader } from "langchain/document_loaders/fs/cvs";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 
-export async function load_and_split(dir, opt = {
+const default_opt = {
   chunkSize: 1000,
-  chunkOverLap: 200
-}) {
+  separators: ["\n"]
+};
+
+export async function load_and_split(dir, opts = { }) {
+ 
+  const op = Object.assign({}, default_opt, opts);
 
   const loader = new DirectoryLoader(
     dir,
@@ -31,6 +35,7 @@ export async function load_and_split(dir, opt = {
   const textSplitter = new RecursiveCharacterTextSplitter({
     chunkSize: opt.chunkSize ?? 1000,
     chunkOverLap: opt.chunkOverlap ?? 200,
+    separators: opt.separators
   });
 
   const splitDocs = await textSplitter.splitDocuments(docs);

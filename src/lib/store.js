@@ -1,4 +1,4 @@
-/** a very simple key/value store based on level db (local-disk backed) */
+/** a local key/value store based on level db (local-disk backed) */
 
 const { Level } = require('level');
 const log = require('./util').logpre('store');

@@ -81,6 +81,10 @@ export async function create_session(opt = {}) {
     }
   };
 
+  if (opt.init) {
+    await session.init();
+  }
+
   return fns;
 }
 
