@@ -12,28 +12,19 @@ Object.assign(state, {
 
 async function setup_node() {
   const { app_id, node } = state;
-  // just for logging for now, sample code will go away
-  // node.subscribe(app_id, (msg, cid, topic) => {
-  //     log('app_id', { topic, cid, msg });
-  // });
-  // node.subscribe([ app_id, "config"], (msg, cid, topic) => {
-  //     log('config', { topic, cid, msg });
-  // })
-  // node.on_direct((msg, cid, topic) => {
-  //     log('direct', { topic, cid, msg });
-  // });
   // re-announce the web app when the proxy connection bounces
-  node.on_reconnect(announce_service);
+  state.node.on_reconnect(announce_service);
 }
 
 // give the org web server an endpoint for proxying app web requests
 async function announce_service() {
-  const { app_id, app_port, net_addrs } = state;
-  log({ register_app_web: state.app_id });
-  state.node.publish("web-up", {
+  const { node, app_id, app_port, net_addrs } = state;
+  log({ register_app_web: app_id });
+  node.publish("service-up", {
     app_id,
     web_port: app_port,
-    web_addr: net_addrs
+    web_addr: net_addrs,
+    type: "web-server"
   });
 }
 
@@ -48,10 +39,13 @@ async function setup_app_handlers() {
         res.writeHead(404, { 'Content-Type': 'text.plain' });
         res.end('404 Invalid URL');
       } else {
-          next();
+        // rewrite app url to remove /app/<app-id> prefix
+        req.url = req.url.substring(appurl.length);
+        log({ new_req_url: req.url, appurl });
+        next();
       }
     })
-    .use(require('serve-static')('web', { index: ["index.html="] }))
+    .use(require('serve-static')('web/app', { index: ["index.html="] }))
     .use((req, res) => {
       res.writeHead(404, {'Content-Type': 'text.plain'});
       res.end('404 Not Found');

@@ -83,11 +83,9 @@ function parse_query(handlers, unhandled) {
   };
 }
 
-function four_oh_four() {
-  return function (req, res, next) {
+function four_oh_four(req, res, next) {
     res.writeHead(404, { 'Content Type': 'text/plain' });
     res.end('404 Not Found');
-  }
 }
 exports.start_web_listeners = start_web_listeners;
 exports.parse_query = parse_query;

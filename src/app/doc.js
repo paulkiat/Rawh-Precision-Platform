@@ -2,7 +2,6 @@
 // storage also chunks and creates embeddings for each document with some level
 // of scoping, which is usually by application id
 
-
 const net = require('net');
 const fsp = require('fs/promises');
 const util = require('../lib/util');
@@ -10,7 +9,6 @@ const state = require('./service').init();
 const log = util.pre('doc');
 
 async function setup_node() {
-  // re-announce the doc app when the proxy connection bounces
   const { node } = state;
   // re-connect the doc app when the proxy connection bounces
   node.on_reconnect(register_service);
@@ -21,16 +19,17 @@ async function register_service() {
   const { app_id, net_addrs, node } = state;
   log({ register_app_docs: state.app_id });
   // announce presence
-  node.publish("doc-up", {
+  node.publish("service-up", {
     app_id,
     net_addrs,
-    type: "rawh-level-v0"
+    type: "doc-server",
+    subtype: "rawh-level-v0"
   });
   // bind api service endpoints
-  node.subscribe([ "doc-load", app_id ], doc_load);
-  node.subscribe([ "doc-list", app_id ], doc_list);
-  node.subscribe([ "doc-delete", app_id ], doc_delete);
-  node.subscribe([ "query-match", app_id ], query_match);
+  node.handle([ "doc-load", app_id ], doc_load);
+  node.handle([ "doc-list", app_id ], doc_list);
+  node.handle([ "doc-delete", app_id ], doc_delete);
+  node.handle([ "query-match", app_id ], query_match);
 }
 
 // utility function that computes index from vector
@@ -55,7 +54,7 @@ function cosine_similarity(ch1, ch2) {
 
 // request to a tcp socket for bulk loading a document
 // which will then be stored, chunked, and vector embedded
-async function doc_load(msg, cid) {
+async function doc_load(msg, reply) {
   const { name, type } = msg;
   const { node, app_id } = state;
   // create the file drop target with time+random file uid
@@ -69,7 +68,7 @@ async function doc_load(msg, cid) {
     // delete partial file data
     await fsp.rm(file).catch(error => log({ bulk_delete_error: error }));
   }
-  node.publish(['doc-loading', app_id], frec);
+  node.publish([ 'doc-loading', app_id ], frec);
   // listen on random tcp port for incoming file dump
   const srv = net.createServer(conn => {
     log({ bulk_conn: conn });
@@ -93,6 +92,7 @@ async function doc_load(msg, cid) {
   .listen(() => {
     log({ bulk_listen: srv.address() });
     // send addr to requestor to complete bulk load
+    reply({ port: srv.address().port });
   });
 }
 
@@ -106,12 +106,12 @@ async function doc_embed(frec, data) {
 }
 
 // list all docs along with the status (loading, embedding, ready)
-async function doc_list() {
+async function doc_list(msg, reply) {
   const { node } = state;
 }
 
 // given a query, get matching embed chunks from loaded docs
-async function query_match(msg, cid) {
+async function query_match(msg, reply) {
   const { node } = state;
   const { query } = msg;
 

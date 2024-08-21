@@ -88,22 +88,22 @@ async function setup_web_handlers() {
     ;
 }
 
-async function start_org_proxy() {
+async function setup_org_proxy() {
   log({ initialize: "service_broker" });
   proxy(state.proxy_port);
 }
 
 async function setup_org_node() {
-  node.init(state);
+  node.init(state, web_handler);
 }
 
 (async () => {
   await setup_data_store();
   await setup_log_store();
   await setup_keys();
+  await setup_org_proxy();
+  await setup_org_node();
   await setup_web_handlers();
-  await start_org_proxy();
-  await start_org_node();
   await web.start_web_listeners(state);
   await require('./hub-link').start_hub_connection(state);
   state.logr("org services started");
