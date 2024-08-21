@@ -1,5 +1,4 @@
-hub-log-store
-hub-meta-data
+data
+models
 node_modules
-org-meta-data
-tmp-cert
+.DS_data
