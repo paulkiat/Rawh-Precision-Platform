@@ -51,7 +51,7 @@ while (tok = toks.shift()) {
 
 /** export a log() utility with time stamp prefix */
 exports.log = function () {
-  if (online) {
+  if (oneline) {
     console.log(
       dayjs().format('YYMMDD.HHmmss |'),
       [...arguments]
