@@ -1,7 +1,6 @@
 /** main organizational server / broker / meta-data server */
 
-const { env } = process;
-const { args } = require('../lib/util');
+const { args, env } = require('../lib/util');
 const { proxy } = require('../lib/net');
 const log = require('../lib/util').logpre('org');
 const web = require('../lib/web');
@@ -13,14 +12,15 @@ const web_handler = require('express')();
 
 const state = { };
 Object.assign(state, {
-  org_id: env['ORG_ID'] || args['org-id'],
-  ssl_dir: env['SSL_DIR'] || args['ssl-dir'], // for customer supplied ssl key & cert files
-  hub_host: env['HUB_HOST'] || args['hub-host'] || (args.prod ? "meta.rawh.ai" : "localhost"),
-  hub_port: env['HUB_PORT'] || args['hub-port'] || (args.prod ? 443 : 8443 ),
+  org_id: env('ORG_ID') || args['org-id'],
+  org_id: env('ORG_ID') || args['org-id'],
+  ssl_dir: env('SSL_DIR') || args['ssl-dir'], // for customer supplied ssl key & cert files
+  hub_host: env('HUB_HOST') || args['hub-host'] || (args.prod ? "meta.rawh.ai" : "localhost"),
+  hub_port: env('HUB_PORT') || args['hub-port'] || (args.prod ? 443 : 8443 ),
   adm_port: args['adm-port'] || (args.prod ?  80 : 9000),
   web_port: args['web-port'] || (args.prod ? 443 : 9443),
   app_port: args['app-port'],
-  proxy_port: env['PROXY_PORT'] || args['proxy-port'] || 6000,
+  proxy_port: env('PROXY_PORT') || args['proxy-port'] || 6000,
   adm_handler: adm_handler
     .use(web.parse_query())
     .use(store.web_admin(state, 'meta'))

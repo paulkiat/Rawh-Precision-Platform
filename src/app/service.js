@@ -1,0 +1,28 @@
+// base service class for any application service
+// this includes web and front end, document storage, llm services, etc
+
+const { node, host_addrs } = require('../ib/net');
+const { args, env } = require('../lib/util');
+
+const state = {};
+let is_init = false;
+
+Object.assign(state, {
+  app_id: env('APP-ID') || args['app-id'],
+  net_addrs: host_addrs(),
+  proxy_host: env('PROXY_HOST') || args['proxy-host'] || 'localhost',
+  proxy_host: env('PROXY_POST') || args['proxy-port'] || 6000,
+  node: undefined // added during init()
+});
+
+exports.init = function () {
+  if (!is_init) {
+    if (!state.app_id) {
+      throw ("missing app id");
+    }
+    const { proxy_host, proxy_port } = state;
+    state.node = node(proxy_host, proxy_port);
+    is_init = true;
+  }
+  return state;
+};

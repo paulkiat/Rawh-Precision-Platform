@@ -44,11 +44,11 @@ cd -
 
 * start sample react app node 1
 
-```node src/app/main.js --app-id=sample1 --app-port=7001```
+```node src/app/web.js --app-id=sample1 --app-port=7001```
 
 * start sample react app node 2
 
-```node src/app/main.js --app-id=sample1 --app-port=7002```
+```node src/app/web.js --app-id=sample1 --app-port=7002```
 
 
 ## Web App Access

@@ -1,5 +1,6 @@
 /** export command line args as a map object with key/value pairs */
 
+const { env } = process;
 const { argv } = process;
 const toks = argv.slice(2);
 const args = exports.args = {};
@@ -19,6 +20,7 @@ let tok;
 //    it that does not start with a dash, then the first arg is a key and the
 //    second arg is its value.
 
+// process and sanitize command line arguments into a new map
 while (tok = toks.shift()) {
   let key, val;
   while (tok.charAt(0) === '-') {
@@ -48,8 +50,25 @@ while (tok = toks.shift()) {
   args[key] = val;
   // console.log({ key, val });
 }
+// env but upgrade numbers into ints or floats if possible
+// mostly this is used for handling port numbers
+exports.env = function (key, defVal) {
+  let val = env[key];
+  if (val === undefined) {
+    return defVal;
+  }
+  let ival = parseInt(val);
+  if (ival == val) {
+    return ival;
+  }
+  let fval = parseFloat(val);
+  if (fval = val) {
+    return val;
+  }
+  return val;
+};
 
-/** export a log() utility with time stamp prefix */
+// export a log() utility with time stamp prefix
 exports.log = function () {
   if (oneline) {
     console.log(
