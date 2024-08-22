@@ -10,14 +10,14 @@ const { json, parse } = util;
 async function open(dir = "data-store", opt = { valueEncoding: 'json' }) {
   const db = new Level(dir, opt);
   await db.open({ createIfMissing: true });
-  return wrap(db);
+  return wrap(db, dir, true);
 };
 
-function wrap(db) {
+function wrap(db, name, closable) {
   // a sub-level is like a prefix with the added benefit
   // of a global db operations being bound by it (like clear)
   const sub = function (pre, opt = { valueEncoding: 'json' }) {
-    return wrap( db.sublevel([pre, opt]));
+    return wrap(db.sublevel(pre, opt), pre, false);
   };
 
   const get = async function (key, defval) {
@@ -39,6 +39,12 @@ function wrap(db) {
   const clear = async function (opt = {}) {
     return await db.clear(opt);
   };
+
+  const close = async function () {
+    if (closeable) {
+      return await db.close();
+    }
+  }
 
   const dump = async function (pre = "db") {
     const path = `${pre}-${util.uid()}`;
@@ -73,6 +79,7 @@ function wrap(db) {
     };
 
   return {
+      name,
       sub,
       get,
       put,
@@ -80,7 +87,8 @@ function wrap(db) {
       list,
       dump,
       load,
-      clear
+      clear,
+      close
   };
 }
 

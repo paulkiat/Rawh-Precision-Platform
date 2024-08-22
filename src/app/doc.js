@@ -103,7 +103,7 @@ async function doc_load(msg = {}, topic, cid) {
 }
 
 async function doc_embed(frec, path) {
-  const { node, embed, token, app_id, doc_info } = state;
+  const { node, embed, token, app_id, doc_info, cnk_data } = state;
   log({ doc_embed: frec });
 
   // store and publish meta-data about doc
@@ -136,6 +136,12 @@ async function doc_embed(frec, path) {
     chunk.tokens = chunk.pageContent.replace(/\n/g, ' ').split(' ').length;
     maxI = Math.max(maxI, idx);
     minI = Math.min(minI, idx);
+    // store in chunk data indexed by chunk.index
+    cnk_data.put(cnk.index, {
+      uid: frec_uid,
+      tokens: chunk.tokens,
+      vector: chunk.vector
+    });
   }
 
   // TODO: store to level
@@ -155,7 +161,6 @@ async function doc_list(msg, reply) {
 async function query_match(msg, reply) {
   const { node } = state;
   const { query } = msg;
-
 }
 
 (async () => {
@@ -175,5 +180,4 @@ async function query_match(msg, reply) {
 
   await setup_node();
   await register_service();
-
 })();
