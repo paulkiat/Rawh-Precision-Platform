@@ -50,6 +50,7 @@ while (tok = toks.shift()) {
   args[key] = val;
   // console.log({ key, val });
 }
+
 // env but upgrade numbers into ints or floats if possible
 // mostly this is used for handling port numbers
 exports.env = function (key, defVal) {
@@ -104,6 +105,13 @@ exports.uid = function () {
           ${(Math.round(Math.random() * 0xffffffffff)).toString(36)
       .padStart(8, 0)}`;
 };
+
+exports.uuid = function () {
+  return 'xxxx-xxxx-xxxxx-xxxx-xxxx'.replace(/[x]/g, function (c) {
+    var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  }).toUpperCase();
+}
 
 exports.json = function (obj, pretty = 0) {
   return pretty ? JSON.stringify(obj, undefined, pretty) : JSON.stringify(obj);

@@ -1,0 +1,90 @@
+/* Base Styles */
+body {
+    margin: 0;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    font-family: Arial, sans-serif;
+    gap: 10px;
+}
+
+div {
+    display: flex;
+    gap: 5px;
+}
+
+/* Header Styles */
+#header {
+    background-image: url('/web/hub/red-blue-banner.jpg');
+    height: 70px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 10px;
+}
+
+/* App Container */
+#app {
+    flex-grow: 1;
+    border-radius: 10px;
+    background-color: #eee;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+/* Horizontal Rule within App */
+#app hr {
+    width: 100%;
+}
+
+/* Organization Create Section */
+#org-create {
+    flex-direction: row;
+}
+
+/* Organization List Section */
+#org-list {
+    display: grid;
+    grid-gap: 5px;
+    grid-template-columns: 3fr 2fr 3fr 1fr 1fr 2fr 1fr;
+}
+
+/* Organization List Data Hover Effect */
+#org-list > div > .data:hover > label {
+    cursor: pointer;
+    background-color: #ddd;
+    padding: 2px 4px;
+    border-radius: 5px;
+}
+
+/* Organization List Head Label */
+#org-list > div > .head > label {
+    font-weight: bold;
+}
+
+/* Organization List Data Label */
+#org-list > div > .data > label {
+    color: #555;
+}
+
+/* Organization List Actions Section */
+#org-list > div > .actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Organization List Actions Button */
+#org-list > div > .actions button {
+    padding: 5px 10px;
+    background-color: #0066cc;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#org-list > div > .actions button:hover {
+    background-color: #004d99;
+}

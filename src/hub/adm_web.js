@@ -10,43 +10,37 @@ function setup(state) {
   }
 }
 
-function admin_handler(req, res, next, state) {
+async function admin_handler(req, res, next, state) {
   const { url, query } = req.parsed;
   const { meta, logs, adm_org } = state;
   const { name, creator, uid } = query;
   switch (url.pathname) {
     case '/state':
-      log({ state });
-      break;
+      return log({ state });
     case '/uid':
       return res.end(util.uid());
+    case 'org/list':
+      return res.end(json(await adm_org.list()));
     case 'org/create':
-      adm_org(name, creator)
-        .then (uid => res.end(json({ orgid: uid })))
-        .catch (error => res.end(json({ error })));
-      return;
+      return res.end(json({ orgid: await adm_org.create(name, creator) }));
+    case 'org/delete':
+      return res.end(json({ orgid: await adm_org.delete_by_uid(uid) }));
     case '/org.byname':
-      adm_org.get_by_name(name)
-        .then(kv => {
-          if (!kv) {
-            res.end(json({ error: "`no org: ${name" }));
-          } else {
-            const [uid, rec] = kv;
-            res.end(json({ uid, rec }));
-          }
-        })
-        .catch(error => res.end(json({ error })));
+      const kv = await adm_org.get_by_name(name);
+        if (!kv) {
+          res.end(json({ error: "`no org: ${name" }));
+        } else {
+          const [ uid, rec ] = kv;
+          res.end(json({ uid, rec }));
+        }
       return;
     case '/org.byuid':
-      adm_org.get_by_uid(uid)
-        .then(rec => {
-          if (rec) {
-            res.end(json(rec));
-          } else {
-            res.end(json({ error: `no org id: ${uid}` }));
-          }
-        })
-        .catch (error => res.end(json({ error })));
+      const rec = adm_org.get_by_uid(uid);
+        if (rec) {
+          res.end(json(rec));
+        } else {
+          res.end(json({ error: `no org id: ${uid}`}));
+        }
       return;
     default:
         return next();
