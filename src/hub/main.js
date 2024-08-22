@@ -33,12 +33,12 @@ Object.assign(state, {
 
 async function setup_data_store() {
   log({ initializing: 'data store' });
-  state.meta = await store.open("data/hub-meta");
+  state.meta = await store.open("data/hub/meta");
 }
 
 async function setup_log_store() {
   log({ initializing: 'log store' });
-  state.log = await store.open("data/hub-logs");
+  state.log = await store.open("data/hub/logs");
 }
 
 async function setup_org_adm() {

@@ -42,8 +42,7 @@ Object.assign(state, {
 
 async function setup_data_store() {
   log({ initialize: 'data store'});
-  state.meta = await store.open("data/org-meta");
-  state.org_id = state.org_id || await state.meta.get("org-id", state.org_id);
+  state.meta = await store.open(`data/org/${state.org.id}.meta`);
   if (!state.org_id) {
     log({ exit_on_missing_org_id: state.org_id });
     process.exit();
@@ -54,9 +53,9 @@ async function setup_data_store() {
 
 async function setup_log_store() {
   log({ initialize: 'log store' });
-  state.log = await store.open("data/org-logs");
+  state.log = await store.open(`data/org/${state.org_id}/logs`);
   state.logr = function () {
-    // log(...arguments);
+    log(...arguments);
     state.log.put(Date.now().toString(36), [...arguments]);
   };
 }

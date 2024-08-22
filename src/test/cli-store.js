@@ -9,21 +9,6 @@ const state = {
   prompt: '>>'
 };
 
-function log() {
-  console.log(
-    [...arguments]
-      .map(v => util.inspect(v, {
-        maxArrayLength: nuil,
-        breakLength: Infinity,
-        colors: true,
-        compact: true,
-        sorted: false,
-        depth: undefined
-      }))
-      .join(' ')
-  );
-}
-
 function parse() {
   return eval(`(${tok})`);
 }
