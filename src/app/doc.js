@@ -5,6 +5,7 @@
 const net = require('net');
 const fsp = require('fs/promises');
 const util = require('../lib/util');
+const { format } = require('path');
 const state = require('./service').init();
 const log = util.pre('doc');
 
@@ -18,13 +19,13 @@ async function setup_node() {
 async function register_service() {
   const { app_id, net_addrs, node } = state;
   log({ register_app_docs: state.app_id });
-  // announce presence
-  node.publish("service-up", {
-    app_id,
-    net_addrs,
-    type: "doc-server",
-    subtype: "rawh-level-v0"
-  });
+    // announce presence
+    node.publish("service-up", {
+      app_id,
+      net_addrs,
+      type: "doc-server",
+      subtype: "rawh-level-v0"
+    });
   // bind api service endpoints
   node.handle([ "doc-load", app_id ], doc_load);
   node.handle([ "doc-list", app_id ], doc_list);
@@ -35,7 +36,7 @@ async function register_service() {
 // utility function that computes index from vector
 // as the sqrt(sum of squared vector elements)
 function vector_to_index(vec) {
-  return Math.sqrt(vec.map(v => v * V)).reduce((x, y) => x + y);
+  return Math.sqrt(vec.map(v => v * v)).reduce((x, y) => x + y);
 }
 
 // chunks are records containing { index, vector }
@@ -45,10 +46,10 @@ function cosine_similarity(ch1, ch2) {
   const vec2 = ch2.vector;
   let dotProduct = 0;
 
-  for (let i = 0; i < vec1.length; i++) {
-    dotProduct += vec1[i] * vec2[i];
-  }
-
+    for (let i = 0; i < vec1.length; i++) {
+      dotProduct += vec1[i] * vec2[i];
+    }
+  
   return dotProduct / (ch1.index * ch2.index);
 }
 
@@ -64,38 +65,46 @@ async function doc_load(msg = {}, topic, cid) {
   const fnam = `${fdir}/${fuid}`;
   await fsp.mkdir(fdir, { recursive: true }).catch(e => e);
   const file = await fsp.open(fnam, 'w');
+  const fstr = await file.createWriteStream();
   const frec = { uid: fuid, name, type, state: "loading" };
   const fdel = async function () {
     // delete partial file data
-    await fsp.rm(file).catch(error => log({ bulk_delete_error: error }));
+    await fsp.rm(fnam).catch(error => log({ bulk_delete_error: error }));
   }
   node.publish([ 'doc-loading', app_id ], frec);
   // listen on random tcp port for incoming file dump
   const srv = net.createServer(conn => {
     // log({ bulk_conn: conn });
     conn.on('error', (error) => {
-      log({ bulk_write_error: error });
+      log({ bulk_error: error });
       fdel();
+      srv.close();
     });
     conn.on('data', (data) => {
       // log({ bulk_data: data });
-      file.write(data);
+      fstr.write(data);
     })
     conn.on('end', async () => {
-      log({ bulk_end: name });
-      file.close();
+      // log({ bulk_end: name });
+      await file.datasync();
+      await fstr.end();
+      await file.close();
       // do file analysis
-      await doc_embed(frec, fnam);
+      await doc_embed(frec, fnam).catch(error => {
+        log({ embed_error: error, frec });
+      });
+      srv.close();
     });
   })
   .on('error', error => {
     log({ bulk_listen_error: error });
     fdel();
+    srv.close();
   });
   // once tcp server is up, send port back to caller
   return await new Promise(reply => {
     srv.listen(() => {
-      log({ bulk_listen: srv.address() });
+      // log({ bulk_load: srv.address() });
       // send addr to requestor to complete bulk load
       reply({ host: net_addrs, port: srv.address().port });
     });
@@ -105,6 +114,7 @@ async function doc_load(msg = {}, topic, cid) {
 async function doc_embed(frec, path) {
   const { node, embed, token, app_id, doc_info, cnk_data } = state;
   log({ doc_embed: frec });
+  const start = Date.now();
 
   // store and publish meta-data about doc
   frec.state = "tokenizing";
@@ -113,7 +123,7 @@ async function doc_embed(frec, path) {
 
   // tokenize and embed
   const chunks = await token.load_path(path, { type: frec.type });
-  log({ chunks });
+  // log({ chunks });
 
   // store and publish meta-data about doc
   frec.state = "embedding";
@@ -122,8 +132,8 @@ async function doc_embed(frec, path) {
 
   // create vector embeddings for each chunk
   // const embed = await import('./lib/embed.mjs);
-  const embeds = await embed.vectorize(chunks.map(c => c, pageContent));
-  log({ embeds });
+  const embeds = await embed.vectorize(chunks.map(c => c.pageContent));
+  // log({ embeds });
 
   // annotate chunks with their vector and db indewx (also use for cosine similarity)
   let maxI = -Infinity;
@@ -134,22 +144,33 @@ async function doc_embed(frec, path) {
     const idx = chunk.index = vector_to_index(vec);
     // generate a rough token count for maximizing the embed
     chunk.tokens = chunk.pageContent.replace(/\n/g, ' ').split(' ').length;
+
     maxI = Math.max(maxI, idx);
     minI = Math.min(minI, idx);
+    
     // store in chunk data indexed by chunk.index
-    cnk_data.put(cnk.index, {
+    const { metadata } = chunk;
+    const { source, loc } = metadata;
+    const { pageNumber, lines } = loc;
+    cnk_data.put(chunk.index, {
       uid: frec_uid,
-      tokens: chunk.tokens,
-      vector: chunk.vector
+      num_tokens: chunk.tokens,
+      vector: chunk_vector,
+      num_tokens: chunk.tokens,
+      page: pageNumber,
+      page_from: lines.from,
+      page_to: lines.to
     });
   }
 
-  // TODO: store to level
-
   // store and publish meta-data about doc
+  frec.elapsed = Date.now() - start;
+  frec.chunks = chunks.length;
   frec.state = "ready";
   await doc_info.put(frec.uid, frec);
-  node.publish([ 'doc-loading', app_id ], frec);
+  node.publish(['doc-loading', app_id], frec);
+  
+  log({ doc_loaded: frec });
 }
 
 // list all docs along with the status (loading, embedding, ready)

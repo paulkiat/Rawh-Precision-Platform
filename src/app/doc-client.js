@@ -42,6 +42,8 @@ function file_drop(req, res, next) {
       }).on('error', reject);
     });
   }).then(client => {
+    log({ headers: req.headers });
+    // save stream to disk as it arrives
     req.on('error', error => {
       res.end({ drop_error: error });
       client.end();

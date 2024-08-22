@@ -27,7 +27,7 @@ function zmq_server(port, onmsg, opt = { sync: false }) {
 
   (async function () {
     await sock.bind(`${proto}://*:${port}`);
-    log('listening on', proto, 'port', port, 'opt', opt);
+    log({ listening: proto, port, opt });
   
     for await (const [id, msg] of sock) {
       const cid = id.readUInt32BE(1).toString(36);
@@ -94,7 +94,7 @@ function zmq_proxy(port = 6000) {
       return;
     }
     const [ action, topic, msg, callto, mid ] = recv;
-    const sent = [];
+    const sent = [ ];
     // log('proxy', { cid, action, topic, msg, callto, mid });
     switch (action) {
       case 'sub':
@@ -133,11 +133,11 @@ function zmq_proxy(port = 6000) {
         break;
       case 'locate':
         // returns a list of topic subscribers and direct listeners
-        send(cid, ['', {
+        send(cid, [ '', {
           topic,
           subs: topics[topic],
           direct: direct[topic]
-        }, '', mid]);
+        }, '', mid ]);
         break;
       default:
         log({ invalid_action: action });

@@ -31,7 +31,10 @@ function parse() {
 async function cmdloop() {
   const open = process.argv[2];
   if (open) {
-    await db_open(open);
+    await db_open(open).catch(error => {
+      console.log('Unable to Open DB Store >>', error.cause);
+      process.exit(1);
+    });
   }
   while (true) {
     const answer = await cmdline.question(`${state.prompt} `);
@@ -51,7 +54,7 @@ async function db_open(name) {
   if (state.open) {
     console.log('db already open');
   } else {
-    state.open = await state.open(name);
+    state.open = await store.open(name);
     state.level.push(state.open);
     update_prompt();
   }
@@ -62,7 +65,6 @@ async function cmd(answer) {
   const cmd = toks.shift();
   switch (cmd) {
     case '?':
-    case '/?':
     case 'help':
       print_help();
       break;

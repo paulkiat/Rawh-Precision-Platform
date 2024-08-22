@@ -56,7 +56,7 @@ async function setup_log_store() {
   log({ initialize: 'log store' });
   state.log = await store.open("data/org-logs");
   state.logr = function () {
-    log('*', ...arguments);
+    // log(...arguments);
     state.log.put(Date.now().toString(36), [...arguments]);
   };
 }
