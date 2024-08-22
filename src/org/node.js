@@ -2,6 +2,7 @@
 // listen for app registrations, serve meta data
 
 const { createProxyMiddleware } = require('http-proxy-middleware');
+const { file_drop } = require('../app/doc-client');
 const log = require('../lib/util').logpre('node');
 const net = require('../lib/net');
 const router = require('express').Router();
@@ -17,51 +18,12 @@ function logProvider() {
   };  
 }
 
-function file_drop(req, res, next) {
-  const { node } = state;
-  const { parsed } = req;
-  const { app_id } = parsed.query;
-
-  log({ parsed, app_id, method: req.method });
-
-  if (!(parsed.url.pathname === '/drop' && req.method === 'POST')) {
-    return next();
-  }
-
-  const topic = ['doc-load', app_id];
-  
-  log({ locate: topic });
-  node.promise.locate(topic).then(result => {
-    const { direct } = result;
-    // log({ result, direct });
-    if (!(direct && direct.length)) {
-      throw `no doc-load endpoint found for app: ${app_id}`;
-    }
-    // log({ call: direct[0], topic });
-    return node.promise.call(direct[0], topic, {
-      name: "filename",
-      type: "pdf"
-    });
-  }).then(reply => {
-    // log({ doc_load_said: reply });
-    req.on('data', chunk => {
-      log({ chunk });
-    });
-    req.on('end', chunk => {
-      res.end('dropped!');
-    }).catch(error => {
-      next();
-    })
-  });
-}
 
 exports.init = function (state) {
   node = state.node = net.node('localhost', state.proxy_port);
 
   // setup file drop handler
-  router.use((req, res, next) => {
-    file_drop(req, res, next, state);
-  });
+  router.use(file_drop(state));
   
   node.subscribe('service-up', (msg, cid) => {
     const { type, subtype, app_id } = msg;

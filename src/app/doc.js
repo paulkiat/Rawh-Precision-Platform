@@ -54,10 +54,10 @@ function cosine_similarity(ch1, ch2) {
 
 // request to a tcp socket for bulk loading a document
 // which will then be stored, chunked, and vector embedded
-async function doc_load(msg = {}, reply) {
+async function doc_load(msg = {}, topic, cid) {
   log({ doc_load: msg, topic: cid });
   const { name, type } = msg;
-  const { node, app_id } = state;
+  const { node, app_id, net_addrs } = state;
   // create the file drop target with time+random file uid
   const fuid = util.uid();
   const fdir = `${state.data_dir}/docs`;
@@ -72,15 +72,17 @@ async function doc_load(msg = {}, reply) {
   node.publish([ 'doc-loading', app_id ], frec);
   // listen on random tcp port for incoming file dump
   const srv = net.createServer(conn => {
-    log({ bulk_conn: conn });
+    // log({ bulk_conn: conn });
     conn.on('error', (error) => {
       log({ bulk_write_error: error });
       fdel();
     });
     conn.on('data', (data) => {
+      // log({ bulk_data: data });
       file.write(data);
     })
     conn.on('end', async () => {
+      log({ bulk_end: name });
       file.close();
       // do file analysis
       await doc_embed(frec, await fsp.readFile(fnam));
@@ -90,21 +92,22 @@ async function doc_load(msg = {}, reply) {
     log({ bulk_listen_error: error });
     fdel();
   });
+  // once tcp server is up, send port back to caller
   return await new Promise(reply => {
     srv.listen(() => {
       log({ bulk_listen: srv.address() });
       // send addr to requestor to complete bulk load
-      reply({ port: srv.address().port });
+      reply({ host: net_addrs, port: srv.address().port });
     });
   });
 }
 
 async function doc_embed(frec, data) {
-  const { node, doc_info } = state;
+  const { node, app_id, doc_info } = state;
   log({ doc_embed: frec, data });
   // store and publish meta-data about doc
   frec.state = 'embedding';
-  await doc_info.put(fuid, frec);
+  await doc_info.put(frec.uid, frec);
   node.publish(['doc-loading', app_id], frec);
 }
 

@@ -1,4 +1,5 @@
 const { args, env } = require('../lib/util');
+const { file_drop } = require('../app/doc-client');
 const log = require('../lib/util').logpre('app');
 const net = require('../lib/net');
 const web = require('../lib/web');
@@ -31,6 +32,8 @@ async function announce_service() {
 // serving local app web assets
 async function setup_app_handlers() {
   app_handler
+    .use(web.parse_query())
+    .use(file_drop(state))
     .use((req, res, next) => {
       const url = req.url;
       const appurl = `/app/${state.app_id}`;
