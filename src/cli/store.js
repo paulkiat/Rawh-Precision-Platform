@@ -14,6 +14,7 @@ function parse() {
 }
 
 async function cmdloop() {
+  console.log('[ command line interface :: level db storage]');
   const open = process.argv[2];
   if (open) {
     await db_open(open).catch(error => {
