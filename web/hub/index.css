@@ -43,65 +43,81 @@ div {
 /* Organization Create Section */
 #org-create {
     flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 5px;
 }
 
 /* Organization List Section */
 #org-list {
     display: grid;
-    grid-gap: 5px;
+    grid-gap: 10px;
     grid-template-columns: 3fr 2fr 3fr 1fr 1fr 2fr 1fr;
+    padding: 10px;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 /* Organization List Div */
 #org-list > div {
-  display: contents;
+    display: contents;
+}
+
+/* Organization List Head Label */
+#org-list > .head > label {
+    padding: 5px;
+    background-color: #555; 
+    border: 1px solid #eee;
+    border-radius: 5px;
+    text-align: center;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: white;
+}
+
+/* Organization List Data Label */
+#org-list > .data > label {
+    padding: 5px;
+    background-color: whitesmoke; 
+    border: 1px solid #ddd;
+    white-space: nowrap;
+    font-family: 'Arial', sans-serif;
+    font-size: 14px;
+    color: #333;
 }
 
 /* Organization List Data Hover Effect */
 #org-list > .data:hover > label {
     cursor: pointer;
-    background-color: #ddd;
+    background-color: #e0e0e0;
     padding: 2px 4px;
     border-radius: 5px;
-}
-
-/* Organization List Head Label */
-#org-list > .head > label {
-  padding: 5px;
-  background-color: #555; 
-  border: 1px solid #eee;
-  border-radius: 5px;
-  text-align: center;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
-/* Organization List Data Label */
-#org-list > .data > label {
-  padding: 5px;
-  background-color: whitesmoke; 
-  border: 1px solid #ddd;
-  white-space: nowrap;
+    transition: background-color 0.3s ease;
 }
 
 /* Organization List Actions Section */
 #org-list > div > .actions {
-  display: flex;
-  flex-direction: row;
-  gap: 5x;
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
 }
 
 /* Organization List Actions Button */
 #org-list > div > .actions button {
-  flex-grow: 1;
-  padding: 5px 10px;
-  background-color: #0066cc;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+    flex-grow: 1;
+    padding: 5px 10px;
+    background-color: #0066cc;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease;
 }
 
-#org-list > .actions button:hover {
+#org-list > div > .actions button:hover {
     background-color: #004d99;
 }
