@@ -4,6 +4,7 @@ const { args, env } = require('../lib/util');
 const { proxy } = require('../lib/net');
 const log = require('../lib/util').logpre('org');
 const web = require('../lib/web');
+const api = require('../web-api');
 const node = require('./node');
 const store = require('../lib/store');
 const crypto = require('../lib/crypto');
@@ -64,7 +65,7 @@ async function setup_keys() {
   const { meta, logs } = state;
   state.org_keys = await meta.get("org-keys");
   if (!state.org_keys) {
-    log('generating public/private key pair');
+    log({ generating: 'public/private key pair' });
     state.org_keys = await crypto.createKeyPair();
     await meta.put("org-keys", state.org_keys);
   }
@@ -79,12 +80,14 @@ async function setup_web_handlers() {
     .use(store.web_admin(state, 'meta'))
     .use(store.web_admin(state, 'logs'))
     .use(node.web_handler)
+    .use(api.web_handler)
     .use(static)
     .use(web.four_oh_four)
   // production https web interface
   web_handler
     .use(web.parse_query)
     .use(node.web_handler)
+    .use(api.web_handler)
     .use(static)
     .use(web.four_oh_four)
     ;
@@ -96,6 +99,7 @@ async function setup_org_proxy() {
 }
 
 async function setup_org_node() {
+  app.init(state);
   node.init(state);
 }
 
@@ -104,9 +108,9 @@ async function setup_org_node() {
   await setup_log_store();
   await setup_keys();
   await setup_org_proxy();
-  await setup_org_node();
+  await setup_org_apis();
   await setup_web_handlers();
   await web.start_web_listeners(state);
   await require('./hub-link').start_hub_connection(state);
-  state.logr("org services started");
+  state.logr({ started: "org services started" });
 })();

@@ -1,0 +1,107 @@
+/* Base Styles */
+body {
+    border: 0;
+    margin: 0;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    font-family: Arial, sans-serif;
+    gap: 10px;
+}
+
+div {
+    display: flex;
+    gap: 5px;
+}
+
+/* Header Styles */
+#header {
+    background-image: url('/web/org/rawh-banner.jpg');
+    height: 70px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 10px;
+}
+
+/* App Container */
+#apps {
+    flex-grow: 1;
+    border-radius: 10px;
+    background-color: #eee;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+/* Horizontal Rule within App */
+#apps hr {
+    width: 100%;
+}
+
+/* Application Create Section */
+#app-create {
+    flex-direction: row;
+}
+
+/* Application List Section */
+#app-list {
+    display: grid;
+    grid-gap: 5px;
+    grid-template-columns: 3fr 2fr 3fr 1fr 1fr 2fr 1fr;
+}
+
+/* Application List Div */
+#app-list > div {
+  display: contents;
+}
+
+/* Application List Data Hover Effect */
+#app-list > .data:hover > label {
+    cursor: pointer;
+    background-color: #ddd;
+    padding: 2px 4px;
+    border-radius: 5px;
+}
+
+/* Application List Head Label */
+#app-list > .head > label {
+  padding: 5px;
+  background-color: #555; 
+  border: 1px solid #eee;
+  border-radius: 5px;
+  text-align: center;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+/* Application List Data Label */
+#app-list > .data > label {
+  padding: 5px;
+  background-color: whitesmoke; 
+  border: 1px solid #ddd;
+  white-space: nowrap;
+}
+
+/* Application List Actions Section */
+#app-list > div > .actions {
+  display: flex;
+  flex-direction: row;
+  gap: 5x;
+}
+
+/* Application List Actions Button */
+#app-list > div > .actions button {
+  flex-grow: 1;
+  padding: 5px 10px;
+  background-color: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#app-list > .actions button:hover {
+    background-color: #004d99;
+}

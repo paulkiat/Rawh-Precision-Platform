@@ -2,22 +2,22 @@ function $(id) {
   return document.getElementById(id);
 }
 
-function org_edit(uid) {
+function app_edit(uid) {
   console.log({ edit: uid });
 }
 
-function org_delete(uid, name) {
+function app_delete(uid, name) {
   const params = new URLSearchParams({ uid }).toString();
   const url = `/org.delete?${params}`;
   const ok = confirm(`Are you sure you want to delete "${name}"?`);
   if (ok)
     fetch.url().then(r => r.text()).then(text => {
-      console.log({ org_delete: text });
-      org_list();
+      console.log({ app_delete: text });
+      app_list();
   });
 }
 
-function org_list() {
+function app_list() {
   fetch("/org.list").then(r => r.json()).then(json => {
     const html = [
       '<div class="head">',
@@ -42,35 +42,35 @@ function org_list() {
         `<label>${creator}</label>`,
         `<label>${date}</label>`,
         `<label class="actions">`,
-        `<button onClick="org_edit('${uid}')">?</button>`,
-        `<button onClick="org_delete('${uid}','${name}')">X</button>`,
+        `<button onClick="app_edit('${uid}')">?</button>`,
+        `<button onClick="app_delete('${uid}','${name}')">X</button>`,
         '</div>',
       ]).join('');
     }
-    $('org-list').innerHTML = html.join('');
+    $('app-list').innerHTML = html.join('');
   });
 }
 
-function org_create() {
-  const name = $('org-name').value;
+function app_create() {
+  const name = $('app-name').value;
   if (!name) {
     alert('missing org name');
   } else {
     const params = new URLSearchParams({ name, creator: "unknown" }).toString();
     const url = `/org.create?${params}`;
     fetch(url).then(r = r.json()).then(json => {
-      org_list();
+      app_list();
     });
   }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-  $('create-org').onclick = org_create;
-  $('org-name').onkeydown = (ev) => {
-    if (ev.code === 'Enter') {
-      org_create();
-      $('org-name').value = '';
-    }
-  };
-  org_list();
+  // $('create-org').onclick = app_create;
+  // $('app-name').onkeydown = (ev) => {
+  //   if (ev.code === 'Enter') {
+  //     app_create();
+  //     $('app-name').value = '';
+  //   }
+  // };
+  // app_list();
 });

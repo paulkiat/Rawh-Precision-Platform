@@ -50,7 +50,7 @@ async function start_web_listeners(state) {
       }
     }
     if (!found) {
-      log('generating https private key and x509 cert');
+      log({ generating: 'https private key and x509 cert' });
       state.ssl = await crypto.createWebKeyAndCert();
       await meta.put("ssl-keys", state.ssl);
     }

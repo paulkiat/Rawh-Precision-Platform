@@ -2,7 +2,6 @@
 // listen for app registrations, serve meta data
 
 const { createProxyMiddleware } = require('http-proxy-middleware');
-const { file_drop } = require('../app/doc-client');
 const log = require('../lib/util').logpre('node');
 const net = require('../lib/net');
 const router = require('express').Router();
@@ -22,9 +21,6 @@ function logProvider() {
 exports.init = function (state) {
   node = state.node = net.node('localhost', state.proxy_port);
 
-  // setup file drop handler
-  router.use(file_drop(state));
-  
   node.subscribe('service-up', (msg, cid) => {
     const { type, subtype, app_id } = msg;
     const app_rec = apps[app_id] || (apps[app_id] = {
