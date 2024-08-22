@@ -70,7 +70,7 @@ function wrap(db, name, closable) {
     for await (const line of reader) {
       const [key, value] = parse(line);
       await db.put(key, value);
-      console.log(key, value);
+      // console.log(key, value);
       recs++;
     }
 

@@ -62,18 +62,21 @@ async function cmd(answer) {
   const cmd = toks.shift();
   switch (cmd) {
     case '?':
-    case '/h':
     case '/?':
     case 'help':
       print_help();
       break;
+    case '/':
+      if (!state.open) return console.log('no db open');
+      state.open = state.level[0];
+      state.level = [ state.open ];
     case 'sub':
       while (state.open && toks.length) {
         const sub = state.open.sub(toks.shift());
         state.open = sub;
         state.level.push(sub);
-        upndate_prompt();
       }
+      update_prompt();
       break;
     case 'open':
       await db_open(toks[0]);
@@ -119,6 +122,20 @@ async function cmd(answer) {
       const keys = (await state.open.list(kopt)).map(r => r[0]);
       console.log(keys);
       break;
+    case 'clear':
+      if (!state.open) return console.log('no db open');
+      await state.open.clear(parse(toks[0] || '{}'));
+      break;
+    case 'dump':
+      if (!state.open) return console.log('no db open');
+      await state.open.dump(toks[0]);
+      console.log({ dump });
+      break;
+    case 'load':
+      if (!state.open) return console.log('no db open');
+      const load = await state.open.load(toks[0]);
+      console.log({ load });
+      break;
     case 'quit':
       process.exit[0];
       break;
@@ -131,15 +148,18 @@ async function cmd(answer) {
 function print_help() {
   console.log([
     "? || help         - this help",
-    "open <dir>        - open database",
-    "get <key>         - get value for a key",
-    "put <key> <val>   - store value for a key",
-    "del <key>         - delete record for a key",
+    "open [dir]        - open database",
+    "close             - close db",
+    "get [key]         - get value for a key",
+    "put [key] [val]   - store value for a key",
+    "del [key]         - delete record for a key",
     "keys <opt>        - list keys with optional range",
     "list <opt>        - list keys and values with optional range",
-    "sub <pre>         - enter a sublevel with given prefix",
+    "sub [pre]         - enter a sublevel with given prefix",
     "pop               - exit current sub-level",
-    "close             - close db",
+    "/                 - go to top (root) level, pop all subs",
+    "dump <pre>        - create file backup of level or sublevel",
+    "load [path]       - load records from db file backup into level or sublevel",
     "quit              - exit cli"
   ].join('\n'));
 }
