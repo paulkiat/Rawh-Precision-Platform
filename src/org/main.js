@@ -79,10 +79,13 @@ async function setup_web_handlers() {
     .use(web.parse_query())
     .use(store.web_admin(state, 'meta'))
     .use(store.web_admin(state, 'logs'))
+    .use(node.web_handler)
     .use(static)
     .use(web.four_oh_four)
   // production https web interface
   web_handler
+    .use(web.parse_query())
+    .use(node.web_handler)
     .use(static)
     .use(web.four_oh_four)
     ;
@@ -94,7 +97,7 @@ async function setup_org_proxy() {
 }
 
 async function setup_org_node() {
-  node.init(state, web_handler);
+  node.init(state);
 }
 
 (async () => {

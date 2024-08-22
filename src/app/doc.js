@@ -54,7 +54,8 @@ function cosine_similarity(ch1, ch2) {
 
 // request to a tcp socket for bulk loading a document
 // which will then be stored, chunked, and vector embedded
-async function doc_load(msg, reply) {
+async function doc_load(msg = {}, reply) {
+  log({ doc_load: msg, topic: cid });
   const { name, type } = msg;
   const { node, app_id } = state;
   // create the file drop target with time+random file uid
@@ -88,11 +89,13 @@ async function doc_load(msg, reply) {
   .on('error', error => {
     log({ bulk_listen_error: error });
     fdel();
-  })
-  .listen(() => {
-    log({ bulk_listen: srv.address() });
-    // send addr to requestor to complete bulk load
-    reply({ port: srv.address().port });
+  });
+  return await new Promise(reply => {
+    srv.listen(() => {
+      log({ bulk_listen: srv.address() });
+      // send addr to requestor to complete bulk load
+      reply({ port: srv.address().port });
+    });
   });
 }
 
@@ -133,10 +136,4 @@ async function query_match(msg, reply) {
   await setup_node();
   await register_service();
 
-  state.node.locate('*', (msg) => {
-    log({ locate_said: msg });
-  });
-  state.node.locate([ "doc-load", state.app_id ], (msg) => {
-    log({ locate_said: msg });
-  });
 })();

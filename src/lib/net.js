@@ -94,7 +94,8 @@ function zmq_proxy(port = 6000) {
       return;
     }
     const [ action, topic, msg, callto, mid ] = recv;
-    const sent = [ ];
+    const sent = [];
+    // log('proxy', { cid, action, topic, msg, callto, mid });
     switch (action) {
       case 'sub':
         (topics[topic] = topics[topic] || []).push(cid);
@@ -202,14 +203,26 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
     if (topic === undefined) {
       return log(id, 'no.topic.recv', { msg, cid, topic });
     }
-    if (topic === '') {
+    if (topic && mid) {
       // this is a direct call which expects a reply
+      const endpoint = handlers[topic];
+      if (!endpoint) {
+        return log('call handle', { missing_call_handler: mid });
+      }
+      // log ({ endpoint, mid });
+      const rmsg = await endpoint(msg, topic, cid);
+      client.send(["repl", topic, rmsg, cid, mid]);
+      return;
+    }
+    if (topic === '') {
+      // this is a reply to a direct call
       const reply = once[mid];
       if (!reply) {
-        return log({ missing_once: mid });
+        return log({ missing_once_reply: mid });
       }
-      const rmsg = await reply(msg);
-      return rmsg && cid ? client.send([ "repl", topic, rmsg, cid, mid ]) : undefined;
+      // log('call reply once', { reply, mid })
+      const rmsg = await endpoint(msg, topic, cid);
+      return;
     }
     if (mid === '') {
       // this a direct call with no reply path
@@ -217,6 +230,7 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
       return endpoint ? endpoint() : undefined;
     }
     const endpoint = subs[topic];
+    // log(){ endpoint });
     if (endpoint) {
       return endpoint(msg, cid, topic);
     }
@@ -231,7 +245,7 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
     if (star) {
       return star(msg, cid, topic);
     }
-    log({ missing_endpoint_for_topic: topic, cid });
+    log({ missing_sub_endpoint: topic, cid, mid, rec, subs, handlers });
   }
 
   // background message receiver
@@ -274,7 +288,8 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
       client.send([ "handle", flat(topic) ]);
       handlers[flat(topic)] = handler;
     },
-    // get a list of nodes listening to a specific topic
+    // get a list of nodes listening or subscribing to a topic
+    // { topic:"string", subs:[cid], direct:[cid] }
     locate: (topic, on_reply) => {
       const mid = util.uid();
       once[mid] = on_reply;
@@ -283,6 +298,19 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
     // optional function to run on proxy re-connect events
     on_reconnect: (fn) => {
       on_reconnect = fn;
+    }
+  };
+
+  api.promise = {
+    call: (cid, topic, message) => {
+      return new Promise(resolve => {
+        api.call(cid, topic, message, resolve);
+      });
+    },
+    locate: (topic) => {
+      return new Promise(resolve => {
+        api.locate(topic, resolve);
+      });
     }
   };
 
