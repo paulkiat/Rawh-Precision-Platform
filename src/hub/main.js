@@ -42,7 +42,7 @@ async function setup_log_store() {
 }
 
 async function setup_org_adm() {
-  state.adm_org = require('./adm_org');
+  state.adm_org = require('./org-api');
   state.adm_org.init(state);
 }
 async function setup_keys() {
@@ -62,7 +62,7 @@ function setup_web_handlers() {
     .use(web.parse_query)
     .use(store.web_admin(state, 'meta'))
     .use(store.web_admin(state, 'logs'))
-    .use(require('./adm_web').setup(state))
+    .use(require('./web-api').setup(state))
     .use(static)
     .use(web.four_oh_four)
   // production https web interface
