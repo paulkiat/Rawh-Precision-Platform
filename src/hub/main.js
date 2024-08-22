@@ -49,7 +49,7 @@ async function setup_keys() {
   const { meta, logs } = state;
   state.hub_keys = await meta.get("hub-keys");
   if (!state.hub_keys) {
-    log('generating public/private key pair');
+    log({ generating: "public/private key pair" });
     state.hub_keys = await crypto.createKeyPair();
     await meta.put("hub-keys", state.hub_keys);
   }

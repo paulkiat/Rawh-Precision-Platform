@@ -16,7 +16,7 @@ div {
 
 /* Header Styles */
 #header {
-    background-image: url('/web/org/rawh-banner.jpg');
+    background-image: url('img/rawh-banner.jpg');
     height: 70px;
     background-size: cover;
     background-position: center;

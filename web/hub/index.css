@@ -16,7 +16,7 @@ div {
 
 /* Header Styles */
 #header {
-    background-image: url('/web/hub/red-blue-banner.jpg');
+    background-image: url('img/red-blue-banner.jpg');
     height: 70px;
     background-size: cover;
     background-position: center;

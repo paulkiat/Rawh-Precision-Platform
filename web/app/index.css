@@ -1,0 +1,41 @@
+/* Base Styles */
+body {
+    border: 0;
+    margin: 0;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    font-family: Arial, sans-serif;
+    gap: 10px;
+}
+
+div {
+    display: flex;
+    gap: 5px;
+}
+
+/* Header Styles */
+#header {
+    background-image: url('img/app-banner.jpg');
+    height: 70px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 10px;
+}
+
+/* App Container */
+#app {
+    flex-grow: 1;
+    border-radius: 10px;
+    background-color: #eee;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+/* Horizontal Rule within App */
+#app hr {
+    width: 100%;
+}

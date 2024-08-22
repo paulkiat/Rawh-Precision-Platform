@@ -32,7 +32,7 @@ async function announce_service() {
 // serving local app web assets
 async function setup_app_handlers() {
   app_handler
-    .use(web.parse_query())
+    .use(web.parse_query)
     .use(file_drop(state))
     .use((req, res, next) => {
       const url = req.url;
@@ -43,7 +43,7 @@ async function setup_app_handlers() {
         res.end('404 Invalid URL');
       } else {
         // rewrite app url to remove /app/<app-id> prefix
-        req.url = req.url.substring(appurl.length);
+        req.url = req.url.substring(appurl.length) || '/';
         log({ new_req_url: req.url, appurl });
         next();
       }
