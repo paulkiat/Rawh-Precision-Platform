@@ -76,13 +76,11 @@ async function start_web_listeners(state) {
 }
 
 // adds a `parsed` object the `req` request object
-function parse_query(handlers, unhandled) {
-  return function (req, res) {
+function parse_query(req, res, next) {
     const url = new URL(req.url, `http://${req.header.host}`);
     const query = Object.fromEntries(url.searchParams.entries());
     req.parsed = { url, query };
     next();
-  };
 }
 
 function four_oh_four(req, res, next) {

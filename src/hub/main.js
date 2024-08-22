@@ -59,7 +59,7 @@ function setup_web_handlers() {
   const static = require('serve-static')('web/hub', { index: ["index.html" ]});
   // localhost only admin / test interface
   adm_handler
-    .use(web.parse_query())
+    .use(web.parse_query)
     .use(store.web_admin(state, 'meta'))
     .use(store.web_admin(state, 'logs'))
     .use(require('./adm_web').setup(state))

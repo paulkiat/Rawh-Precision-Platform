@@ -22,7 +22,7 @@ Object.assign(state, {
   app_port: args['app-port'],
   proxy_port: env('PROXY_PORT') || args['proxy-port'] || 6000,
   adm_handler: adm_handler
-    .use(web.parse_query())
+    .use(web.parse_query)
     .use(store.web_admin(state, 'meta'))
     .use(store.web_admin(state, 'meta')),
   web_handler,
@@ -76,7 +76,7 @@ async function setup_web_handlers() {
   const static = require('serve-static')('web/hub', { index: ["index.html" ]});
   // localhost only admin / test interface
   adm_handler
-    .use(web.parse_query())
+    .use(web.parse_query)
     .use(store.web_admin(state, 'meta'))
     .use(store.web_admin(state, 'logs'))
     .use(node.web_handler)
@@ -84,7 +84,7 @@ async function setup_web_handlers() {
     .use(web.four_oh_four)
   // production https web interface
   web_handler
-    .use(web.parse_query())
+    .use(web.parse_query)
     .use(node.web_handler)
     .use(static)
     .use(web.four_oh_four)

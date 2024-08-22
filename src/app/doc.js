@@ -85,7 +85,7 @@ async function doc_load(msg = {}, topic, cid) {
       log({ bulk_end: name });
       file.close();
       // do file analysis
-      await doc_embed(frec, await fsp.readFile(fnam));
+      await doc_embed(frec, fnam);
     });
   })
   .on('error', error => {
@@ -102,13 +102,48 @@ async function doc_load(msg = {}, topic, cid) {
   });
 }
 
-async function doc_embed(frec, data) {
-  const { node, app_id, doc_info } = state;
-  log({ doc_embed: frec, data });
+async function doc_embed(frec, path) {
+  const { node, embed, token, app_id, doc_info } = state;
+  log({ doc_embed: frec });
+
   // store and publish meta-data about doc
-  frec.state = 'embedding';
+  frec.state = "tokenizing";
   await doc_info.put(frec.uid, frec);
   node.publish(['doc-loading', app_id], frec);
+
+  // tokenize and embed
+  const chunks = await token.load_path(path, { type: frec.type });
+  log({ chunks });
+
+  // store and publish meta-data about doc
+  frec.state = "embedding";
+  await doc_info.put(frec.uid, frec);
+  node.publish(['doc-loading', app_id], frec);
+
+  // create vector embeddings for each chunk
+  // const embed = await import('./lib/embed.mjs);
+  const embeds = await embed.vectorize(chunks.map(c => c, pageContent));
+  log({ embeds });
+
+  // annotate chunks with their vector and db indewx (also use for cosine similarity)
+  let maxI = -Infinity;
+  let minI = Infinity;
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    const vec = chunk.vector = embeds[i];
+    const idx = chunk.index = vector_to_index(vec);
+    // generate a rough token count for maximizing the embed
+    chunk.tokens = chunk.pageContent.replace(/\n/g, ' ').split(' ').length;
+    maxI = Math.max(maxI, idx);
+    minI = Math.min(minI, idx);
+  }
+
+  // TODO: store to level
+
+  // store and publish meta-data about doc
+  frec.state = "ready";
+  await doc_info.put(frec.uid, frec);
+  node.publish([ 'doc-loading', app_id ], frec);
 }
 
 // list all docs along with the status (loading, embedding, ready)
@@ -132,8 +167,10 @@ async function query_match(msg, reply) {
 
   Object.assign(state, {
     store,
-    doc_init,
-    cnk_data
+    embed,
+    token,
+    doc_info,
+    cnk_data,
   });
 
   await setup_node();

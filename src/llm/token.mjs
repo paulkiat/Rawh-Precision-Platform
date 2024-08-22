@@ -10,10 +10,7 @@ const default_opt = {
   separators: ["\n"]
 };
 
-export async function load_and_split(dir, opts = { }) {
- 
-  const op = Object.assign({}, default_opt, opts);
-
+export async function load_dir(dir, opts = {}) {
   const loader = new DirectoryLoader(
     dir,
     {
@@ -26,6 +23,29 @@ export async function load_and_split(dir, opts = { }) {
       }),
     }
   );
+  
+  return split(loader, opts);
+}
+export async function load_path(path, opts = {}) {
+  const opt = Object.assign({}, default_opt, opts);
+  let loader;
+  switch (opt.type || path.split('.').pop()) {
+    case ".jsonl": (path) => new JSONLinesLoader(path, "/html");
+    case ".json": (path) => new JSONLoader(path, "/texts");
+    case ".txt": (path) => new TextLoader(path);
+    case ".csv": (path) => new CSVLoader(path, "text");
+    case ".pdfl": (path) => new PDFLoader(path, {
+        parsedItemSeperator: "",
+    });
+  }
+  if (!loader) {
+    throw "invalid or missing file type";
+  }
+  return split(loader, opt);
+}
+
+export async function split(loader, opts = {}) {
+  const opt = Object.assign({}, default_opt, opts);
 
   const docs = await loader.load();
   if (opt.debug) {

@@ -9,7 +9,7 @@ function file_drop(req, res, next) {
   const { parsed } = req;
   const { app_id } = parsed.query;
 
-  log({ parsed, app_id, method: req.method });
+  // log({ parsed, app_id, method: req.method });
 
   if (!(parsed.url.pathname === '/drop' && req.method === 'POST')) {
     return next();
@@ -17,7 +17,7 @@ function file_drop(req, res, next) {
 
   const topic = [ 'doc-load', app_id ];
   
-  log({ locate: topic });
+  // log({ locate: topic });
   node.promise.locate(topic).then(result => {
     const { direct } = result;
     // log({ result, direct });
@@ -35,7 +35,7 @@ function file_drop(req, res, next) {
       throw "reply missing host & port";
     }
     // connect to ephemeral bulk drop host:port
-    log({ drop_to: reply });
+    // log({ drop_to: reply });
     return new Promise((resolve, reject) => {
       const client = net.connect({ host: host[0], port }, () => {
         resolve(client);
