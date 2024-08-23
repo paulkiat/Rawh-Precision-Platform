@@ -10,7 +10,8 @@ const state = require('./service.js').init();
 
 Object.assign(state, {
   app_port: env('APP_PORT') || args['app-port'] || (args.prod ? 80 : 7000),
-  app_handler
+  app_handler,
+  ws_handler
 });
 
 async function setup_node() {
@@ -29,6 +30,18 @@ async function announce_service() {
     web_addr: net_addrs,
     type: "web-server"
   });
+} 
+
+function ws_handler(ws, req) {
+  if (req.url === '/proxy-api') {
+    ws.on('message', (msg) => {
+      console.log({ ws_msg: msg.toString() });
+      web.wss_proxy_api_handler(state.node, ws, msg);
+    });
+  } else {
+    log({ invalid_ws_url: req.url });
+    ws.close();
+  }
 }
 
 // serving local app web assets

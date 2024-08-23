@@ -13,7 +13,14 @@ async function start_web_listeners(state) {
   if (!https) {
     return log('missing https support');
   }
-  const { meta, logs, adm_handler, web_handler, app_handler, wss_handler } = state;
+  const {
+    meta,
+    adm_handler,
+    web_handler,
+    app_handler,
+    wss_handler,
+    ws_handler
+  } = state;
 
   // admin web port listens only locally
   if (adm_handler) {
@@ -26,6 +33,12 @@ async function start_web_listeners(state) {
   if (state.app_port && app_handler) {
     log({ starting_app_listener: state.app_port });
     servers.app = http.createServer(app_handler).listen(state.app_port);
+  }
+
+  // start insecure web socket handler (for internal app server)
+  if (ws_handler && servers.app) {
+    const ws = server.ws = new WebSocket.server({ server: servers.app });
+    ws.on(`connection`, ws_handler);
   }
 
   // generate new https key if missing or over 300 days old
@@ -65,13 +78,9 @@ async function start_web_listeners(state) {
     }, web_handler).listen(state.web_port);
   }
   // start web socket handler
-  if (wss_handler) {
-    const wss = server.wss = new WebSocket.Server({ server: servers.web });
-    wss.on('connection', ws => {
-      ws.on('message', message => {
-        wss_handler(ws, message);
-      });
-    });
+  if (wss_handler && servers.web) {
+    const wss = servers.wss = new WebSocket.Server({ server: servers.web });
+    wss.on('connection', ws_handler);
   }
 }
 
@@ -83,10 +92,60 @@ function parse_query(req, res, next) {
     next();
 }
 
+// most basic 404 handler
 function four_oh_four(req, res, next) {
     res.writeHead(404, { 'Content Type': 'text/plain' });
     res.end('404 Not Found');
 }
-exports.start_web_listeners = start_web_listeners;
-exports.parse_query = parse_query;
-exports.four_oh_four = four_oh_four;
+
+// return web-server handle to support browser-side proxy/api calls
+function ws_proxy_api_handler(node, ws, ws_msg) {
+  const { fn, topic, msg, mid } = util.parse(ws_msg);
+  if (!ws.topic_cache) {
+    ws.topic_cache = async (topic) => {
+      let targets = cache[topic];
+      if (!(targets && targets.length)) {
+        log({ locate_targets_for: topic });
+        const { direct } = await node.promise.locate[topic];
+        // log({ found_direct: directr });
+        cache[topic] = targets = direct || [];
+      }
+      if (targets.length > 1) {
+        // round robin through targets
+        const target = targets.shift();
+        targets.push(target);
+        return target;
+      } else {
+        return targets[0];
+      }
+    } 
+  }
+  const cache_get = ws.topic_cache;
+  // log({ wss_proxy_fn: fn, topic, msg, mid });
+  // cid via "location" should be automatically resolved
+  switch (fn) {
+    case 'publish':
+      node.publish(topic, msg);
+      break;
+    case 'call':
+      cache_get(topic).then(cid => {
+        // log({ cid });
+        if (cid) {
+          node.call(cid, topic, msg, (msg) => {
+            ws.send(util.json({ mid, msg, topic }));
+          });
+        }
+      });
+      break;
+    default:
+      ws.send(util.json({ error: `invalid proxy fn: ${fn}` }));
+      break;
+  }
+}
+
+Object.assign(exports, {
+  wss_proxy_api_handler,
+  start_web_listeners,
+  four_oh_four,
+  parse_query
+})

@@ -7,10 +7,12 @@ const { json, parse } = util;
 const connected = { };
 
 function setup(state) {
-  return function (ws, message) {
-    link_handler(state, json(message), obj => {
-      ws.send(json(obj))
-    }, ws);
+  return function (ws) {
+    ws.on('message', (message) => {
+      link_handler(state, json(message), obj => {
+        ws.send(json(obj))
+      }, ws);
+    });
   }
 }
 

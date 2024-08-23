@@ -22,12 +22,22 @@ function zmq_server(port, onmsg, opt = { sync: false }) {
   const cidmap = {};
   
   function send(cid, msg) {
-    sock.send([ cidmap[cid], json(msg) ]);
+    const id = cidmap[cid];
+    if (id) {
+      sock.send([id, json(msg)]);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  function remove(cid) {
+    delete cidmap[cid];
   }
 
   (async function () {
     await sock.bind(`${proto}://*:${port}`);
-    log({ listening: proto, port, opt });
+    log({ listening: proto, port, opt }); 
   
     for await (const [id, msg] of sock) {
       const cid = id.readUInt32BE(1).toString(36);
@@ -41,7 +51,7 @@ function zmq_server(port, onmsg, opt = { sync: false }) {
     }
   }());
   
-  return { send };
+  return { send, remove };
 }
 
 function zmq_client(host = "127.0.0.1", port) {
@@ -158,6 +168,7 @@ function zmq_proxy(port = 6000) {
         for (let [key, topic] of Object.entries(direct)) {
           direct[key] = topic.filter(match => match !== cid);
         }
+        server.remove(cid);
         continue;
       }
       server.send(cid, seed);
@@ -215,7 +226,7 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
       return;
     }
     if (topic === '') {
-      // this is a reply to a direct call
+      // this is a reply to a direct call (also locate)
       const reply = once[mid];
       if (!reply) {
         return log({ missing_once_reply: mid });
@@ -284,6 +295,7 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
     send: (cid, topic, message) => {
       client.send([ "call", flat(topic), message, cid, ""]);
     },
+    // direct call handler (like subscribe, but point to point)
     handle: (topic, handler) => {
       client.send([ "handle", flat(topic) ]);
       handlers[flat(topic)] = handler;
