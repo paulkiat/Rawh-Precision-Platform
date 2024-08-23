@@ -24,39 +24,28 @@
 
 ```node src/hub/main```
 
-* create at least one organizational entity
+* create at least one organizational entity on the hub at [http://localhost:8000](http://localhost:8000)
 
-```curl "http://localhost:8000/org.create?name=company_x&creator=my_name"```
-
-* start customer / organization server using _orgid_ returned from last command
+* start organization server using `org-id` from the hub admin page
 
 ```node src/hub/main --app-port=5555 --org-id=<org-id>```
 
-* build react app and copy into location to be served by app node(s)
+* create at least one application for the organization at [http://localhost:9000](http://localhost:9000)
 
-```
-cd src-react/sample
-npm run build
-cp -r build ../../web/app/sample1
-cp -r build ../../web/app/sample2
-cd -
-```
+* start sample app using the `app-id` from the admin interface
 
-* start sample react app node 1
+```node src/app/web.js --app-id=<app-id>```
 
-```node src/app/web.js --app-id=sample1 --app-port=7001```
+* access app directly (dev only) at [http://localhost:7000](http://localhost:7000)
 
-* start sample react app node 2
-
-```node src/app/web.js --app-id=sample1 --app-port=7002```
+* access app through org proxy at [http://localhost:9000/app/\<app-id>\>](http://localhost:9000/app/\<app-id\>)
 
 
 ## Web App Access
 
-The Org web server in `5555` will proxy calls to the app server under
-the `/app/[appname]` urls. Each app also serves their own content directly
-for testing. `localhost:7001/app/sample1` is served through `localhost:5555/app/sample1`
-for example.
+The Org web server at port `9000` will proxy calls to the app server under
+the `/app/[app-id]` urls. Each app also serves their own content directly
+for testing.
 
 In production, you would not use the `--app-port` setting to the org server.
 Instead, it would serve web traffic only through port `443`. When key/cert files
@@ -89,8 +78,8 @@ get a list of supported commands from the switch statement.
 
 ## LLM API package
 
-`src/llm` was just added which contain llm-related services. To run these,
-the `script/seed-model.sh` needs to be run to get a basic quantized
+`src/llm` contains llm-related services. To run these, the script
+`script/seed-model.sh` needs to be run to get a basic quantized
 llama-2-7b model for running locally and testing.
 
 ## Building Docker Images
@@ -106,6 +95,7 @@ where each docker image will have its own build directory inder `src-dock`
 | `src/cli` | command line utilities and wrappers for testiing |
 | `src/hub` | rawh hub that all customer organizations connect to |
 | `src/lib` | libraries share by hub, org, apps |
+| `src/llm` | llm-related services: embed, chat, etc |
 | `src/org` | organization based services (proxy, web, meta, license) |
 | `src-dock`| build directories for all docker image types based on this repo |
 | `src-py`  | python libraries ported from js (`lib/net`) |
