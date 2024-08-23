@@ -27,11 +27,13 @@ function zmq_server(port, onmsg, opt = { sync: false }) {
       sock.send([id, json(msg)]);
       return true;
     } else {
+      // log({ zmq_server_dead_id: id, cd, msg });
       return false;
     }
   }
 
   function remove(cid) {
+    // log({ zmq_server_remove: cid });
     delete cidmap[cid];
   }
 
@@ -130,7 +132,10 @@ function zmq_proxy(port = 6000) {
         blast(send, topics['*'] || [], tmsg, sent);
         break;
       case 'call':
-        send(callto, [topic, msg, cid, mid]);
+        if (!send(callto, [topic, msg, cid, mid])) {
+          log({ notify_caller_of_dead_endpoint: topic, cid, callto });
+          send(cid, { error: `dead endpoint: ${topic}`, callto, mid });
+        }
         break;
       case 'repl':
         send(callto, ['', msg, cid, mid]);
@@ -209,6 +214,19 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
     const rec = await client.recv();
     if (typeof rec === 'number') {
       return heartbeat(rec);
+    }
+    if (!Array.isArray(rec)) {
+      // log({ non_array_rec: rec });
+      const { error, callto, mid } = rec;
+      if (error && callto && mid) {
+        const handler = once[mid];
+        // log({ notifiy_call_of_dead_node: callto, handler });
+        if (handler) {
+          delete once[mid];
+          handler(undefined, error);
+        }
+      }
+      return;
     }
     const [ topic, msg, cid, mid ] = rec;
     if (topic === undefined) {

@@ -99,16 +99,16 @@ function four_oh_four(req, res, next) {
 }
 
 // return web-server handle to support browser-side proxy/api calls
-function ws_proxy_api_handler(node, ws, ws_msg) {
+function wss_proxy_api_handler(node, ws, ws_msg) {
   const { fn, topic, msg, mid } = util.parse(ws_msg);
-  if (!ws.topic_cache) {
-    ws.topic_cache = async (topic) => {
+  if (!ws.topic_locate) {
+    const cache = ws.topic_cache = {};
+    ws.topic_locate = async (topic) => {
       let targets = cache[topic];
       if (!(targets && targets.length)) {
         log({ locate_targets_for: topic });
         const { direct } = await node.promise.locate[topic];
-        // log({ found_direct: directr });
-        cache[topic] = targets = direct || [];
+        cache[topic] = targets = (direct || []);
       }
       if (targets.length > 1) {
         // round robin through targets
@@ -118,22 +118,28 @@ function ws_proxy_api_handler(node, ws, ws_msg) {
       } else {
         return targets[0];
       }
-    } 
+    }
   }
-  const cache_get = ws.topic_cache;
-  // log({ wss_proxy_fn: fn, topic, msg, mid });
-  // cid via "location" should be automatically resolved
+  const { topic_locate , topic_cache } = ws;
+  // cid via "locate" should be automatically resolved
   switch (fn) {
     case 'publish':
       node.publish(topic, msg);
       break;
     case 'call':
-      cache_get(topic).then(cid => {
-        // log({ cid });
+      topic_locate(topic).then(cid => {
+        log({ cid });
         if (cid) {
-          node.call(cid, topic, msg, (msg) => {
-            ws.send(util.json({ mid, msg, topic }));
+          node.call(cid, topic, msg, (msg, error) => {
+            if (error) {
+              ws.send(util.json({ error }));
+              delete topic_cache[topic];
+            } else {
+              ws.send(util.json({ mid, msg, topic }));
+            }
           });
+        } else {
+          ws.sen(util.json({ error: `no call handlers for: ${topic}` }));
         }
       });
       break;

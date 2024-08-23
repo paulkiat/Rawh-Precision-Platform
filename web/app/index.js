@@ -79,8 +79,8 @@ async function ws_proxy_api() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const api = await ws_proxy_api();
+async function on_load() {
+  const api = window.proxy_api = (window.proxy_api  || await ws_proxy_api());
   console.log({ api });
   const add = await api.pcall("add", { a: 100, b: 200 }).catch(error => {
     console.log({ error });
@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   api.call("add", { a: 200, b: 400 }, (result, topic) => {
     console.log({ result, topic });
   });
-});
+}
 
 document.getElementById('circuit-board-toggle').addEventListener('click', function() {
     document.getElementById('circuit-board-overlay').classList.toggle('active');
@@ -99,4 +99,5 @@ document.getElementById('close-circuit-board').addEventListener('click', functio
     document.getElementById('circuit-board-overlay').classList.remove('active');
 });
 
-
+document.addEventListener('DOMContentLoaded', on_load);
+window.proxy_test = on_load;
