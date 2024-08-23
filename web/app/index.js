@@ -1,3 +1,6 @@
+// isHot(); = onHover(), onMouseMove(x,y)
+// active(); = onClick(), onMouseDown(), onDrag(), onHover(), onMouseUp()
+
 function $(id) {
   return document.getElementById(id);
 }
