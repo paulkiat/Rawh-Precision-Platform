@@ -1,4 +1,3 @@
-/* Base Styles */
 body {
     border: 0;
     margin: 0;
@@ -14,7 +13,6 @@ div {
     gap: 5px;
 }
 
-/* Header Styles */
 #header {
     background-image: url('img/rawh-banner.jpg');
     height: 70px;
@@ -24,7 +22,6 @@ div {
     border-radius: 10px;
 }
 
-/* App Container */
 #apps {
     flex-grow: 1;
     border-radius: 10px;
@@ -35,37 +32,25 @@ div {
     gap: 5px;
 }
 
-/* Horizontal Rule within App */
 #apps hr {
     width: 100%;
 }
 
-/* Application Create Section */
 #app-create {
     flex-direction: row;
 }
 
-/* Application List Section */
+/* table data */
 #app-list {
     display: grid;
     grid-gap: 5px;
-    grid-template-columns: 3fr 2fr 3fr 1fr 1fr 2fr 1fr;
+    grid-template-columns: 2fr 2fr 1fr 1fr 0.5fr;
 }
 
-/* Application List Div */
 #app-list > div {
   display: contents;
 }
 
-/* Application List Data Hover Effect */
-#app-list > .data:hover > label {
-    cursor: pointer;
-    background-color: #ddd;
-    padding: 2px 4px;
-    border-radius: 5px;
-}
-
-/* Application List Head Label */
 #app-list > .head > label {
   padding: 5px;
   background-color: #555; 
@@ -76,7 +61,6 @@ div {
   text-transform: uppercase;
 }
 
-/* Application List Data Label */
 #app-list > .data > label {
   padding: 5px;
   background-color: whitesmoke; 
@@ -84,14 +68,19 @@ div {
   white-space: nowrap;
 }
 
-/* Application List Actions Section */
+#app-list > .data:hover > label {
+    cursor: pointer;
+    background-color: #ddd;
+    padding: 2px 4px;
+    border-radius: 5px;
+}
+
 #app-list > div > .actions {
   display: flex;
   flex-direction: row;
   gap: 5x;
 }
 
-/* Application List Actions Button */
 #app-list > div > .actions button {
   flex-grow: 1;
   padding: 5px 10px;

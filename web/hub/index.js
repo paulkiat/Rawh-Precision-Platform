@@ -24,7 +24,7 @@ function org_list() {
       '<label>name</label>',
       '<label>uid</label>',
       '<label>secret</label>',
-      '<label>state</label>',
+      '<label>status</label>',
       '<label>creator</label>',
       '<label>created</label>',
       '<label>actions</label>',

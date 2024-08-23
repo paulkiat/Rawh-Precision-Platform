@@ -50,7 +50,7 @@ div {
     border-radius: 5px;
 }
 
-/* Organization List Section */
+/* table data*/
 #org-list {
     display: grid;
     grid-gap: 10px;
@@ -61,12 +61,10 @@ div {
     box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-/* Organization List Div */
 #org-list > div {
     display: contents;
 }
 
-/* Organization List Head Label */
 #org-list > .head > label {
     padding: 5px;
     background-color: #555; 
@@ -78,7 +76,6 @@ div {
     color: white;
 }
 
-/* Organization List Data Label */
 #org-list > .data > label {
     padding: 5px;
     background-color: whitesmoke; 
@@ -89,7 +86,6 @@ div {
     color: #333;
 }
 
-/* Organization List Data Hover Effect */
 #org-list > .data:hover > label {
     cursor: pointer;
     background-color: #e0e0e0;
@@ -98,14 +94,12 @@ div {
     transition: background-color 0.3s ease;
 }
 
-/* Organization List Actions Section */
 #org-list > div > .actions {
     display: flex;
     flex-direction: row;
     gap: 5px;
 }
 
-/* Organization List Actions Button */
 #org-list > div > .actions button {
     flex-grow: 1;
     padding: 5px 10px;

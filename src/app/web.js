@@ -1,3 +1,5 @@
+// web application front end service
+
 const { args, env } = require('../lib/util');
 const { file_drop } = require('../app/doc-client');
 const log = require('../lib/util').logpre('app');
@@ -44,7 +46,6 @@ async function setup_app_handlers() {
       } else {
         // rewrite app url to remove /app/<app-id> prefix
         req.url = req.url.substring(appurl.length) || '/';
-        log({ new_req_url: req.url, appurl });
         next();
       }
     })

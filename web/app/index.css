@@ -71,59 +71,7 @@ div {
     border-color: #0066cc;
 }
 
-/* File List Section */
-#files {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-#files > div {
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    background-color: #fff;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: background-color 0.3s ease, transform 0.3s ease;
-}
-
-#files > div:hover {
-    background-color: #f0f8ff;
-    transform: scale(1.02);
-}
-
-#files > .head > label {
-    font-weight: bold;
-    font-size: 18px;
-}
-
-#files > .list > label {
-    color: #333;
-}
-
-#files > .list:hover > label {
-    color: #007acc;
-}
-
-#files .actions button {
-    padding: 5px 10px;
-    background-color: #0066cc;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.3s ease;
-}
-
-#files .actions button:hover {
-    background-color: #004d99;
-    transform: translateY(-2px);
-}
-
-/* Parts Section */
+/* file-list (left) | Q&A (right) */
 #parts {
     margin-top: 20px;
     display: flex;
@@ -152,7 +100,6 @@ div {
     margin: 0 10px;
 }
 
-/* Q&A Section */
 #qna {
     margin-top: 30px;
     padding: 20px;
@@ -167,24 +114,76 @@ div {
     background-color: #f0f8ff;
 }
 
+/* table data */
+#file-list {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#file-list > div {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+#file-list > div:hover {
+    background-color: #f0f8ff;
+    transform: scale(1.02);
+}
+
+#file-list > .head > label {
+    font-weight: bold;
+    font-size: 18px;
+}
+
+#file-list > .list > label {
+    color: #333;
+}
+
+#file-list > .list:hover > label {
+    color: #007acc;
+}
+
+#file-list .actions button {
+    padding: 5px 10px;
+    background-color: #0066cc;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+#file-list .actions button:hover {
+    background-color: #004d99;
+    transform: translateY(-2px);
+}
+
 /* Consistent Control Styles */
-#upload, #files .actions button, #parts > div {
+#upload, #file-list .actions button, #parts > div {
     box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-#upload:focus, #files .actions button:focus, #parts > div:focus {
+#upload:focus, #file-list .actions button:focus, #parts > div:focus {
     outline: 2px solid #0066cc;
 }
 
 /* Consistent Text Focus */
-#files > .list > label, #parts > div {
+#file-list > .list > label, #parts > div {
     font-family: 'Arial', sans-serif;
     font-size: 14px;
     color: #333;
 }
 
 /* Consistent Interaction Feedback */
-#upload:hover, #files > .list:hover > label, #parts > div:hover {
+#upload:hover, #file-list > .list:hover > label, #parts > div:hover {
     background-color: #e0e0e0;
     transition: background-color 0.3s ease;
 }
