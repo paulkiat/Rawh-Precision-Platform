@@ -21,20 +21,26 @@ function zmq_server(port, onmsg, opt = { sync: false }) {
   const sock = new Router;
   const cidmap = {};
   
+  // send a message to a known client-id endpoint
+  // because 0MQ, the endpoint could be down
+  // thus heartbeating is required by users of the class
   function send(cid, msg) {
     const id = cidmap[cid];
     if (id) {
       sock.send([ id, json(msg) ]);
         return true;
     } else {
-        return false;
+        return false; // dead endpoint
     }
   }
 
+  // remove dead endpoint record
+  // server wrappers like proxy are responsible for heartbeating
   function remove(cid) {
     delete cidmap[cid];
   }
 
+  // start a background async message receiver
   (async function () {
     await sock.bind(`${proto}://*:${port}`);
     log({ listening: proto, port, opt }); 
@@ -105,7 +111,6 @@ function zmq_proxy(port = 6000) {
     }
     const [ action, topic, msg, callto, mid ] = recv;
     const sent = [ ];
-    log({ PRX:0, cid, recv });
     switch (action) {
       case 'sub':
         (topics[topic] = topics[topic] || []).push(cid);
@@ -130,25 +135,23 @@ function zmq_proxy(port = 6000) {
         blast(send, topics['*'] || [], tmsg, sent);
         break;
       case 'call':
-        log({ call: topic, mid });
         if (!send(callto, [ 'call', topic, msg, cid, mid ])) {
           log({ notify_caller_of_dead_enpoint: topic, cid, callto });
           send(cid, [ 'err', `dead endpoint: ${topic}`, callto, mid ]);
         } else {
           (watch[callto] = watch[callto] || []).push({ cid, topic, callto, mid });
-          log({ watching: callto, all: watch[callto] });
         }
         break;
       case 'repl':
-        log({ repl: mid, callto, msg });
         send(callto, ['repl', msg, mid]);
         const watchers = watch[cid];
-        log({ cid, watchers });
         if (watchers) {
-          log({ mid, watchers_before: watchers.length });
           // remove matching record for mid (once message id)
-          watch[cid] = watchers.filter(rec => rec.mid !== mid);
-          log({ mid, watchers_after: watch[cid].length });
+          const nu = watch[cid] = watchers.filter(rec => rec.mid !== mid);
+          if (nu.length === 0) {
+            // cleanup watchers map, prevent mem leak if high node life cycle rate
+            delete watch[cid];
+          }
         } else {
           log({ no_watchers_found: cid, msg, callto, mid });
         }
@@ -158,7 +161,6 @@ function zmq_proxy(port = 6000) {
         break;
       case 'locate':
         // returns a list of topic subscribers and direct listeners
-        log({ locate: cid, mid });
         send(cid, ['loc', 
             topics[topic], // subs
             direct[topic], // direct
@@ -214,9 +216,13 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
     if (rec !== lastHB) {
       // handle mismatched heartbeat and re-sub all topics
       if (lastHB !== Infinity) {
-        for (let [topic, handler] of Object.entries(subs)) {
-            client.send(["sub", topic]);
-            log({ proxy_re_sub: topic });
+        for (let [ topic, handler ] of Object.entries(subs)) {
+          client.send([ "sub", topic ]);
+          log({ proxy_re_sub: topic });
+        }
+        for (let [ topic, handler ] of Object.entries(handlers)) {
+          client.send([ "handle", topic ]);
+          log({ proxy_re_sub: topic });
         }
       if (on_reconnect) {
           on_reconnect();
@@ -226,67 +232,95 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
     }
   }
 
-    async function next_message() {
-        const rec = await client.recv();
-        if (typeof rec === 'number') {
-            return heartbeat(rec);
-        }
-        const [topic, msg, cid, mid] = rec;
-        // log({ 'next': { no_topic_recv: msg, cid, mid } });
-        if (topic === undefined) {
-            return log({ no_topic_received: { msg, cid, topic } });
-        }
-        if (topic && mid) {
-            // this is a direct call which expects a reply
-            const endpoint = handlers[topic];
-            if (!endpoint) {
-                return log('call handle', { missing_call_handler: topic });
-            }
-            // log({ endpoint mid });
-            const rmsg = await endpoint(msg, topic, cid);
-            client.send(["repl", '', rmsg, cid, mid]);
-            return;
-        }
-        if (topic === '') {
-            // this is a reply to a direct call (also locate)
-            const reply = once[mid];
-            if (!reply) {
-                return log({ missing_once_reply: mid });
-            }
-            // log('call reply once', { reply, mid });
-            const rmsg = await reply(msg);
-            return;
-        }
-        if (mid === '') {
-            // this is a direct call with no reply path
-            const endpoint = handlers[topic];
-            return endpoint ? endpoint() : undefined;
-        }
-        const endpoint = subs[topic];
-        // log({ endpoint });
-        if (endpoint) {
-            return endpoint(msg, cid, topic);
-        }
-        // look for .../* topic handlers
-        for (let star of topstar) {
-            if (topic.startsWith(star)) {
-                return subs[`${star}*`](msg, cid, topic);
-            }
-        }
-        // look for catch-all endpoint
-        const star = subs['*'];
-        if (star) {
-            return star(msg, cid, topic);
-        }
-        log({ missing_sub_endpoint: topic, cid, mid, rec, subs, handlers });
+  async function next_message() {
+    const rec = await client.recv();
+    if (typeof rec === 'number') {
+      return heartbeat(rec);
     }
-
-      // background message receiver
-      (async function () {
-        while (true) {
-          await next_message();
+    switch (rec.shift()) {
+      case 'pub':
+        {
+          const [ topic, msg, cid ] = rec;
+          const endpoint = handlers[topic];
+          // log({ endpoint });
+          if (endpoint) {
+            return endpoint(msg, cid, topic);
+          }
+          // look for .../* topic handlers
+          for (let star of substar) {
+            if (topic.startsWith(star)) {
+              return subs[`${star}*`](msg, cid, topic);
+            }
+          }
+          // look for catch-all endpoint
+          const star = subs['*'];
+          if (star) {
+            return star(msg, cid, topic);
+          }
         }
-      }());
+        break;
+      case 'call':
+        {
+          // this is a direct call which expects a reply
+          const [ topic, msg, cid, mid ] = rec;
+          const endpoint = handlers[topic];
+          if (!endpoint) {
+            return log('call handle', { missing_call_handler: topic });
+          }
+          const rmsg = await endpoint(msg, topic, cid);
+          client.send(["repl", '', rmsg, cid, mid]);
+        }
+        break;
+      case 'repl':
+        {
+          // this is a reply to a direct call (also locate)
+          const [ msg, mid ] = rec;
+          const reply = once[mid];
+          if (!reply) {
+            return log({ missing_once_reply: mid });
+          }
+          delete once[mid];
+          return await reply(msg);
+        }
+        break;
+      case 'loc':
+        {
+          // this is a reply to a locate call
+          const [subs, direct, mid] = rec;
+          const reply = once[mid];
+          if (!reply) {
+            return log({ missing_once_locate: mid });
+          }
+          delete once[mid];
+          return await reply({ subs, direct });
+        }
+        break;
+      case 'err':
+        {
+          // notify caller that endpoint died or missing
+          const [error, callto, mid] = rec;
+          const handler = once[mid];
+          if (handler) {
+            delete once[mid];
+            handler(undefined, error);
+          } else {
+            return log({ missing_error_once: mid, callto });
+              
+          }
+        }
+        break;
+      default:
+        log({ next_unhandled: rec });
+        return;
+    }
+  }
+  
+  // background message receiver
+  (async function () {
+    while (true) {
+      await next_message();
+    }
+  }());
 
   function flat(topic) {
     return Array.isArray(topic) ? topic.join('/') : topic;

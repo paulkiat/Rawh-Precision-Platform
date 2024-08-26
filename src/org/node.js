@@ -26,8 +26,8 @@ exports.init = function (state) {
     const app_rec = apps[app_id] || (apps[app_id] = {
       type,
       subtype,
-      web: {},
-      doc: {}
+      web: { },
+      doc: { }
     });
     if (msg.type !== "web-server") {
       return;
@@ -63,9 +63,9 @@ exports.init = function (state) {
   });
 
   // catch-all for any other un-delivered events
-  node.subscribe('*', (msg, cid, topic) => {
-    log({ suball: msg, topic });
-  });
+  //  node.subscribe('*', (msg, cid, topic) => {
+  //   log({ suball: msg, topic });
+  //  });
 };
 
 exports.web_handler = router;
