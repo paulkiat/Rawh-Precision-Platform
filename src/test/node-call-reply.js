@@ -13,8 +13,21 @@ node1.handle("test-ep", (message) => {
   return `got your message: ${json(message)}`;
 });
 
-node2.locate("test-ep", (locate) => {
-  console.log({ locate });
+(async () => {
+  const rec = await node2.promise.locate("test-ep")
+    .catch (loc_error => {
+      console.log({ loc_error });
+      return "no ep found";
+    });
+  console.log({ async_loc_rec: rec });
+})();
+
+node2.locate("test-ep", (locate, error) => {
+  console.log({ locate, error });
+  if (error) {
+    console.log({ locate_error: error });
+    return;
+  }
   const { direct } = locate;
   node2.call(direct[0], "test-ep", { luke: "i am your father" }, (reply, error) => {
     console.log({ call_1_reply: reply, error });
@@ -23,9 +36,9 @@ node2.locate("test-ep", (locate) => {
     console.log({ call_2_reply: reply, error });
   });
   (async () => {
-    const r3 = await node2.promise.call(direct[0], "test-ep", { abc: 123 });
+    const r3 = await node2.promise.call(direct[0], "test-ep", { abc: 123 }).catch(error_r3 => console.log({ error_r3}));
     console.log({ call_3_reply: r3 });
-    const r4 = await node2.promise.call(direct[0], "test-ep", { abc: 123 });
-    console.log({ call_3_reply: r4 });
+    const r4 = await node2.promise.call(direct[0], "test-ep", { abc: 123 }).catch(error_4 => console.log({ error_r4 }));
+    console.log({ call_4_reply: r4 });
   })();
 });

@@ -7,6 +7,9 @@ const net = require('../lib/net');
 
 const node1 = net.node(proxy_host, proxy_port);
 const node2 = net.node(proxy_host, proxy_port)
+  .on_connect(() => console.log('node 2 connect'))
+  .on_reconnect(() => console.log('node 2 reconnect'))
+  .on_disconnect(() => console.log('node 2 disconnect'))
 
 node1.subscribe("test-sub", (message) => {
   console.log({ test_sub: message });

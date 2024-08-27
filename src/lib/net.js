@@ -207,16 +207,43 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
   const client = zmq_client(host, port);
   const handlers = {}; // call endpoints
   const subs = {}; // subscription endpoints
-  const once = { }; // once message handlers for call/handle pattern
+  const once = {}; // once message handlers for call/handle pattern
   const seed = Date.now();
   let lastHB = Infinity;
+  let lastHT = 0;
+  let on_disconnect;
   let on_reconnect;
   let sub_star = [];
 
-  setInterval(() => client.send(seed), settings.heartbeat);
+  // heartbeat client to proxy
+  setInterval(() => {
+    // lastHT set only when connected to a procy
+    if (lastHT) {
+      client.send(seed);
+      if (Date.now() - lastHT > settings.dead_client) {
+        // detect dead proxy
+        if (on_disconnect) {
+          on_disconnect();
+        }
+        lastHT = 0;
+      }
+    } else {
+      // send errors to once waiters
+      for (let [ mid, fn ] of Object.entries(once)) {
+        fn(undefined, "proxy down");
+        delete once[mid];
+      }
+    }
+  }, settings.heartbeat);
 
   function heartbeat(rec) {
     if (rec !== lastHB) {
+      // connect events
+      if (lastHB === Infinity) {
+        if (on_connect) {
+            on_connect();
+        }
+      }
       // handle mismatched heartbeat and re-sub all topics
       if (lastHB !== Infinity) {
         for (let [ topic, handler ] of Object.entries(subs)) {
@@ -227,12 +254,13 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
           client.send([ "handle", topic ]);
           log({ proxy_re_sub: topic });
         }
-      if (on_reconnect) {
-          on_reconnect();
+        if (on_reconnect) {
+            on_reconnect();
+        }
       }
+      lastHB = rec;
     }
-    lastHB = rec;
-    }
+    lastHT = Date.now();
   }
 
   async function next_message() {
@@ -308,7 +336,6 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
             handler(undefined, error);
           } else {
             return log({ missing_error_once: mid, callto });
-              
           }
         }
         break;
@@ -366,21 +393,47 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
       once[mid] = on_reply;
       client.send([ "locate", flat(topic), '', '', mid ]);
     },
+    // optional function to run on proxy connect events
+    on_connect: (fn) => {
+      on_connect = fn;
+      return api;
+    },
     // optional function to run on proxy re-connect events
     on_reconnect: (fn) => {
       on_reconnect = fn;
+      return api;
+    },
+    // optional function to run on proxy dis-connect events
+    on_disconnect: (fn) => {
+      on_disconnect = fn;
+      return api;
+    },
+    is_connected: () => {
+      return lastHT !== 0;
     }
   };
 
   api.promise = {
     call: (cid, topic, message) => {
-      return new Promise(resolve => {
-        api.call(cid, topic, message, resolve);
+      return new Promise((resolve, reject) => {
+        api.call(cid, topic, message, (msg, error) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(msg);
+          }
+        });
       });
     },
     locate: (topic) => {
-      return new Promise(resolve => {
-        api.locate(topic, resolve);
+      return new Promise((resolve, reject) => {
+        api.locate(topic, (msg, error) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(msg);
+          }
+        });
       });
     }
   };
