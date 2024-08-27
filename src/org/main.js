@@ -1,10 +1,11 @@
 /** main organizational server / broker / meta-data server */
 
+const { file_drop } = require('../app/doc-client');
 const { args, env } = require('../lib/util');
 const { proxy } = require('../lib/net');
 const log = require('../lib/util').logpre('org');
 const web = require('../lib/web');
-const api = require('../web-api');
+const api = require('./web-api');
 const node = require('./node');
 const store = require('../lib/store');
 const crypto = require('../lib/crypto');
@@ -20,13 +21,13 @@ Object.assign(state, {
   hub_host: env('HUB_HOST') || args['hub-host'] || (args.prod ? "meta.rawh.ai" : "localhost"),
   hub_port: env('HUB_PORT') || args['hub-port'] || (args.prod ? 443 : 8443 ),
   adm_port: args['adm-port'] || (args.prod ?  80 : 9001),
-  app_port: args['adm-port'] || (args.prod ?  80 : 9000),
+  app_port: args['adm-port'] || (args.prod ?  81 : 9000),
   web_port: args['web-port'] || (args.prod ? 443 : 9443),
   proxy_port: env('PROXY_PORT') || args['proxy-port'] || 6000,
   adm_handler: adm_handler
     .use(web.parse_query)
     .use(store.web_admin(state, 'meta'))
-    .use(store.web_admin(state, 'meta')),
+    .use(store.web_admin(state, 'logs')),
   web_handler,
   app_handler: web_handler,
 });
@@ -44,7 +45,7 @@ Object.assign(state, {
 
 async function setup_data_store() {
   log({ initialize: 'data store'});
-  state.meta = await store.open(`data/org/${state.org.id}.meta`);
+  state.meta = await store.open(`data/org/${state.org_id}/meta`);
   if (!state.org_id) {
     log({ exit_on_missing_org_id: state.org_id });
     process.exit();

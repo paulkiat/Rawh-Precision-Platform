@@ -1,7 +1,7 @@
 // utility class for handling file drops and sending them to a doc server
 // used by the org/node and app/web classes
 
-const utl = require('../lib/util');
+const util = require('../lib/util');
 const log = util.logpre('doc-client');
 const net = require('net');
 
@@ -10,13 +10,12 @@ function file_drop(req, res, next) {
   const { parsed } = req;
   const app_id = req.headers['x-app-id'] || parsed.query.app_id || "unknown";
 
-  if (!(parsed.url.pathname === '/drop' && req.method === 'POST')) {
+  if (!(parsed.url.pathname === '/drop' && req.method === 'POST' && app_id)) {
     return next();
   }
 
   const topic = [ 'doc-load', app_id ];
   
-  // log({ locate: topic });
   node.promise.locate(topic).then(result => {
     const { direct } = result;
     // log({ result, direct });

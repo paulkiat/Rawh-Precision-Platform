@@ -55,6 +55,18 @@ div {
     margin: 20px 0;
 }
 
+#abc {
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: -1;
+}
+
+#abc + button {
+  cursor: pointer;
+}
 /* File Upload Section */
 #upload {
     border: 2px dashed #ccc;
@@ -64,11 +76,19 @@ div {
     background-color: #f9f9f9;
     cursor: pointer;
     transition: background-color 0.3s ease, border-color 0.3s ease;
+    font-size: 24px;
 }
 
 #upload:hover {
     background-color: #e0e0e0;
     border-color: #0066cc;
+}
+
+#upload.highlight {
+  background-image: url('img/app-banner.jpg');
+  color: white;
+  opacity: 0.25;
+  font-weight: bold;
 }
 
 /* file-list (left) | Q&A (right) */

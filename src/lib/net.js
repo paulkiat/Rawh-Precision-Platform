@@ -212,8 +212,9 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
   let sub_star = []; // subscriptions with *
   let lastHB = Infinity; // last heartbeat value
   let lastHT = 0; //  last heartbeat time
-  let on_disconnect;
-  let on_reconnect;
+  let on_disconnect = [];
+  let on_reconnect = [];
+  let on_connect = [];
 
     // background message receiver
   (async function () {
@@ -229,9 +230,7 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
       client.send(seed);
       if (Date.now() - lastHT > settings.dead_client) {
         // detect dead proxy
-        if (on_disconnect) {
-          on_disconnect();
-        }
+        on_disconnect.forEach(fn => fn());
         lastHT = 0;
       }
     } else {
@@ -247,9 +246,7 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
     if (rec !== lastHB) {
       // connect events
       if (lastHB === Infinity) {
-        if (on_connect) {
-            on_connect();
-        }
+        on_connect.forEach(fn => fn());
       }
       // handle mismatched heartbeat and re-sub all topics
       if (lastHB !== Infinity) {
@@ -261,9 +258,7 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
           client.send([ "handle", topic ]);
           log({ proxy_re_sub: topic });
         }
-        if (on_reconnect) {
-            on_reconnect();
-        }
+        on_reconnect.forEach(fn => fn());
       }
       lastHB = rec;
     }
@@ -395,17 +390,17 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
     },
     // optional function to run on proxy connect events
     on_connect: (fn) => {
-      on_connect = fn;
+      on_connect.push(fn);
       return api;
     },
     // optional function to run on proxy re-connect events
     on_reconnect: (fn) => {
-      on_reconnect = fn;
+      on_reconnect.push(fn);
       return api;
     },
     // optional function to run on proxy dis-connect events
     on_disconnect: (fn) => {
-      on_disconnect = fn;
+      on_disconnect.push(fn);
       return api;
     },
     is_connected: () => {

@@ -95,7 +95,8 @@ function parse_query(req, res, next) {
     const url = new URL(req.url, `http://${req.header.host}`);
     const query = Object.fromEntries(url.searchParams.entries());
     req.parsed = { url, query };
-    next();
+  next();
+// console.log(req.url, req.headers);
 }
 
 // most basic 404 handler

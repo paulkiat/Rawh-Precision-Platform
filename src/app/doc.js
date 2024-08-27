@@ -5,9 +5,8 @@
 const net = require('net');
 const fsp = require('fs/promises');
 const util = require('../lib/util');
-const { format } = require('path');
 const state = require('./service').init();
-const log = util.pre('doc');
+const log = util.prelog('doc');
 
 async function setup_node() {
   const { node } = state;
@@ -18,15 +17,14 @@ async function setup_node() {
 // respond to rewquests looking for docs servicing an app
 async function register_service() {
   const { app_id, net_addrs, node } = state;
-  log({ register_app_docs: state.app_id });
-    // announce presence
-    node.publish("service-up", {
-      app_id,
-      net_addrs,
-      type: "doc-server",
-      subtype: "rawh-level-v0"
-    });
-  // bind api service endpoints
+  // announce presence
+  node.publish("service-up", {
+    app_id,
+    net_addrs,
+    type: "doc-server",
+    subtype: "rawh-level-v0"
+  });
+  // bind api service endpoints for document operations
   node.handle([ "doc-load", app_id ], doc_load);
   node.handle([ "doc-list", app_id ], doc_list);
   node.handle([ "doc-delete", app_id ], doc_delete);
@@ -40,7 +38,7 @@ function vector_to_index(vec) {
 }
 
 // chunks are records containing { index, vector }
-// returns a value 0 (i'm-possible) to 1 (possible)
+// returns a value 0 (dis-similar) to 1 (very similar)
 function cosine_similarity(ch1, ch2) {
   const vec1 = ch1.vector;
   const vec2 = ch2.vector;
@@ -50,13 +48,13 @@ function cosine_similarity(ch1, ch2) {
       dotProduct += vec1[i] * vec2[i];
     }
   
-  return dotProduct / (ch1.index * ch2.index);
+  return  (ch1.index * ch2.index);
 }
 
 // request to a tcp socket for bulk loading a document
 // which will then be stored, chunked, and vector embedded
 async function doc_load(msg = {}, topic, cid) {
-  log({ doc_load: msg, topic: cid });
+  log({ doc_load: msg, topic, cid });
   const { name, type } = msg;
   const { node, app_id, net_addrs } = state;
   // create the file drop target with time+random file uid
@@ -85,7 +83,7 @@ async function doc_load(msg = {}, topic, cid) {
       fstr.write(data);
     })
     conn.on('end', async () => {
-      // log({ bulk_end: name });
+      // log({ bulk_end: name, type });
       await file.datasync();
       await fstr.end();
       await file.close();
@@ -119,7 +117,7 @@ async function doc_embed(frec, path) {
   // store and publish meta-data about doc
   frec.state = "tokenizing";
   await doc_info.put(frec.uid, frec);
-  node.publish(['doc-loading', app_id], frec);
+  node.publish([ 'doc-loading', app_id ], frec);
 
   // tokenize and embed
   const chunks = await token.load_path(path, { type: frec.type });
@@ -128,7 +126,7 @@ async function doc_embed(frec, path) {
   // store and publish meta-data about doc
   frec.state = "embedding";
   await doc_info.put(frec.uid, frec);
-  node.publish(['doc-loading', app_id], frec);
+  node.publish([ 'doc-loading', app_id ], frec);
 
   // create vector embeddings for each chunk
   // const embed = await import('./lib/embed.mjs);
@@ -144,18 +142,16 @@ async function doc_embed(frec, path) {
     const idx = chunk.index = vector_to_index(vec);
     // generate a rough token count for maximizing the embed
     chunk.tokens = chunk.pageContent.replace(/\n/g, ' ').split(' ').length;
-
     maxI = Math.max(maxI, idx);
     minI = Math.min(minI, idx);
-    
     // store in chunk data indexed by chunk.index
     const { metadata } = chunk;
     const { source, loc } = metadata;
     const { pageNumber, lines } = loc;
     cnk_data.put(chunk.index, {
       uid: frec_uid,
-      num_tokens: chunk.tokens,
-      vector: chunk_vector,
+      text: chunk.pageContent,
+      vector: chunk.vector,
       num_tokens: chunk.tokens,
       page: pageNumber,
       page_from: lines.from,
@@ -178,6 +174,10 @@ async function doc_list(msg, reply) {
   const { node } = state;
 }
 
+// delete a document and all of its associated embeddings
+async function doc_delete(msg, reply) {
+  const { node } = state;
+}
 // given a query, get matching embed chunks from loaded docs
 async function query_match(msg, reply) {
   const { node } = state;
