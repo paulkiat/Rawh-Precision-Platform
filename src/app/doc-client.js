@@ -1,15 +1,14 @@
 // utility class for handling file drops and sending them to a doc server
 // used by the org/node and app/web classes
 
-const log = require('../lib/util').logpre('doc-client');
+const utl = require('../lib/util');
+const log = util.logpre('doc-client');
 const net = require('net');
 
 function file_drop(req, res, next) {
   const { node } = state;
   const { parsed } = req;
-  const { app_id } = parsed.query;
-
-  // log({ parsed, app_id, method: req.method });
+  const app_id = req.headers['x-app-id'] || parsed.query.app_id || "unknown";
 
   if (!(parsed.url.pathname === '/drop' && req.method === 'POST')) {
     return next();
@@ -24,10 +23,11 @@ function file_drop(req, res, next) {
     if (!(direct && direct.length)) {
       throw `no doc-load endpoint found for app: ${app_id}`;
     }
-    // log({ call: direct[0], topic });
+    const { name, type } = parsed.query;
+    // log({ receiving: name, type });
     return node.promise.call(direct[0], topic, {
-      name: "filename",
-      type: "pdf"
+      name: name || "filename",
+      type: type || "pdf"
     });
   }).then(reply => {
     const { host, port } = reply;
@@ -42,18 +42,18 @@ function file_drop(req, res, next) {
       }).on('error', reject);
     });
   }).then(client => {
-    log({ headers: req.headers });
+    let length = 0;
     // save stream to disk as it arrives
     req.on('error', error => {
       res.end({ drop_error: error });
       client.end();
     });
     req.on('data', chunk => {
-      // log({ chunk });
+      length += chunk.byteLength || chunk.length;
       client.write(chunk);
     });
     req.on('end', chunk => {
-      res.end('dropped!');
+      res.end(`bytes received: ${length}`);
       client.end();
     });
   }).catch(error => {

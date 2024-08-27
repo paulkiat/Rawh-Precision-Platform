@@ -32,30 +32,37 @@ async function announce_service() {
   });
 }
 
+// for app services like "file_drop" to have app-id context
+function injectXAppId(req, res, next) {
+  req.headers['x-app-id'] = state.app_id;
+  next();
+}
+
 // serving local app web assets
 async function setup_app_handlers() {
-    app_handler
-        .use(web.parse_query)
-        .use(file_drop(state))
-        .use((req, res, next) => {
-            const url = req.url;
-            const appurl = `/app/${state.app_id}`;
-            // limit requests to contents of /app (eg: ignore hub and org)
-            if (!(url === appurl || url.startsWith(`${appurl}`))) {
-                res.writeHead(404, { 'Content-Type': 'text.plain' });
-                res.end('404 Invalid URL');
-            } else {
-                // rewrite app url to remove /app/<app-id> prefix
-                req.url = req.url.substring(appurl.length) || '/';
-                next();
-            }
-        })
-        .use(require('serve-static')('web/app', { index: ["index.html="] }))
-        .use((req, res) => {
+  app_handler
+    .use(injectXAppId)
+    .use(web.parse_query)
+    .use(file_drop(state))
+    .use((req, res, next) => {
+        const url = req.url;
+        const appurl = `/app/${state.app_id}`;
+        // limit requests to contents of /app (eg: ignore hub and org)
+        if (!(url === appurl || url.startsWith(`${appurl}`))) {
             res.writeHead(404, { 'Content-Type': 'text.plain' });
-            res.end('404 Not Found');
-        })
-        ;
+            res.end('404 Invalid URL');
+        } else {
+            // rewrite app url to remove /app/<app-id> prefix
+            req.url = req.url.substring(appurl.length) || '/';
+            next();
+        }
+    })
+    .use(require('serve-static')('web/app', { index: ["index.html="] }))
+    .use((req, res) => {
+        res.writeHead(404, { 'Content-Type': 'text.plain' });
+        res.end('404 Not Found');
+    })
+    ;
 }
 
 (async () => {

@@ -17,6 +17,13 @@ function logProvider() {
   };  
 }
 
+// inject x-app-id header for proxied urls
+// allowing shared app services like 'file_drop' to have app-id context
+function onProxyReq(ctx) {
+  return function (proxyReq, req, res) {
+    proxyReq.setHeader("x-app-id", ctx.app_id);
+  }
+}
 exports.init = function (state) {
   node = state.node = net.node('localhost', state.proxy_port);
 
@@ -35,9 +42,10 @@ exports.init = function (state) {
     const { web_port, web_addr } = msg;
     const root = `/app/${app_id}`;
     const proxy = createProxyMiddleware({
-      target: `http://${web_addr[0]}:${web_port}`,
       // pathRewrite: { [`^${root}`]: /${app_id}' },
-      logProvider
+      target: `http://${web_addr[0]}:${web_port}`,
+      logProvider,
+      onProxyReq: onProxyReq(msg)
     });
     const handler = app_rec.web[root];
     if (handler) {

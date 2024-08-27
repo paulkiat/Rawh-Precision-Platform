@@ -28,7 +28,7 @@
 
 * start organization server using `org-id` from the hub admin page
 
-```node src/hub/main --app-port=5555 --org-id=<org-id>```
+```node src/hub/main --org-id=<org-id>```
 
 * create at least one application for the organization at [http://localhost:9000](http://localhost:9000)
 
