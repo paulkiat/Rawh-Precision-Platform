@@ -24,11 +24,6 @@ async function register_service() {
     type: "doc-server",
     subtype: "rawh-level-v0"
   });
-  // create a /app/<app-id>/drop rewrite to /drop with app-id context
-  node.publish("app-url", {
-    app_id,
-    path: "/drop"
-  });
   // bind api service endpoints for document operations
   node.handle([ "doc-load", app_id ], doc_load);
   node.handle([ "doc-list", app_id ], doc_list);
@@ -69,7 +64,7 @@ async function doc_load(msg = {}, topic, cid) {
   await fsp.mkdir(fdir, { recursive: true }).catch(e => e);
   const file = await fsp.open(fnam, 'w');
   const fstr = await file.createWriteStream();
-  const frec = { uid: fuid, name, type, state: "loading" };
+  const frec = { uid: fuid, name, type, state: "loading", length: 0, added: Date.now() };
   const fdel = async function () {
     // delete partial file data
     await fsp.rm(fnam).catch(error => log({ bulk_delete_error: error }));
@@ -86,6 +81,7 @@ async function doc_load(msg = {}, topic, cid) {
     conn.on('data', (data) => {
       // log({ bulk_data: data });
       fstr.write(data);
+      frec.length += (data.length || data.byteLength);
     })
     conn.on('end', async () => {
       // log({ bulk_end: name, type });
@@ -153,7 +149,9 @@ async function doc_embed(frec, path) {
     const { metadata } = chunk;
     const { source, loc } = metadata;
     const { pageNumber, lines } = loc;
-    cnk_data.put(chunk.index, {
+    const key = `${chunk.index.toString().padEnd(18, 0)}:${frec.uid}`;
+    // log({ key, index: chunk.index, uid: frec.uid });
+    cnk_data.put(key, {
       uid: frec_uid,
       text: chunk.pageContent,
       vector: chunk.vector,
@@ -169,19 +167,35 @@ async function doc_embed(frec, path) {
   frec.chunks = chunks.length;
   frec.state = "ready";
   await doc_info.put(frec.uid, frec);
-  node.publish(['doc-loading', app_id], frec);
-  
+  node.publish([ 'doc-loading', app_id ], frec);
   log({ doc_loaded: frec });
 }
 
 // list all docs along with the status (loading, embedding, ready)
-async function doc_list(msg, reply) {
-  const { node } = state;
+async function doc_list(msg, topic, cid) {
+  return state.doc_info.list();
 }
 
 // delete a document and all of its associated embeddings
-async function doc_delete(msg, reply) {
-  const { node } = state;
+async function doc_delete(msg, topic, cid) {
+  const { node, app_id, doc_info, cnk_data } = state;
+  const { uid } = msg;
+  const rec = await doc_info.get(uid);
+  const batch = await cnk_data.batch();
+  let recs = 0, match = 0;
+  for await (const [key] of cnk_data.iter({ values: false })) {
+    const [ index, doc_uid ] = key.split(":");
+    if (doc_uid === uid) {
+      batch.del(key);
+      match++;
+    }
+    recs++;
+  }
+  await batch.write();
+  await doc_info.del(uid);
+  log({ del_doc_info: rec, chunks: match });
+  node.publish(["doc-delete", app_id], rec);
+  return `analyzed ${recs} recs, ${match} matched`;
 }
 // given a query, get matching embed chunks from loaded docs
 async function query_match(msg, reply) {

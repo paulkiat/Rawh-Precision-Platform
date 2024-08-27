@@ -39,7 +39,7 @@ exports.init = function (state) {
   // allow an app to capture an url under its proxy root
   // and redirect it to a common url outside of the app
   // space, but retaining the app-id context (file-drop)
-  node.subscribe('app-url-escape', (msg, cid) => {
+  node.subscribe('app-url', (msg, cid) => {
     const { app_id, path } = msg;
     const app_rec = get_app_rec(app_id);
     const match = `/app/${app_id}${path}`

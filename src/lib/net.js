@@ -181,6 +181,7 @@ function zmq_proxy(port = 6000) {
         if (watchers && watchers.length) {
           log({ removing_watched_client: cid, watchers });
         }
+        // when a node disappears, remove all of it's subscriptions, too
         delete clients[cid]
         for (let [key, topic] of Object.entries(topics)) {
           topics[key] = topic.filter(match => match !== cid);
@@ -252,11 +253,11 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
       if (lastHB !== Infinity) {
         for (let [ topic, handler ] of Object.entries(subs)) {
           client.send([ "sub", topic ]);
-          log({ proxy_re_sub: topic });
+          // log({ proxy_re_sub: topic });
         }
         for (let [ topic, handler ] of Object.entries(handlers)) {
           client.send([ "handle", topic ]);
-          log({ proxy_re_sub: topic });
+          // log({ proxy_re_sub: topic });
         }
         on_reconnect.forEach(fn => fn());
       }

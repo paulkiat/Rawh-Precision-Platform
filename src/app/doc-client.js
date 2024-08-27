@@ -8,9 +8,9 @@ const net = require('net');
 function file_drop(req, res, next) {
   const { node } = state;
   const { parsed } = req;
-  const app_id = req.headers['x-app-id'] || parsed.query.app_id || "unknown";
+  const app_id = req.headers['x-app-id'] || parsed.query.app_id || parsed.app_id;
 
-  if (!(parsed.url.pathname === '/drop' && req.method === 'POST' && app_id)) {
+  if (!(app_id && parsed.app_path === 'drop' && req.method === 'POST')) {
     return next();
   }
 
