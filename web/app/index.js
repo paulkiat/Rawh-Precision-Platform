@@ -1,7 +1,7 @@
 // isHot(); = onHover(), onMouseMove(x,y)
 // active(); = onClick(), onMouseDown(), onDrag(), onHover(), onMouseUp()
 
-import { ws_proxy_api } from "../lib/ws-net";
+import { ws_proxy_api } from "./lib/ws-net";
 
 function $(id) {
   return document.getElementById(id);
@@ -34,6 +34,7 @@ function setup_file_drop() {
   dropZone.addEventListener('drop', (e) => {
     uploadFiles([...e.dataTransfer.files]);
   }, false);
+
   function uploadFiles(files) {
     files.forEach(file => {
       const type = file.name.split(".").pop().toLowerCase();
@@ -52,7 +53,7 @@ function setup_file_drop() {
       return `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`;
     }).join('&');
 
-    fetch(`/drop?${query}`, {
+    fetch(`drop?${query}`, {
       method: 'POST',
       body: formData
     })

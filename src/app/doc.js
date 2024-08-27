@@ -24,6 +24,11 @@ async function register_service() {
     type: "doc-server",
     subtype: "rawh-level-v0"
   });
+  // create a /app/<app-id>/drop rewrite to /drop with app-id context
+  node.publish("app-url", {
+    app_id,
+    path: "/drop"
+  });
   // bind api service endpoints for document operations
   node.handle([ "doc-load", app_id ], doc_load);
   node.handle([ "doc-list", app_id ], doc_list);

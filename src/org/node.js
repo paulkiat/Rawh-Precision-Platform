@@ -24,17 +24,33 @@ function onProxyReq(ctx) {
     proxyReq.setHeader("x-app-id", ctx.app_id);
   }
 }
+
+function get_app_rec(app_id, overlay = {}) {
+  return apps[app_id] || (apps[app_id] = Object.assign({
+    web: { },
+    doc: { },
+    url: [ ]
+  }, overlay));
+}
+
 exports.init = function (state) {
   node = state.node = net.node('localhost', state.proxy_port);
 
+  // allow an app to capture an url under its proxy root
+  // and redirect it to a common url outside of the app
+  // space, but retaining the app-id context (file-drop)
+  node.subscribe('app-url-escape', (msg, cid) => {
+    const { app_id, path } = msg;
+    const app_rec = get_app_rec(app_id);
+    const match = `/app/${app_id}${path}`
+    log({ app_url_escape: app_id, app_path });
+    app_rec.url.push({ path, match });
+  });
+
+  // listen for application web-server service coming up
   node.subscribe('service-up', (msg, cid) => {
-    const { type, subtype, app_id } = msg;
-    const app_rec = apps[app_id] || (apps[app_id] = {
-      type,
-      subtype,
-      web: { },
-      doc: { }
-    });
+    const { app_id, type, subtype } = msg;
+    const app_rec = get_app_rec(app_id, { type, subtype });
     if (msg.type !== "web-server") {
       return;
     }
@@ -57,6 +73,15 @@ exports.init = function (state) {
       // create a proxy handler
       const newh = app_rec.web[root] = { cid, host: web_addr[0], port: web_port, proxy };
       const endpoint = async (req, res, next) => {
+        // look for captured app url rewrites
+        for (let url of app_rec.url) {
+          if (req.parsed.url.pathname === url.match) {
+              req.url = url.path;
+              req.parsed.url.pathname = url.path;
+              req.headers["x-app-id"] = app_id;
+            return next();
+          }
+        }
         // log({ proxy_url: req.url });
         return newh.proxy(req, res, next);
       }
