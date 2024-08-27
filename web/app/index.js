@@ -1,6 +1,8 @@
 // isHot(); = onHover(), onMouseMove(x,y)
 // active(); = onClick(), onMouseDown(), onDrag(), onHover(), onMouseUp()
 
+const { protocol, hostname, port } = location;
+
 function $(id) {
   return document.getElementById(id);
 }
@@ -56,8 +58,14 @@ async function ws_proxy_api() {
       ctx.send({ fn: "send", topic, msg });
     },
     pcall: (topic, msg) => {
-      return new Promise(resolve => {
-        api.call(topic, msg, resolve);
+      return new Promise((resolve, reject) => {
+        api.call(topic, msg, (msg, error, topic) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(msg);
+          }
+        });
       });
     }
   };
@@ -66,28 +74,33 @@ async function ws_proxy_api() {
       ctx.ws = ws;
       resolve(api);
     }, event => {
-      console.log({ data: event_data });
       const { mid, msg, topic, error } = JSON.parse(event.data);
-      console.log({ mid, msg, topic, error });
       const handler = ctx.once[mid];
       delete ctx.once[mid];
-      if (error) {
-        throw error;
+      if (!handler) {
+        console.log({ missing_once: mid });
+      } else if (error) {
+        handler(undefined, error, topic)
+      } else {
+        handler(msg, undefined, topic);
       }
-      handler(msg, topic);
     });
   });
 }
 
 async function on_load() {
-  const api = window.proxy_api = (window.proxy_api  || await ws_proxy_api());
-  console.log({ api });
-  const add = await api.pcall("add", { a: 100, b: 200 }).catch(error => {
-    console.log({ error });
-  });
-  console.log({ add });
-  api.call("add", { a: 200, b: 400 }, (result, topic) => {
-    console.log({ result, topic });
+  const api = window.proxy_api = (window.proxy_api || await ws_proxy_api());
+  
+  api.pcall("add", { a: 100, b: 200 })
+    .then((add1) => {
+      console.log({ add1 });
+    }).catch((ad1_error) => {
+      console.log({ ad1_error });
+    });
+  // const add1 = await api.pcall("add", { a: 100, b:200 });
+  // console.log({ add1 });
+  api.call("add", { a: 200, b: 400 }, (add2, error, topic) => {
+    console.log({ add2, topic, error });
   });
 }
 

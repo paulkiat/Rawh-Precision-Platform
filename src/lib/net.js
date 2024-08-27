@@ -177,7 +177,10 @@ function zmq_proxy(port = 6000) {
     for (let cid of Object.keys(clients)) {
       const delta = Date.now() - clients[cid];
       if (delta > settings.dead_client) {
-        log({ removing_client: cid });
+        const watchers = watch[cid];
+        if (watchers && watchers.length) {
+          log({ removing_watched_client: cid, watchers });
+        }
         delete clients[cid]
         for (let [key, topic] of Object.entries(topics)) {
           topics[key] = topic.filter(match => match !== cid);

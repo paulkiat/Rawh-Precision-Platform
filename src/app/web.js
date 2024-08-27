@@ -3,7 +3,6 @@
 const { args, env } = require('../lib/util');
 const { file_drop } = require('../app/doc-client');
 const log = require('../lib/util').logpre('app');
-const net = require('../lib/net');
 const web = require('../lib/web');
 const app_handler = require('express')();
 const state = require('./service.js').init();
@@ -30,12 +29,11 @@ async function announce_service() {
     web_addr: net_addrs,
     type: "web-server"
   });
-} 
+}
 
 function ws_handler(ws, req) {
-  if (req.url === '/proxy-api') {
+  if (req.url === '/proxy.api') {
     ws.on('message', (msg) => {
-      console.log({ ws_msg: msg.toString() });
       web.wss_proxy_api_handler(state.node, ws, msg);
     });
   } else {
@@ -46,28 +44,28 @@ function ws_handler(ws, req) {
 
 // serving local app web assets
 async function setup_app_handlers() {
-  app_handler
-    .use(web.parse_query)
-    .use(file_drop(state))
-    .use((req, res, next) => {
-      const url = req.url;
-      const appurl = `/app/${state.app_id}`;
-      // limit requests to contents of /app (eg: ignore hub and org)
-      if (!(url === appurl || url.startsWith(`${appurl}`))) {
-        res.writeHead(404, { 'Content-Type': 'text.plain' });
-        res.end('404 Invalid URL');
-      } else {
-        // rewrite app url to remove /app/<app-id> prefix
-        req.url = req.url.substring(appurl.length) || '/';
-        next();
-      }
-    })
-    .use(require('serve-static')('web/app', { index: ["index.html="] }))
-    .use((req, res) => {
-      res.writeHead(404, {'Content-Type': 'text.plain'});
-      res.end('404 Not Found');
-    })
-    ;
+    app_handler
+        .use(web.parse_query)
+        .use(file_drop(state))
+        .use((req, res, next) => {
+            const url = req.url;
+            const appurl = `/app/${state.app_id}`;
+            // limit requests to contents of /app (eg: ignore hub and org)
+            if (!(url === appurl || url.startsWith(`${appurl}`))) {
+                res.writeHead(404, { 'Content-Type': 'text.plain' });
+                res.end('404 Invalid URL');
+            } else {
+                // rewrite app url to remove /app/<app-id> prefix
+                req.url = req.url.substring(appurl.length) || '/';
+                next();
+            }
+        })
+        .use(require('serve-static')('web/app', { index: ["index.html="] }))
+        .use((req, res) => {
+            res.writeHead(404, { 'Content-Type': 'text.plain' });
+            res.end('404 Not Found');
+        })
+        ;
 }
 
 (async () => {

@@ -42,7 +42,7 @@ async function start_web_listeners(state) {
   }
 
   // generate new https key if missing or over 300 days old
-  if (web_handler && (state.ssl || Date.now() - state.web.date > 300 * 24 * 60 * 60 * 1000)) {
+  if (web_handler && (state.ssl || Date.now() - state.web.date > ms_days_300)) {
     state.ssl - await meta.get("ssl-keys");
     let found = state.ssl !== undefined;
     if (state.ssl_dir) {
@@ -77,7 +77,7 @@ async function start_web_listeners(state) {
       cert: state.ssl.cert
     }, web_handler).listen(state.web_port);
   }
-  // start web socket handler
+  // start secure web socket handler
   if (wss_handler && servers.web) {
     const wss = servers.wss = new WebSocket.Server({ server: servers.web });
     wss.on('connection', ws_handler);
@@ -106,21 +106,20 @@ function wss_proxy_api_handler(node, ws, ws_msg) {
     ws.topic_locate = async (topic) => {
       let targets = cache[topic];
       if (!(targets && targets.length)) {
-        log({ locate_targets_for: topic });
         const { direct } = await node.promise.locate[topic];
         cache[topic] = targets = (direct || []);
       }
       if (targets.length > 1) {
-        // round robin through targets
-        const target = targets.shift();
-        targets.push(target);
+          // round robin through targets
+          const target = targets.shift();
+          targets.push(target);
         return target;
       } else {
         return targets[0];
       }
     }
   }
-  const { topic_locate , topic_cache } = ws;
+  const { topic_locate, topic_cache } = ws;
   // cid via "locate" should be automatically resolved
   switch (fn) {
     case 'publish':
@@ -128,23 +127,22 @@ function wss_proxy_api_handler(node, ws, ws_msg) {
       break;
     case 'call':
       topic_locate(topic).then(cid => {
-        log({ cid });
         if (cid) {
           node.call(cid, topic, msg, (msg, error) => {
             if (error) {
-              ws.send(util.json({ error }));
+              ws.send(util.json({ mid, msg, topic }));
               delete topic_cache[topic];
             } else {
               ws.send(util.json({ mid, msg, topic }));
             }
           });
         } else {
-          ws.sen(util.json({ error: `no call handlers for: ${topic}` }));
+          ws.send(util.json({ mid, topic, error: `no call handlers for: ${topic}` }));
         }
       });
       break;
     default:
-      ws.send(util.json({ error: `invalid proxy fn: ${fn}` }));
+      ws.send(util.json({ mid, topic, error: `invalid proxy fn: ${fn}` }));
       break;
   }
 }
@@ -154,4 +152,4 @@ Object.assign(exports, {
   start_web_listeners,
   four_oh_four,
   parse_query
-})
+});
