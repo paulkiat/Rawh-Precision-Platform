@@ -9,6 +9,7 @@ const node = require('./node');
 const store = require('../lib/store');
 const crypto = require('../lib/crypto');
 const adm_handler = require('express')();
+const app_handler = require('express')();
 const web_handler = require('express')();
 
 const state = { };
@@ -18,16 +19,16 @@ Object.assign(state, {
   ssl_dir: env('SSL_DIR') || args['ssl-dir'], // for customer supplied ssl key & cert files
   hub_host: env('HUB_HOST') || args['hub-host'] || (args.prod ? "meta.rawh.ai" : "localhost"),
   hub_port: env('HUB_PORT') || args['hub-port'] || (args.prod ? 443 : 8443 ),
-  adm_port: args['adm-port'] || (args.prod ?  80 : 9000),
+  adm_port: args['adm-port'] || (args.prod ?  80 : 9001),
+  app_port: args['adm-port'] || (args.prod ?  80 : 9000),
   web_port: args['web-port'] || (args.prod ? 443 : 9443),
-  app_port: args['app-port'],
   proxy_port: env('PROXY_PORT') || args['proxy-port'] || 6000,
   adm_handler: adm_handler
     .use(web.parse_query)
     .use(store.web_admin(state, 'meta'))
     .use(store.web_admin(state, 'meta')),
   web_handler,
-  app_handler: web_handler
+  app_handler: web_handler,
 });
 
 /**
@@ -74,16 +75,21 @@ async function setup_keys() {
 
 async function setup_web_handlers() {
   const static = require('serve-static')('web/hub', { index: ["index.html" ]});
-  // localhost only admin / test interface
+  // localhost only admin api
   adm_handler
-    .use(web.parse_query)
     .use(store.web_admin(state, 'meta'))
     .use(store.web_admin(state, 'logs'))
+    .use(web.four_oh_four)
+    ;
+    // localhost http app test interface
+  app_handler
+    .use(web.parse_query)
     .use(node.web_handler)
     .use(api.web_handler)
     .use(static)
     .use(web.four_oh_four)
-  // production https web interface
+    ;
+  // production https app production interface
   web_handler
     .use(web.parse_query)
     .use(node.web_handler)
@@ -98,9 +104,15 @@ async function setup_org_proxy() {
   proxy(state.proxy_port);
 }
 
-async function setup_org_node() {
+async function setup_org_apis() {
   app.init(state);
   node.init(state);
+  // inject wss handlers prior to `web.start_web_listeners()`
+  const wss_handler = web.ws_proxy_path(state.node);
+  Object.assign(state, {
+    wss_handler,
+    ws_handler: wss_handler
+  });
 }
 
 (async () => {

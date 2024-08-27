@@ -160,7 +160,7 @@ function zmq_proxy(port = 6000) {
         (direct[topic] = direct[topic] || []).push(cid);
         break;
       case 'locate':
-        // returns a list of topic subscribers and direct listeners
+      // returns a list of topic subscribers and direct listeners
         send(cid, ['loc', 
             topics[topic], // subs
             direct[topic], // direct
@@ -209,11 +209,18 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
   const subs = {}; // subscription endpoints
   const once = {}; // once message handlers for call/handle pattern
   const seed = Date.now();
-  let lastHB = Infinity;
-  let lastHT = 0;
+  let sub_star = []; // subscriptions with *
+  let lastHB = Infinity; // last heartbeat value
+  let lastHT = 0; //  last heartbeat time
   let on_disconnect;
   let on_reconnect;
-  let sub_star = [];
+
+    // background message receiver
+  (async function () {
+    while (true) {
+      await next_message();
+    }
+  }());
 
   // heartbeat client to proxy
   setInterval(() => {
@@ -344,13 +351,6 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
         return;
     }
   }
-  
-  // background message receiver
-  (async function () {
-    while (true) {
-      await next_message();
-    }
-  }());
 
   function flat(topic) {
     return Array.isArray(topic) ? topic.join('/') : topic;

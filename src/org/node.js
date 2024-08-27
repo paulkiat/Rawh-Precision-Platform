@@ -17,7 +17,6 @@ function logProvider() {
   };  
 }
 
-
 exports.init = function (state) {
   node = state.node = net.node('localhost', state.proxy_port);
 
@@ -50,6 +49,7 @@ exports.init = function (state) {
       // create a proxy handler
       const newh = app_rec.web[root] = { cid, host: web_addr[0], port: web_port, proxy };
       const endpoint = async (req, res, next) => {
+        // log({ proxy_url: req.url });
         return newh.proxy(req, res, next);
       }
       router.use(root, endpoint);

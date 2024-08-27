@@ -4,8 +4,9 @@ const { args, env } = require('../lib/util');
 const { file_drop } = require('../app/doc-client');
 const log = require('../lib/util').logpre('app');
 const web = require('../lib/web');
-const app_handler = require('express')();
 const state = require('./service.js').init();
+const app_handler = require('express')();
+const ws_handler = web.ws_proxy_path(state.node);
 
 Object.assign(state, {
   app_port: env('APP_PORT') || args['app-port'] || (args.prod ? 80 : 7000),
@@ -29,17 +30,6 @@ async function announce_service() {
     web_addr: net_addrs,
     type: "web-server"
   });
-}
-
-function ws_handler(ws, req) {
-  if (req.url === '/proxy.api') {
-    ws.on('message', (msg) => {
-      web.wss_proxy_api_handler(state.node, ws, msg);
-    });
-  } else {
-    log({ invalid_ws_url: req.url });
-    ws.close();
-  }
 }
 
 // serving local app web assets

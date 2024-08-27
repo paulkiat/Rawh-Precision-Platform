@@ -10,14 +10,14 @@ const web = require('../lib/web');
 const net = require('../lib/net');
 const store = require('../lib/store');
 const crypto = require('../lib/crypto');
-const adm_handler = require('express')();
+const app_handler = require('express')();
 const web_handler = require('express')();
 
 const state = { };
 Object.assign(state, {
-  adm_port: args['adm-port'] || (args.prod ? 80 : 8000),
+  app_port: args['app-port'] || (args.prod ? 80 : 8000),
   web_port: args['web-port'] || (args.prod ? 443 : 8443),
-  adm_handler,
+  app_handler,
   web_handler,
   wss_handler: require('./org-link.js').setup(state)
 });
@@ -56,9 +56,9 @@ async function setup_keys() {
 }
 
 function setup_web_handlers() {
-  const static = require('serve-static')('web/hub', { index: ["index.html" ]});
-  // localhost only admin / test interface
-  adm_handler
+  const static = require('serve-static')('web/hub', { index: [ "index.html" ]});
+  // localhost only admin interface
+  app_handler
     .use(web.parse_query)
     .use(store.web_admin(state, 'meta'))
     .use(store.web_admin(state, 'logs'))

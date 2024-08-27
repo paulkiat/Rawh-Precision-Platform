@@ -5,9 +5,8 @@ const path = require('path');
 const http = require('node:http');
 const https = require('node:https');
 const WebSocket = require('ws');
-const crypto = require('./crypto');
+const crypto = require('../lib/crypto');
 const servers = {};
-
 
 async function start_web_listeners(state) {
   if (!https) {
@@ -35,14 +34,18 @@ async function start_web_listeners(state) {
     servers.app = http.createServer(app_handler).listen(state.app_port);
   }
 
+  // log({ ws_handler, app: servers.app });
   // start insecure web socket handler (for internal app server)
   if (ws_handler && servers.app) {
-    const ws = server.ws = new WebSocket.server({ server: servers.app });
-    ws.on(`connection`, ws_handler);
+    const wss = servers.ws = new WebSocket.server({ server: servers.app });
+    wss.on(`connection`, ws_handler);
+    wss.on(`error`, error => {
+      log({ ws_serv_error: error });
+    });
   }
 
   // generate new https key if missing or over 300 days old
-  if (web_handler && (state.ssl || Date.now() - state.web.date > ms_days_300)) {
+  if (web_handler && (!state.ssl || Date.now() - state.ssl.date > ms_days_300)) {
     state.ssl - await meta.get("ssl-keys");
     let found = state.ssl !== undefined;
     if (state.ssl_dir) {
@@ -80,7 +83,10 @@ async function start_web_listeners(state) {
   // start secure web socket handler
   if (wss_handler && servers.web) {
     const wss = servers.wss = new WebSocket.Server({ server: servers.web });
-    wss.on('connection', ws_handler);
+    wss.on('connection', wss_handler);
+    wss.on(`error`, error => {
+      log({ ws_serv_error: error });
+    });
   }
 }
 
@@ -99,7 +105,8 @@ function four_oh_four(req, res, next) {
 }
 
 // return web-server handle to support browser-side proxy/api calls
-function wss_proxy_api_handler(node, ws, ws_msg) {
+// in the browser, use the 'web/lib/ws-net.js' class
+function ws_proxy_handler(node, ws, ws_msg) {
   const { fn, topic, msg, mid } = util.parse(ws_msg);
   if (!ws.topic_locate) {
     const cache = ws.topic_cache = {};
@@ -110,14 +117,14 @@ function wss_proxy_api_handler(node, ws, ws_msg) {
         cache[topic] = targets = (direct || []);
       }
       if (targets.length > 1) {
-          // round robin through targets
-          const target = targets.shift();
-          targets.push(target);
+        // round robin through targets
+        const target = targets.shift();
+        targets.push(target);
         return target;
       } else {
         return targets[0];
       }
-    }
+    };
   }
   const { topic_locate, topic_cache } = ws;
   // cid via "locate" should be automatically resolved
@@ -139,7 +146,10 @@ function wss_proxy_api_handler(node, ws, ws_msg) {
         } else {
           ws.send(util.json({ mid, topic, error: `no call handlers for: ${topic}` }));
         }
-      });
+      }).catch(error => {
+        // log({ proxy_locate_error: error });
+        ws.send(util.json({ mid, msg, topic, error }));
+      })
       break;
     default:
       ws.send(util.json({ mid, topic, error: `invalid proxy fn: ${fn}` }));
@@ -147,9 +157,28 @@ function wss_proxy_api_handler(node, ws, ws_msg) {
   }
 }
 
+function ws_proxy_path(node, path = "./proxy.api") {
+  log({ installing_ws_proxy: path });
+  return function (ws, req) {
+    log({ ws_connect: req.url });
+    if (req.url === path) {
+      ws.on('message', (msg) => {
+        ws_proxy_handler(node, ws, msg);
+      });
+      ws.on('error', error => {
+        log({ ws_error: error });
+      });
+    } else {
+      log({ invalid_ws_url: req.url });
+      ws.close();
+    }
+  };
+}
+
 Object.assign(exports, {
-  wss_proxy_api_handler,
   start_web_listeners,
+  ws_proxy_handler,
+  ws_proxy_path,
   four_oh_four,
   parse_query
 });
