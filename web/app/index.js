@@ -113,7 +113,7 @@ function query_llm(query, then, disable = true) {
   state.api.subscribe(topic, (token) => {
     tokens.push(token);
     set_answer(tokens.join(''));
-  });
+  }, 120);
 }
 
 function setup_qna_bindings() {

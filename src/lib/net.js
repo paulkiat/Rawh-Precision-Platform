@@ -266,7 +266,7 @@ function zmq_proxy(port = 6000) {
     // look for ephemeral ~topics to expire
     for (let [topic, rec] of Object.entries(ttimer)) {
       if (time > rec.last + rec.timeout * 1000) {
-        log({ expire_topic: topic });
+        // log({ expire_topic: topic });
         delete ttimer[topic];
         delete topics[topic];
       }

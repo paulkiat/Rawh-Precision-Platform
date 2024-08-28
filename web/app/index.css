@@ -21,6 +21,10 @@ button.selected {
     color: white;
 }
 
+textarea {
+  font-family: Arial, sans-serif;
+}
+
 .hpad {
   flex-grow: 1;
 }

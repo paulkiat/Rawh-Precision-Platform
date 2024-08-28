@@ -38,7 +38,7 @@ const sessions = {};
       case "ssn-query":
         const ssn = sessions[sid];
         if (ssn) {
-          console.log({ mid, sid, query, ssn, debug, topic, onToken });
+          // console.log({ mid, sid, query, debug, topic });
           const answer = debug ?
             await ssn.prompt_debug(query, onToken) :
             await ssn.prompt(query, onToken);
@@ -48,7 +48,7 @@ const sessions = {};
         }
         break;
       case "query":
-        console.log({ mid, sid, query, debug, topic, onToken });
+        // console.log({ mid, sid, query, debug, topic });
         const temp = await chat.create_session({
           debug,
           gpuLayers: msg.gpu,
