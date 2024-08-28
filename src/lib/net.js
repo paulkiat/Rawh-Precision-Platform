@@ -1,5 +1,7 @@
 /** ZeroMQ export helpers for client/server nodes */
 
+// TODO: proxy handles location and round-robin when cid missing
+
 const zeromq = require("zeromq");
 const util = require('./util');
 const log = util.logpre('zmq');

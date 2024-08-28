@@ -23,7 +23,7 @@ class CustomPromptWrapper extends LlamaChatPromptWrapper {
   wrapPrompt(str, opt) {
     let ret = super.wrapPrompt(str, opt);
     if (state.debug) {
-      console.log({ to_llm: ret });
+      // console.log({ to_llm: ret });
       console.log('-----------------');
       console.log('[[ sent to llm ]]');
       console.log('-----------------');

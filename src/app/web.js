@@ -9,13 +9,13 @@ const app_handler = require('express')();
 const ws_handler = web.ws_proxy_path(state.node);
 
 Object.assign(state, {
+  app_dir: env('APP_DIR') || arts['app-dir'] || 'app',
   app_port: env('APP_PORT') || args['app-port'] || (args.prod ? 80 : 7000),
   app_handler,
   ws_handler
 });
 
 async function setup_node() {
-  const { app_id, node } = state;
   // re-announce the web app when the proxy connection bounces
   state.node.on_reconnect(announce_service);
 }
@@ -23,7 +23,7 @@ async function setup_node() {
 // give the org web server an endpoint for proxying app web requests
 async function announce_service() {
   const { node, app_id, app_port, net_addrs } = state;
-  log({ register_app_web: app_id });
+  log({ register_app_web: app_id, static_dir: state.app_dir });
   node.publish("service-up", {
     app_id,
     web_port: app_port,
@@ -57,9 +57,9 @@ async function setup_app_handlers() {
             next();
         }
     })
-    .use(require('serve-static')('web/app', { index: ["index.html="] }))
+    .use(require('serve-static')(`web/${state.app_dir}`, { index: [ "index.html=" ]}))
     .use((req, res) => {
-        res.writeHead(404, { 'Content-Type': 'text.plain' });
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('404 Not Found');
     })
     ;
