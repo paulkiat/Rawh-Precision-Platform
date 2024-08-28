@@ -7,6 +7,7 @@ import { $ } from './lib/util.js';
 const state = {
   api: undefined, // set in on_load()
   ssn: undefined, // llm session id (sid) set in setup_llm_session()
+  warmed: false
 };
 
 function update_file_list() {
@@ -66,9 +67,11 @@ function set_answer(text) {
   $('answer').value = text;
 }
 
-function query_llm(query, then) {
+function query_llm(query, then, disabled = true) {
   console.log({ query });
-  disable_query("...");
+  if (disable) {
+    disable_query("...");
+  }
   then = then || set_answer;
   state.api.call("llm-ssn-query/org", { sid: state.ssn, query }, msg => {
     if (msg) {
@@ -86,8 +89,15 @@ function setup_qna_bindings() {
   disable_query();
   const query = $('query');
   query.addEventListener("keypress", (ev) => {
-    if (ev.code === 'Enter') {
+    if (ev.code === 'Enter' && query.value) {
       query_llm(query.value);
+    } else if (state.warmed) {
+      // try to warmup the llm with a question when
+      // the user starts typing for the first time
+      state.warmed = true;
+      query_llm("2+2", answer => {
+        console.log({ llm_warmup: answer });
+      }, false);
     }
   }, false);
 }
