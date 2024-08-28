@@ -225,11 +225,11 @@ async function docs_query(msg, topic, cid) {
 
   const found = [];
   const search = [ iter_gt, iter_lt ];
-  const max_t = max_tokens || 200;
+  const max_t = max_tokens || 4096;
   let tokens = 0;
   let which = 0;
 
-    for (let i=0; i<20; i++) {
+    for (let i=0; i<50; i++) {
       const iter = search[which];
       const next = await iter.iter.next();
 
@@ -251,7 +251,7 @@ async function docs_query(msg, topic, cid) {
       index: rec.index
     });
 
-    found.push({ i: iter.pos, coss, text: rec.text, tok: rec.num_tokens });
+    found.push({ i: iter.pos, coss, text: rec.text, tok: rec.num_tokens, key });
     iter.pos += iter.add;
     iter.coss = coss;
     tokens += rec.num_tokens;
@@ -259,7 +259,7 @@ async function docs_query(msg, topic, cid) {
     if (coss < iter.next.coss) {
       which = 1 - which;
     }
-    if (tokens >= max_t) {
+    if (tokens >= max_t * 2) {
       log({ reached_max_t: tokens });
       break;
     }
@@ -270,24 +270,36 @@ async function docs_query(msg, topic, cid) {
 
   // sort by index
   // found.sort((a, b) => { return a.i - b.i });
-  // sort by relevance
+  // sort by relevance, limit to top 10
   found.sort((a, b) => { return b.coss - a.coss });
-
-  console.log(tokens, found.map(r => r.coss), llm, sid);
+  found.length = 10;
+  console.log(tokens, found.map(r => {
+    return {
+      // key: r.key,
+      dist: r.i,
+      coss: r.coss,
+    };
+  }), llm, sid);
+  console.log(found[0]);
 
   // time to consult the llm
   if (llm && sid) {
     const embed = [
-      "based on the following texts, answer the question at the end. ",
-      "if the answer is not found in the provided texts, reply that you do not ",
+      "Based on the following context, succinctly answer the question at the end.\n",
+      // "using only the text available in the fragments, Do not improvise.\n",
+      "If the answer is not found in the provided context, reply that you do not ",
       "have a document related to the question,\n",
       "-----\n",
-      ...found.map(r => `${r.text}\n------\n`),
-      `Question: ${query}`
+      ...found.slice(0,3).map(r => `\n${r.text}\n`),
+      `\nQuestion: ${query}\n`
     ].join('');
+    // return found;
     console.log(embed.length, embed);
-    const cid = (await node.promise.locate(llm)).direct[0];
-    const answer = await node.promise.call(cid, llm, { sid, query: embed });
+    // const cid = (await node.promise.locate(llm)).direct[0];
+    // const answer = await node.promise.call(cid, llm, { sid, query: embed });
+    const once = "llm-query/org";
+    const cid = (await node.promise.locate(once)).direct[0];
+    const answer = await node.promise.call(cid, once, { query: embed });
     console.log({ llm_said: answer });
     return answer;
   }

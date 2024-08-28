@@ -8,7 +8,6 @@ const state = {
   llm: "llm-ssn-query/org",
   api: undefined, // set in on_load()
   ssn: undefined, // llm session id (sid) set in setup_llm_session()
-  warmed: true,
   embed: false
 };
 
@@ -28,7 +27,7 @@ function update_file_list() {
         `<label class="actions">`,
         `<button onclick="doc_delete('${uid}')")>X</button>`,
         `</label>`
-      ].join(''))
+      ].join(''));
     }
     $('file-data').innerHTML = html.join('');
   });
@@ -89,10 +88,11 @@ function query_llm(query, then, disable = true) {
   });
   if (state.embed)
   state.api.call("docs-query/$", { sid: state.ssn, query, llm: state.llm }, msg => {
-    jf (msg) {
-      set_answer(msg.answer || "there was an error processing this query");
+    if (msg && msg.answer) {
+      set_answer(msg.answer);
     } else {
       console.log(msg);
+      window.answer = msg;
     }
   });
 }
@@ -103,13 +103,6 @@ function setup_qna_bindings() {
   query.addEventListener("keypress", (ev) => {
     if (ev.code === 'Enter' && query.value) {
       query_llm(query.value);
-    } else if (!state.warmed) {
-      // try to warmup the llm with a question when
-      // the user starts typing for the first time
-      state.warmed = true;
-      query_llm("2+2", answer => {
-        console.log({ llm_warmup: answer });
-      }, false);
     }
   }, false);
 }
@@ -134,8 +127,9 @@ async function on_load() {
   update_file_list();
 }
 document.addEventListener('DOMContentLoaded', on_load);
-window.doc_delete = doc_delete;
 window.update_file_list = update_file_list;
+window.doc_delete = doc_delete;
+window.set_answer = set_answer;
 
 
 

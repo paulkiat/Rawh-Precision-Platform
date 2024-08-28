@@ -108,7 +108,7 @@ async function cmd(answer) {
       const kopt = await Object.assign({}, parse(toks[0] || '{}'),
         { values: false });
       const keys = (await state.open.list(kopt)).map(r => r[0]);
-      console.log(keys);
+      console.log(keys, keys.length);
       break;
     case 'clear':
       if (!state.open) return console.log('no db open');
@@ -116,7 +116,7 @@ async function cmd(answer) {
       break;
     case 'dump':
       if (!state.open) return console.log('no db open');
-      await state.open.dump(toks[0]);
+      const dump = await state.open.dump(toks[0]);
       console.log({ dump });
       break;
     case 'load':

@@ -61,6 +61,18 @@ async function llm_ssn_query(msg) {
   return answer;
 }
 
+async function llm_query(msg) {
+  const answer = await call("query", {
+    model: settings.model,
+    gpu: settings.gpu,
+    ...msg
+  });
+  if (settings.debug) {
+    log({ query: answer, msg });
+  }
+  return answer;
+}
+
 async function register_service() {
   const { app_id, node } = state;
   // announce the presence
@@ -73,6 +85,7 @@ async function register_service() {
   node.handle([ "llm-ssn-start", app_id ], llm_ssn_start);
   node.handle([ "llm-ssn-query", app_id ], llm_ssn_query);
   node.handle(["llm-ssn-end", app_id], llm_ssn_end);
+  node.handle(["llm-query", app_id], llm_query);
   log({ service_up: app_id, type: "llm-server" });
 }
 

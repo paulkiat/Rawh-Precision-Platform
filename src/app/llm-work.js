@@ -17,12 +17,12 @@ const sessions = {};
       case "ssn-start":
         const newsid = util.uid();
         sessions[newsid] = await chat.create_session({
-            debug,
-            gpuLayers: msg.gpu,
-            modelName: msg.model
+          debug,
+          gpuLayers: msg.gpu,
+          modelName: msg.model
         });
         // console.log({ mid, newsid });
-        process.send({ mid, msg: { sid: newsid} });
+        process.send({ mid, msg: { sid: newsid } });
         break;
       case "ssn-end":
         if (sessions[sid]) {
@@ -34,17 +34,38 @@ const sessions = {};
         break;
       case "ssn-query":
         const ssn = sessions[sid];
-        const opt = { };
         // console.log({ mid, sid, query, ssn, debug });
         if (ssn) {
           const answer = debug ?
-            await ssn.prompt_debug(query, opt) :
-            await ssn.prompt(query, opt);
+            await ssn.prompt_debug(query) :
+            await ssn.prompt(query);
           process.send({ mid, msg: { answer } });
         } else {
-          process.send({ mid, msg: { error: "missing session"} });
+          process.send({ mid, msg: { error: "missing session" } });
         }
         break;
+      case "query":
+        const temp = await chat.create_session({
+          debug,
+          gpuLayers: msg.gpu,
+          modelName: msg.model,
+          xsystemPrompt: [
+            "You are an AI assistant that strives to answer as concisely as possible. ",
+
+            "You are being provided a set of text fragments seperated by ----- which is the ",
+            "context you must use to answer a Question at the end.\n",
+
+            "If the answer is not found in the provided texts, reply that you do not ",
+            "have a document related to the question.\n",
+
+            "If a question does not make any sense, try to answer based on your best understanding of the intent of the question.\n",
+            "If you don't know the answer to a question, do not guess or share false or incorrect information.",
+          ].join("\n")
+        });
+        const answer = debug ?
+          await temp.prompt_debug(query) :
+          await temp.prompt(query);
+        process.send({ mid, msg: { answer } });
       default:
         process.send({ mid, msg: { error: `invalid command: ${cmd}` } });
         break;

@@ -24,6 +24,11 @@ class CustomPromptWrapper extends LlamaChatPromptWrapper {
     let ret = super.wrapPrompt(str, opt);
     if (state.debug) {
       console.log({ to_llm: ret });
+      console.log('-----------------');
+      console.log('[[ sent to llm ]]');
+      console.log('-----------------');
+      console.log(ret);
+      console.log('-----------------');
     }
     return ret;
   }
@@ -50,11 +55,20 @@ export async function setup(opt = {}) {
   }
 
   const modelName = opt.modelName ?? 'hermes-3-llama-3.1-8b.Q8_0.gguf';
-  const modelPath = path.join(opt.modelDir ?? "mndels", modelName);
-  const promptWrapper = new CustomPromptWrapper(); // LlamaChatPromptWrapper()
+  const modelPath = path.join(opt.modelDir ?? "models", modelName);
+  const promptWrapper = new CustomPromptWrapper(); // LlamaChatPromptWrapper();
+  const contextSize = opt.contextSize ?? 4096;
+  const batchSize = opt.batchSize ?? 4096;
   const gpuLayers = opt.gpulayers ?? 0;
-  const model = new LlamaModel({ modelPath, gpuLayers });
-  const context = new LlamaContext({ model });
+  const model = new LlamaModel({
+    modelPath,
+    gpuLayers
+  });
+  const context = new LlamaContext({
+    model,
+    batchSize,
+    contextSize
+  });
   Object.assign(state, {
     debug: opt.debug ?? false,
     model,
@@ -62,6 +76,10 @@ export async function setup(opt = {}) {
     promptWrapper,
     systemPrompt: opt.systemPrompt ?? systemPrompt
   });
+
+  if (opt.debug) {
+    console.log({ llm_setup: opt, modelName, modelPath });
+  }
 }
 
 export async function create_session(opt = {}) {
@@ -71,7 +89,11 @@ export async function create_session(opt = {}) {
 
   const { context, promptWrapper, systemPrompt } = state;
   const grammar = opt.grammar ? await LlamaGrammar.getFor("json") : undefined;
-  const session = new LlamaChatSession({ context, promptWrapper, systemPrompt });
+  const session = new LlamaChatSession({
+    context,
+    promptWrapper,
+    systemPrompt: opt.systemPrompt ?? systemPrompt
+  });
 
   const fns = {
     async prompt_and_response(prompt, onToken, session, grammar) {
