@@ -6,11 +6,12 @@ const log = util.logpre('zmq');
 const os = require('os');
 
 const { Dealer, Router } = zeromq;
-const { args, json } = util;
+const { args, env, json } = util;
 const proto = "tcp";
 const settings = {
-  heartbeat: 1000,
-  dead_client: 5000
+  debug_node: env('DEBUG_NODE') || args['debug-node'] || false,
+  heartbeat: env('NODE_BEAT_MS') || args['node-beat-ms'] || 1000,
+  dead_client: env('NODE_DEAD_MS') || args['node-dead-ms'] || 5000,
 };
 
 function zmq_settings(rec) {
@@ -30,6 +31,7 @@ function zmq_server(port, onmsg, opt = { sync: false }) {
       sock.send([ id, json(msg) ]);
         return true;
     } else {
+        log({ server_send_to_missing_cid: cid, msg });
         return false; // dead endpoint
     }
   }
@@ -61,25 +63,57 @@ function zmq_server(port, onmsg, opt = { sync: false }) {
 }
 
 function zmq_client(host = "127.0.0.1", port) {
-  const sock = new Dealer;
-  sock.connect(`${proto}://${host}:${port}`);
-  log({ connected: `${host}:${port}` });
+  const address = `${proto}://${host}:${port}`;
+  let sock;
 
   async function send(request) {
+    if (!sock) throw "not connected";
     await sock.send(json(request));
   }
 
   async function recv() {
-    const [result] = await sock.receive();
+    if (!sock) throw "not connected";
+    const [ result ] = await sock.receive();
     return JSON.parse(result);
   }
  
+  function recvp() {
+    if (!sock) throw "not connected";
+    return new Promise(resolve => {
+      sock.receive().then(msg => {
+        const [result] = msg;
+        resolve(JSON.parse(result));
+      });
+    });
+  }
+
   async function call(request) {
     await send(request);
     return await recv();
   }
 
-  return { send, recv, call };
+  function connect() {
+    if (sock) return;
+    sock = new Dealer;
+    sock.connect(address);
+    log({ connected: `${host}:${port}` });
+  }
+
+  function disconnect() {
+    if (sock) {
+      sock.disconnect(address);
+      sock = undefined;
+    }
+  }
+
+  function reconnect() {
+    disconnect();
+    connect();
+  }
+
+  connect();
+
+  return { send, recv, call, connect, disconnect, reconnect, recvp };
 }
 
 function zmq_proxy(port = 6000) {
@@ -174,7 +208,8 @@ function zmq_proxy(port = 6000) {
 
   setInterval(() => {
     // heartbeat all clients and remove those not responding
-    for (let cid of Object.keys(clients)) {
+    const cid_list = Object.keys(clients);
+    for (let cid of cid_list) {
       const delta = Date.now() - clients[cid];
       if (delta > settings.dead_client) {
         const watchers = watch[cid];
@@ -182,7 +217,6 @@ function zmq_proxy(port = 6000) {
           log({ removing_watched_client: cid, watchers });
         }
         // when a node disappears, remove all of it's subscriptions, too
-        delete clients[cid]
         for (let [key, topic] of Object.entries(topics)) {
           topics[key] = topic.filter(match => match !== cid);
         }
@@ -192,13 +226,20 @@ function zmq_proxy(port = 6000) {
         // notify watchers of dead node
         for (let rec of watch[cid] || []) {
           const { cid, topic, callto, mid } = rec;
-          server.send(cid, [ 'err', `deadendpoint: ${topic}`, callto, mid ]);
+          server.send(cid, ['err', `deadendpoint: ${topic}`, callto, mid]);
         }
+        // as a courtesy, if the node is still up but not responding
+        // send it a "dead" message so it can know when it wakes up
+        log({ notifying_dead_node: cid, delta });
+        server.send(cid, ['dead', 'you have been marked dead', delta]);
+        // delete endpoint records here and on server
+        delete clients[cid];
         delete watch[cid];
         server.remove(cid);
         continue;
+      } else {
+        server.send(cid, seed);
       }
-      server.send(cid, seed);
     }
   }, settings.heartbeat);
 }
@@ -218,20 +259,23 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
   let on_connect = [];
 
     // background message receiver
-  (async function () {
+  (async () => {
     while (true) {
       await next_message();
     }
-  }());
+  })();
 
-  // heartbeat client to proxy
+  // send heartbeat to proxy
   setInterval(() => {
     // lastHT set only when connected to a procy
     if (lastHT) {
       client.send(seed);
-      if (Date.now() - lastHT > settings.dead_client) {
+      const delta = Date.now() - lastHT;
+      if (delta > settings.dead_client) {
         // detect dead proxy
+        log({ proxy_dead_after: delta });
         on_disconnect.forEach(fn => fn());
+        client.reconnect();
         lastHT = 0;
       }
     } else {
@@ -241,9 +285,16 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
         delete once[mid];
       }
     }
+    if (settings.debug_node) {
+      log({ client_hb: { seed, lastHT, delta: Date.now() - lastHT } });
+    }
   }, settings.heartbeat);
 
+  // received heartbeat from proxy
   function heartbeat(rec) {
+    if (settings.debug_node) {
+      log({ proxy_hb: rec });
+    }
     if (rec !== lastHB) {
       // connect events
       if (lastHB === Infinity) {
@@ -301,8 +352,11 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
           if (!endpoint) {
             return log('call handle', { missing_call_handler: topic });
           }
-          const rmsg = await endpoint(msg, topic, cid);
-          client.send(["repl", '', rmsg, cid, mid]);
+          // const rmsg = await endpoint(msg, topic, cid);
+          // client.send(["repl", '', rmsg, cid, mid]);
+          endpoint(msg, topic, cid).then(msg => {
+            client.send(["repl", '', rmsg, cid, mid]);
+          });
         }
         break;
       case 'repl':
@@ -314,7 +368,7 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
             return log({ missing_once_reply: mid });
           }
           delete once[mid];
-          return await reply(msg);
+          return reply(msg);
         }
         break;
       case 'loc':
@@ -326,7 +380,7 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
             return log({ missing_once_locate: mid });
           }
           delete once[mid];
-          return await reply({ subs, direct });
+          return reply({ subs, direct });
         }
         break;
       case 'err':
@@ -341,6 +395,10 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
             return log({ missing_error_once: mid, callto });
           }
         }
+        break;
+      case 'dead':
+        log({ marked_dead: rec });
+        client.onreconnect();
         break;
       default:
         log({ next_unhandled: rec });

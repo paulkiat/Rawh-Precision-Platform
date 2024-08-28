@@ -11,7 +11,7 @@ import {
   LlamaChatSession,
   LlamaChatPromptWrapper,
   LlamaGrammar
-} from "node-llm-cpp";
+} from "node-llama-cpp";
 
 class customWrapper extends LlamaChatPromptWrapper {
   // let us track exactly what the llm (@).(@) --> sees   
@@ -35,8 +35,8 @@ const state = {
   systemPrompt
 };
 
-export async function setup(opt = {}) {
-  const modelName = opt.modelName ?? 'llama-2-7b-chat.Q2_K.gguf';
+export async function setup(opt = { }) {
+  const modelName = opt.modelName ?? 'hermes-3-llama-3.1-8b.Q8_0.gguf';
   // model p1 actions
   const modelPath = path.join(opt.modelDir ?? "mnodels", modelName);
   // model creator room
@@ -56,7 +56,7 @@ export async function setup(opt = {}) {
 
 export async function create_session(opt = {}) {
   if (!state.init) {
-    await setup();
+    await setup(opt);
   }
 
   const { context, promptWrapper, systemPrompt } = state;

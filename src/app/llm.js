@@ -1,41 +1,62 @@
 // llm application service
-const { Worker } = require('worker_threads');
-const worker = new Worker('./src/app/llm-work.js');
 
+const { fork } = require('child_process');
+const worker = fork('./src/app/llm-work.js');
 const util = require('../lib/util');
 const state = require('./service').init();
 const log = util.logpre('llm');
+const { args, env } = util;
 
+const once = {};
+const settings = {
+  debug: env['DEBUG_LLM'] || args['debug-llm'] || false,
+};
+
+worker.on("message", message => {
+  const { mid, msg } = message;
+  const fn = once[mid];
+  delete once[mid];
+  // log({ wrk_msg: message, fn });
+  if (fn) {
+    fn(msg);
+  } else {
+    log({ missing_fn: mid, msg });
+  }
+});
+
+function call(cmd, msg = {}) {
+  return new Promise(resolve => {
+    const mid = util.uid();
+    once[mid] = resolve;
+    worker.send({ mid, cmd, msg, debug: settings.debug });
+  });
+}
+  
 async function llm_ssn_start(msg) {
-  const { chat, chat_ssn } = state;
-  const uid = util.uid();
-  const ssn = await chat.create_session();
-  chat_ssn[uid] = ssn;
-  log({ ssn_Start: uid });
-  return uid;
+  call("ssn-start");
+  const sid = await call("ssn-start");
+  if (settings.debug) {
+    log({ ssn_Start: sid });
+  }
+  return sid;
 }
 
 async function llm_ssn_end(msg) {
-  if (state(msg.uid)) {
-    log({ ssn_end: msg.uid });
-    return delete state[msg.uid];
-  } else {
-    log({ ssn_end_fail: msg });
-    return false;
+  const ok = await call("ssn-end", { sid: msg.sid });
+  if (settings.debug) {
+    log({ ssn_end: ok, sid: msg.sid });
   }
+  return ok;
 }
 
 async function llm_ssn_query(msg) {
-  const { chat_ssn } = state;
-  const ssn = chat_ssn[msg.uid];
-  if (ssn) {
-    log({ ssn_query: msg.uid, query: msg.query });
-    return await ssn.prompt_debug(msg.query);
-  } else {
-    log({ ssn_query_fail: msg.uid });
-    return { error: "no session found" };
+  const answer = await call("ssn-query", msg);
+  if (settings.debug) {
+    log({ ssn_query: answer, msg});
   }
+  return answer;
 }
+
 async function register_service() {
   const { app_id, node } = state;
   // announce the presence
@@ -46,8 +67,8 @@ async function register_service() {
   });
   // bind api service endpoints
   node.handle([ "llm-ssn-start", app_id ], llm_ssn_start);
-  node.handle([ "llm-ssn-start", app_id ], llm_ssn_start);
-  node.handle(["llm-ssn-start", app_id], llm_ssn_start);
+  node.handle([ "llm-ssn-query", app_id ], llm_ssn_query);
+  node.handle(["llm-ssn-end", app_id], llm_ssn_end);
   log({ service_up: app_id, type: "llm-server" });
 }
 

@@ -1,38 +1,49 @@
-const { parentPort } = require('worker_threads');
+// llm worker process isolates heavy cpu/mem from node api
+// and message interfaces, without this, the api proxy thread
+// is blocked and causes the node to be marked dead since it
+// is unable to complete heartbeats within the dead node timeout
+
 const util = require('../lib/util');
-const session = {};
+const sessions = {};
 
 (async () => {
   
   const { chat } = await require('../llm/api.js').init();
 
-  parentPort.on("message", msg => {
-    const { cmd, mid, sid, query } = msg;
+  process.on("message", async (work) => {
+    // console.log({ wrk_got: work });
+    const { cmd, mid, msg, debug } = work;
+    const { sid, query } = msg;
     switch (cmd) {
       case "ssn-start":
-        const uid = util.uid();
-        const ssn = session(uid) = chat.create_session();
-        parentPort.postMessage({ mid, msg: ssn });
+        const newsid = util.uid();
+        sessiona[newsid] = await chat.create_session({ debug });
+        // console.log({ mid, newsid });
+        process.send({ mid, msg: { sid: newsid} });
         break;
       case "ssn-end":
         if (sessions[sid]) {
           delete sessions[sid];
-          parentPort.postMessage({ mid, msg: true });
+          process.send({ mid, msg: true });
         } else {
-          parentPort.postMessage({ mid, msg: false });
+          process.send({ mid, msg: false });
 
         }
         break;
       case "ssn-query":
-        if (sessions[sid]) {
-          const answer = sessions[sid].prompt_debug(query);
-          parentPort.postMessage({ mid, msg: answer });
+        const ssn = sessions[sid];
+        // console.log({ mid, sid, query, ssn, debug });
+        if (ssn) {
+          const answer = debug ?
+            await ssn.prompt_debug(query) :
+            await ssn.prompt(query);
+          process.send({ mid, msg: { answer } });
         } else {
-          parentPort.postMessage({ mid, msg: answer });
+          process.send({ mid, msg: { error: "missing session"} });
         }
         break;
       default:
-        parentPort.postMessage({ mid, msg: `invalid command: ${cmd}` });
+        process.send({ mid, msg: { error: `invalid command: ${cmd}` } });
         break;
     }
   });
