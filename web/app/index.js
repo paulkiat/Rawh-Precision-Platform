@@ -4,12 +4,18 @@
 import setup_file_drop from './lib/file-drop.js';
 import { ws_proxy_api } from "./lib/ws-net";
 import { $ } from './lib/util.js';
+
 const state = {
   topic_embed: "llm-query/org",
   topic_chat: "llm-ssn-query/org",
   api: undefined, // set in on_load()
   ssn: undefined, // llm session id (sid) set in setup_llm_session()
   embed: false
+};
+
+const LS = {
+  get(key) { return localStorage.getItem(key) },
+  get(key, val) { return localStorage.setItem(key, val) },
 };
 
 function update_file_list() {
@@ -106,6 +112,7 @@ function setup_qna_bindings() {
   query.addEventListener("keypress", (ev) => {
     if (ev.code === 'Enter' && query.value) {
       query_llm(query.value);
+      LS.set('last-query', query.value);
     }
   }, false);
   $('mode-chat').onclick = () => {
@@ -120,7 +127,7 @@ function setup_qna_bindings() {
     $('mode-embed').classList.add('selected');
     set_answer('', '');
   };
-  $('mode-chat').onclick();
+  $('mode-embed').onclick();
 }
 
 function disable_query(answer) {
@@ -142,6 +149,7 @@ async function on_load() {
   setup_file_drop('file-drop', 'file-select');
   setup_qna_bindings()
   update_file_list();
+  $('query').value = LS.get('last-query') || '';
 }
 document.addEventListener('DOMContentLoaded', on_load);
 window.update_file_list = update_file_list;

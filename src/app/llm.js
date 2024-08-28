@@ -55,9 +55,9 @@ async function llm_ssn_end(msg) {
 
 async function llm_ssn_query(msg) {
   const answer = await call("ssn-query", msg);
-  if (settings.debug) {
-    log({ ssn_query: answer, msg});
-  }
+  // if (settings.debug) {
+  //   log({ ssn_query: answer, msg});
+  // }
   return answer;
 }
 
@@ -67,9 +67,9 @@ async function llm_query(msg) {
     gpu: settings.gpu,
     ...msg
   });
-  if (settings.debug) {
-    log({ query: answer, msg });
-  }
+  // if (settings.debug) {
+  //   log({ query: answer, msg });
+  // }
   return answer;
 }
 
@@ -79,7 +79,7 @@ async function register_service() {
   node.publish("service-up", {
     app_id,
     type: "llm-server",
-    subtype: "llama-3"
+    subtype: "llama-2"
   });
   // bind api service endpoints
   node.handle([ "llm-ssn-start", app_id ], llm_ssn_start);

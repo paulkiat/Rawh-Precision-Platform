@@ -229,18 +229,18 @@ async function docs_query(msg, topic, cid) {
   let tokens = 0;
   let which = 0;
 
-    for (let i=0; i<50; i++) {
+    for (let i=0; i<500; i++) {
       const iter = search[which];
       const next = await iter.iter.next();
 
       if (!next) {
-        log({ iter_dead: iter.add });
+        // log({ iter_ended: iter.add });
         // current iterator ehausted
         iter.dead = true;
         which = 1 - which;
         // both iterators exhausted
         if (search[which].dead) {
-          log("BOTH iterators dead");
+          log("iterators exhaausted", i);
           break;
         }
         continue;
@@ -256,7 +256,7 @@ async function docs_query(msg, topic, cid) {
     iter.coss = coss;
     tokens += rec.num_tokens;
 
-    if (coss < iter.next.coss) {
+    if (coss < iter.next.coss && !iter.next.dead) {
       which = 1 - which;
     }
     if (tokens >= max_t * 2) {
@@ -273,14 +273,13 @@ async function docs_query(msg, topic, cid) {
   // sort by relevance, limit to top 10
   found.sort((a, b) => { return b.coss - a.coss });
   found.length = 10;
+
   console.log(tokens, found.map(r => {
     return {
-      // key: r.key,
       dist: r.i,
       coss: r.coss,
     };
   }), llm);
-  console.log(found[0]);
 
   // time to consult the llm
   if (llm) {
@@ -293,14 +292,16 @@ async function docs_query(msg, topic, cid) {
       ...found.slice(0,3).map(r => `\n${r.text}\n`),
       `\nQuestion: ${query}\n`
     ].join('');
-    // return found;
-    console.log(embed.length, embed);
-    // const cid = (await node.promise.locate(llm)).direct[0];
-    // const answer = await node.promise.call(cid, llm, { sid, query: embed });
+    
+    log({ embed_length: embed.length });
     const once = "llm-query/org";
-    const cid = (await node.promise.locate(once)).direct[0];
-    const answer = await node.promise.call(cid, once, { query: embed });
-    console.log({ llm_said: answer });
+    const answer = await node.promise
+      .call('', once, { query: embed })
+      .catch(error => {
+        log({ llm_error: error });
+        return { error: "llm service not responding" };
+      });
+    log(answer);
     return answer;
   }
 
@@ -311,7 +312,7 @@ async function docs_query(msg, topic, cid) {
   const { embed, token } = await require('../llm/api').init();
 
   const store = await require('../lib/store').open(`${state.data_dir}/embed`);
-  const doc_info = store.hub('docs'); // doc meta-data
+  const doc_info = store.sub('docs'); // doc meta-data
   const cnk_data = store.sub('chunks'); // chunked embed data
 
   Object.assign(state, {

@@ -1,7 +1,7 @@
 (async () => {
 
 const fsp = require('fs/promises');
-await fsp.mkdir("agents").catch(e => e);
+await fsp.mkdir("models").catch(e => e);
 
 // tokenize all docs in a directory into chunks
 const token = await import('../../src/llm/token.mjs');

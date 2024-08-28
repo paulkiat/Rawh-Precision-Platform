@@ -23,12 +23,10 @@ class CustomPromptWrapper extends LlamaChatPromptWrapper {
   wrapPrompt(str, opt) {
     let ret = super.wrapPrompt(str, opt);
     if (state.debug) {
-      // console.log({ to_llm: ret });
       console.log('-----------------');
       console.log('[[ sent to llm ]]');
       console.log('-----------------');
       console.log(ret);
-      console.log('-----------------');
     }
     return ret;
   }
@@ -47,16 +45,16 @@ const state = {
   systemPrompt
 };
 
-export async function setup(opt = {}) {
+export async function setup(opt = { }) {
   if (state.init) {
       return;
   } else {
       state.init = true;
   }
 
-  const modelName = opt.modelName ?? 'hermes-3-llama-3.1-8b.Q8_0.gguf';
+  const modelName = opt.modelName ?? 'llama-2-7b-chat.Q2_K.gguf';
   const modelPath = path.join(opt.modelDir ?? "models", modelName);
-  const promptWrapper = new CustomPromptWrapper(); // LlamaChatPromptWrapper();
+  const promptWrapper = opt.debug ? new CustomPromptWrapper() : LlamaChatPromptWrapper();
   const contextSize = opt.contextSize ?? 4096;
   const batchSize = opt.batchSize ?? 4096;
   const gpuLayers = opt.gpulayers ?? 0;
@@ -96,19 +94,23 @@ export async function create_session(opt = {}) {
   });
 
   const fns = {
-    async prompt_and_response(prompt, onToken, session, grammar) {
-      return this.prompt_and_response(prompt, onToken, session, grammar);
+    async prompt(prompt, onToken) {
+      return prompt_and_response(prompt, onToken, session, grammar);
     },
 
     async prompt_debug(prompt) {
       console.log({ useer: prompt });
       let chunks = 0;
       const response = await fns.prompt(prompt, (chunk) => {
-        if (chunks++ === 0) process.stdout.write(">>> ");
+        if (chunks++ === 0) {
+            console.log('-----------------');
+            console.log('[[  llm reply  ]]');
+            console.log('-----------------');
+        }
         process.stdout.write(context.decode(chunk));
       });
-      process.stdout.write(" <<<\n\n");
-      console.log({ ai: response });
+      // process.stdout.write("\n---------------\n");
+      process.stdout.write("\n\n");
       return response;
     }
   };
