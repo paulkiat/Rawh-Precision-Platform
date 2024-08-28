@@ -26,14 +26,13 @@ class CustomPromptWrapper extends ChosenPromptClass /*LlamaChatPromptWrapper*/ {
   // let us track exactly what the llm (@).(@) --> sees   
   wrapPrompt(str, opt) {
     let ret = super.wrapPrompt(str, opt);
-    if (state.debug) {
-      console.log('-----(( sent to llm ))-----');
-      console.log(ret);
-      console.log('-------------------------\n');
+    // to get the exact details of what the llm sees
+    if (state.debug == 42) {
+      console.log({ send_to_llm: ret });
     }
     return ret;
   }
-};
+}
 
 const systemPrompt = [
   // "You are an AI assistant that strives to answer as concisely as possible There is no need for pleasantries or extranious commentary.\n",
@@ -57,7 +56,7 @@ export async function setup(opt = { }) {
 
   const modelName = opt.modelName ?? 'llama-2-7b-chat.Q2_K.gguf';
   const modelPath = path.join(opt.modelDir ?? "models", modelName);
-  const promptWrapper = opt.debug ? new CustomPromptWrapper() : LlamaChatPromptWrapper();
+  const promptWrapper = opt.debug ? new CustomPromptWrapper() : new LlamaChatPromptWrapper();
   const contextSize = opt.contextSize ?? 4096;
   const batchSize = opt.batchSize ?? 4096;
   const gpuLayers = opt.gpulayers ?? 0;
@@ -110,7 +109,7 @@ export async function create_session(opt = {}) {
     context,
     promptWrapper,
     systemPrompt: opt.systemPrompt ?? systemPrompt,
-    printLLamaSystemInfo: true
+    printLLamaSystemInfo: opt.debug ? true : false,
   });
 
   const fns = {
@@ -119,7 +118,9 @@ export async function create_session(opt = {}) {
     },
 
     async prompt_debug(prompt) {
-      console.log({ useer: prompt });
+      if (opt.debug !== 42) {
+        console.log({ useer: prompt });
+      }
       let time = Date.now();
       let chunks = 0;
       const response = await fns.prompt(prompt, (chunk) => {
@@ -132,7 +133,7 @@ export async function create_session(opt = {}) {
       time = (Date.now() - time).toString();
       time = time.padStart(11 - (11 - time.length) / 2, ' ');
       time = time.padEnd(11, ' ');
-      console.log(`\n-----[[ ${time} ]]-----\n`);
+      console.log(`\n-----[[ ${time} ]]-----`);
       return response;
     }
   };

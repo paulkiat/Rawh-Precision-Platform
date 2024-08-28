@@ -18,7 +18,6 @@ worker.on("message", message => {
   const { mid, msg } = message;
   const fn = once[mid];
   delete once[mid];
-  // log({ wrk_msg: message, fn });
   if (fn) {
     fn(msg);
   } else {
@@ -54,23 +53,15 @@ async function llm_ssn_end(msg) {
 }
 
 async function llm_ssn_query(msg) {
-  const answer = await call("ssn-query", msg);
-  // if (settings.debug) {
-  //   log({ ssn_query: answer, msg});
-  // }
-  return answer;
+  return await call("ssn-query", msg);
 }
 
 async function llm_query(msg) {
-  const answer = await call("query", {
+  return await call("query", {
     model: settings.model,
     gpu: settings.gpu,
     ...msg
   });
-  // if (settings.debug) {
-  //   log({ query: answer, msg });
-  // }
-  return answer;
 }
 
 async function register_service() {
@@ -84,8 +75,8 @@ async function register_service() {
   // bind api service endpoints
   node.handle([ "llm-ssn-start", app_id ], llm_ssn_start);
   node.handle([ "llm-ssn-query", app_id ], llm_ssn_query);
-  node.handle(["llm-ssn-end", app_id], llm_ssn_end);
-  node.handle(["llm-query", app_id], llm_query);
+  node.handle([ "llm-ssn-end", app_id ], llm_ssn_end);
+  node.handle([ "llm-query", app_id ], llm_query);
   log({ service_up: app_id, type: "llm-server" });
 }
 
