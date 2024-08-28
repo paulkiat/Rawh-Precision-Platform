@@ -11,7 +11,6 @@ const sessions = {};
   const { chat } = await require('../llm/api.js').init();
 
   process.on("message", async (work) => {
-    // console.log({ wrk_got: work });
     const { cmd, mid, msg, debug } = work;
     const { sid, query } = msg;
     switch (cmd) {
@@ -35,9 +34,7 @@ const sessions = {};
         break;
       case "ssn-query":
         const ssn = sessions[sid];
-        const opt = {
-          maxTokens: 500
-        }
+        const opt = { };
         // console.log({ mid, sid, query, ssn, debug });
         if (ssn) {
           const answer = debug ?

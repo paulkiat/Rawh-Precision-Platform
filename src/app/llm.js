@@ -14,8 +14,6 @@ const settings = {
   gpu: env['LLM_GPU'] || args['llm-gpu'] || 0,
 };
 
-log({ llm: settings });
-
 worker.on("message", message => {
   const { mid, msg } = message;
   const fn = once[mid];
