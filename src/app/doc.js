@@ -28,7 +28,7 @@ async function register_service() {
   node.handle([ "doc-load", app_id ], doc_load);
   node.handle([ "doc-list", app_id ], doc_list);
   node.handle([ "doc-delete", app_id ], doc_delete);
-  node.handle([ "query-match", app_id ], query_match);
+  node.handle([ "docs-query", app_id ], docs_query);
 }
 
 // utility function that computes index from vector
@@ -197,10 +197,53 @@ async function doc_delete(msg, topic, cid) {
   node.publish([ "doc-delete", app_id ], rec);
   return `analyzed ${recs} recs, ${match} matched`;
 }
+
 // given a query, get matching embed chunks from loaded docs
-async function query_match(msg, reply) {
-  const { node } = state;
-  const { query } = msg;
+async function docs_query(msg, topic, cid) {
+  const { node, embed, cnk_data } = state;
+  const { query, sid } = msg;
+  const vector = (await embed.vectorize([ query ]))[0];
+  const index = vector_to_index(vector);
+  const key = `${index.toString().padEnd(18, 0)}`;
+  log({ docs_query: msg, index, key });
+
+  const iter_lt = cnk_data.iter({ lt: key });
+  const iter_gte = cnk_data.iter({ gte: key });
+  const found = {};
+
+  for (let i = 0; i < 2; i++) {
+    const [lt_key, lt_next] = await iter_lt.next();
+    const [gte_key, gte_next] = await iter_gte.next();
+    
+    const lt_index = vector_to_index(lt_next.vector);
+    const lt_coss = cosine_similarity({ vector, index }, {
+      vector: lt_next.vector,
+      index: lt_index
+    });
+
+    const gte_index = vector_to_index(gte_next.vector);
+    const gte_coss = cosine_similarity({ vector, index }, {
+      vector: gte_next.vector,
+      index: gte_index
+    });
+
+    found.push({ i: -(i+1), coss: lt_coss, text: lt_next.text, tok: lt_next.num_tokens });
+    found.push({ i: (i+1), coss: gte_coss, text: gte_next.text, tok: gte_next.num_tokens });
+    
+    log({ i, lt_coss, gte_coss });
+  }
+
+  // sort by index
+  found.sort((a, b) => { return a.i - b.i });
+  // sort by relevance
+  found.sort((a, b) => { return b.coss - a.coss });
+
+  console.log(found);
+
+  iter_gte.close();
+  iter_lt.close();
+
+  return found;
 }
 
 (async () => {

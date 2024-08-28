@@ -84,6 +84,10 @@ function query_llm(query, then, disabled = true) {
       then("there was an error processing this query");
     }
   });
+  if (false)
+      state.api.call("docs-query/$", { sid: state_ssn, query }, msg => {
+      console.log(msg)
+  });
 }
 
 function setup_qna_bindings() {
@@ -104,7 +108,7 @@ function setup_qna_bindings() {
 }
 
 function disable_query(answer) {
-  $('query').disabled = true;
+  // $('query').disabled = true;
   if (answer) {
     $('answer').value = answer;
   }
