@@ -5,7 +5,8 @@ import setup_file_drop from './lib/file-drop.js';
 import { ws_proxy_api } from "./lib/ws-net";
 import { $ } from './lib/util.js';
 const state = {
-  llm: "llm-ssn-query/org",
+  topic_embed: "llm-query/org",
+  topic_chat: "llm-ssn-query/org",
   api: undefined, // set in on_load()
   ssn: undefined, // llm session id (sid) set in setup_llm_session()
   embed: false
@@ -76,7 +77,7 @@ function query_llm(query, then, disable = true) {
   then = then || set_answer;
   const start = Date.now();
   if (!state.embed)
-  state.api.call(state.llm, { sid: state.ssn, query }, msg => {
+  state.api.call(state.topic_chat, { sid: state.ssn, query }, msg => {
     if (msg) {
         console.log({ answer: msg.answer, time: Date.now() - start });
         then(msg.answer);
@@ -87,7 +88,7 @@ function query_llm(query, then, disable = true) {
     }
   });
   if (state.embed)
-  state.api.call("docs-query/$", { sid: state.ssn, query, llm: state.llm }, msg => {
+  state.api.call("docs-query/$", { sid: state.ssn, query, llm: state.topic_embed }, msg => {
     if (msg && msg.answer) {
       set_answer(msg.answer);
     } else {

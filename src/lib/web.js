@@ -118,53 +118,18 @@ function ws_proxy_handler(node, ws, ws_msg) {
   // rewrite topics containing $ and replace with app-id
   if (topic.indexOf("$") >= 0) {
     topic = topic.replace("$", ws.app_id || "unkown");
-    // log({ topic_replace: topic });
   }
-  if (!ws.topic_locate) {
-    const cache = ws.topic_cache = {};
-    ws.topic_locate = async (topic) => {
-      let targets = cache[topic];
-      if (!(targets && targets.length)) {
-        const { direct } = await node.promise.locate[topic];
-        cache[topic] = targets = (direct || []);
-      }
-      if (targets.length > 1) {
-        // round robin through targets
-        const target = targets.shift();
-        targets.push(target);
-        return target;
-      } else {
-        return targets[0];
-      }
-    };
-  }
-  const { topic_locate, topic_cache } = ws;
-  // cid via "locate" should be automatically resolved
   switch (fn) {
     case 'publish':
       node.publish(topic, msg);
       break;
     case 'subscribe':
-      node.subscribe(topic, (msg, cid, topic) => {
+      node.subscribe(topic, (msg, cid, topic) => {  
         ws.send(util.json({ pub: topic, msg }));
       });
       break;
     case 'call':
-      topic_locate(topic).then(cid => {
-        if (cid) {
-          node.call(cid, topic, msg, (msg, error) => {
-            if (error) {
-              ws.send(util.json({ mid, msg, topic }));
-              delete topic_cache[topic];
-            } else {
-              ws.send(util.json({ mid, msg, topic }));
-            }
-          });
-        } else {
-          ws.send(util.json({ mid, topic, error: `no call handlers for: ${topic}` }));
-        }
-      }).catch(error => {
-        log({ proxy_locate_error: error });
+      node.call('', topic, msg, (msg, error) => {
         ws.send(util.json({ mid, msg, topic, error }));
       })
       break;
