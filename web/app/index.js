@@ -115,12 +115,13 @@ function disable_query(answer) {
 }
 
 function enable_query() {
+  // $('query').value = '';
   $('query').disabled = false;
   $('query').focus();
 }
 
 async function on_load() {
-  const api = state.api = (state.api || await ws_proxy_api());
+  const api = state.api = window.api =(state.api || await ws_proxy_api());
   api.on_ready(setup_subscriptions);
   setup_file_drop('file-drop', 'file-select');
   setup_qna_bindings()
