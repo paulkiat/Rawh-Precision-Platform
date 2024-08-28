@@ -1,7 +1,5 @@
 /** ZeroMQ export helpers for client/server nodes */
 
-// TODO: proxy handles location and round-robin when cid missing
-
 const zeromq = require("zeromq");
 const util = require('./util');
 const log = util.logpre('zmq');
@@ -145,7 +143,7 @@ function zmq_proxy(port = 6000) {
         // heartbeat to keep the client record alive
       return;
     }
-    const [ action, topic, msg, callto, mid ] = recv;
+    let [ action, topic, msg, callto, mid ] = recv;
     const sent = [ ];
     switch (action) {
       case 'sub':
@@ -171,6 +169,13 @@ function zmq_proxy(port = 6000) {
         blast(send, topics['*'] || [], tmsg, sent);
         break;
       case 'call':
+        // when callto omitted, select randomly from known endpoints
+        if (!callto) {
+          const candidates = direct[topic] || [];
+          const rnd = Math.round(Math.random() * (candidates.length - 1));
+          callto = candidates[rnd];
+          // log({ call_selected: callto, from: candidates, rnd });
+        }
         if (!send(callto, [ 'call', topic, msg, cid, mid ])) {
           log({ notify_caller_of_dead_enpoint: topic, cid, callto });
           send(cid, [ 'err', `dead endpoint: ${topic}`, callto, mid ]);
@@ -232,7 +237,7 @@ function zmq_proxy(port = 6000) {
         }
         // as a courtesy, if the node is still up but not responding
         // send it a "dead" message so it can know when it wakes up
-        log({ dead_node: cid, delta });
+        // log({ dead_node: cid, delta });
         server.send(cid, ['dead', 'you have been marked dead', delta]);
         // delete endpoint records here and on server
         delete clients[cid];
@@ -429,6 +434,9 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
     // client id can only be derived by subscribing
     // to a topic and receiving a message
     call: (cid, topic, message, on_reply) => {
+      if (!(topic && message && on_reply)) {
+        throw "invalid call args";
+      }
       const mid = util.uid();
       once[mid] = on_reply;
       client.send([ "call", flat(topic), message, cid, mid ]);
