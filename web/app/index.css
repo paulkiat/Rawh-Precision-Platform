@@ -16,6 +16,15 @@ div {
     gap: 5px;
 }
 
+button.selected {
+    background-color: #0066cc;
+    color: white;
+}
+
+.hpad {
+  flex-grow: 1;
+}
+
 /* Header Styles */
 #header {
     background-image: url('img/app-banner.jpg');
@@ -126,6 +135,7 @@ div {
 
 #qna {
   display: grid;
+  min-width: 40%;
   grid-template-columns: 1fr 4fr;
     /* grid-gap: 5px; */
     /* border: 1px solid #ddd; */

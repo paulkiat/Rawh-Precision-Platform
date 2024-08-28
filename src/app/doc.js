@@ -202,7 +202,7 @@ async function doc_delete(msg, topic, cid) {
 // given a query, get matching embed chunks from loaded docs
 async function docs_query(msg, topic, cid) {
   const { node, embed, cnk_data } = state;
-  const { query, max_tokens, sid, llm } = msg;
+  const { query, max_tokens, llm } = msg;
   const vector = (await embed.vectorize([ query ]))[0];
   const index = vector_to_index(vector);
   const key = `${index.toString().padEnd(18, 0)}`;
@@ -279,11 +279,11 @@ async function docs_query(msg, topic, cid) {
       dist: r.i,
       coss: r.coss,
     };
-  }), llm, sid);
+  }), llm);
   console.log(found[0]);
 
   // time to consult the llm
-  if (llm && sid) {
+  if (llm) {
     const embed = [
       "Based on the following context, succinctly answer the question at the end.\n",
       // "using only the text available in the fragments, Do not improvise.\n",

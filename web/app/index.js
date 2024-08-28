@@ -23,7 +23,7 @@ function update_file_list() {
       html.push([
         `<label>${name}</label>`,
         `<label>${length}</label>`,
-        `<label>${added}</label>`,
+        `<label>${dayjs(added).format('YYYY/MM/DD')}</label>`,
         `<label>${chunks}</label>`,
         `<label class="actions">`,
         `<button onclick="doc_delete('${uid}')")>X</button>`,
@@ -65,8 +65,10 @@ function setup_llm_session() {
   });
 }
 
-function set_answer(text) {
-  $('answer').value = text;
+function set_answer(text, query) {
+  if (text !== undefined) $('answer').value = text;
+  if (query !== undefined) $('query').value = query;
+  $('query').focus();
 }
 
 function query_llm(query, then, disable = true) {
@@ -106,6 +108,19 @@ function setup_qna_bindings() {
       query_llm(query.value);
     }
   }, false);
+  $('mode-chat').onclick = () => {
+    state.embed = false;
+    $('mode-chat').classList.add('selected');
+    $('mode-embed').classList.remove('selected');
+    set_answer('', '');
+  };
+  $('mode-embed').onclick = () => {
+    state.embed = true;
+    $('mode-chat').classList.remove('selected');
+    $('mode-embed').classList.add('selected');
+    set_answer('', '');
+  };
+  $('mode-chat').onclick();
 }
 
 function disable_query(answer) {

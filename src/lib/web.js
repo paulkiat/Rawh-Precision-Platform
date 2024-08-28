@@ -125,6 +125,7 @@ function ws_proxy_handler(node, ws, ws_msg) {
       break;
     case 'subscribe':
       node.subscribe(topic, (msg, cid, topic) => {  
+        // handler for messages sent to the subscribed topic
         ws.send(util.json({ pub: topic, msg }));
       });
       break;
