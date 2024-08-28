@@ -118,10 +118,11 @@ function zmq_client(host = "127.0.0.1", port) {
 
 function zmq_proxy(port = 6000) {
   const seed = Date.now();
-  const clients = { };
-  const topics = { }; // map topics to cid interest lists
-  const direct = { }; // map direct handlers to cid interest lists
-  const watch = { }; // track all active callers to allow dead node errors
+  const clients = {};
+  const ttimer = {}; // topic timers for ephemeral ~topics
+  const topics = {}; // map topics to cid interest lists
+  const direct = {}; // map direct handlers to cid interest lists
+  const watch = {}; // track all active callers to allow dead node errors
   let toplist = [];
   let topstar = [];
   
@@ -135,6 +136,17 @@ function zmq_proxy(port = 6000) {
       }
     }
   };
+
+  // update last touch time and timeout for ephemeral ~topics
+  const update_ttimeer = function(topic, msg) {
+    if (topic.charAt(0) === '~') {
+      // topic timeout is last subscriber time + timeout
+      const last = Date.now();
+      const lastrec = ttimer[topic] || { last: 0, timeout: 60 * 5 };
+      const timeout = ( msg ? msg.timeout: lastrec.timeout );
+      ttimer[topic] = Object.assign(lastrec, { last, timeout });
+    }
+  }
 
   const server = zmq_server(port, (recv, cid, send) => {
     // update last message time for client
@@ -150,6 +162,7 @@ function zmq_proxy(port = 6000) {
         (topics[topic] = topics[topic] || []).push(cid);
         toplist = Object.keys(topics);
         topstar = toplist.filter(t => t.endsWith("/*"));
+        update_ttimeer[topic, msg];
         break;
       case 'pub':
         const subs = topics[topic] || [];
@@ -162,6 +175,7 @@ function zmq_proxy(port = 6000) {
           for (let key of topstar) {
             if (key.startsWith(match)) {
               blast(send, topics[key] || [], tmsg, sent);
+              update_ttimeer[topic];
             }
           }
         }
@@ -246,6 +260,15 @@ function zmq_proxy(port = 6000) {
         continue;
       } else {
         server.send(cid, seed);
+      }
+    }
+    const time = Date.now();
+    // look for ephemeral ~topics to expire
+    for (let [topic, rec] of Object.entries(ttimer)) {
+      if (time > rec.last + rec.timeout * 1000) {
+        log({ expire_topic: topic });
+        delete ttimer[topic];
+        delete topics[topic];
       }
     }
   }, settings.heartbeat);
@@ -423,9 +446,9 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
     publish: (topic, message) => {
       client.send([ "pub", flat(topic), message ]);
     },
-    subscribe: (topic, handler) => {
+    subscribe: (topic, handler, timeout) => {
       topic = flat(topic);
-      client.send([ "sub", topic ]);
+      client.send(["sub", topic, { timeout: timeout ? (timeout.timeout || timeout) : undefined } ]);
       subs[topic] = handler;
       substar = Object.keys(subs)
         .filter(k => k.endsWith("*"))

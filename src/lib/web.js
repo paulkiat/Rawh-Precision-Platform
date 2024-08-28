@@ -114,7 +114,7 @@ function four_oh_four(req, res, next) {
 // return web-server handle to support browser-side proxy/api calls
 // in the browser, use the 'web/lib/ws-net.js' class
 function ws_proxy_handler(node, ws, ws_msg) {
-  let { fn, topic, msg, mid } = util.parse(ws_msg);
+  let { fn, topic, msg, mid, timeout } = util.parse(ws_msg);
   // rewrite topics containing $ and replace with app-id
   if (topic.indexOf("$") >= 0) {
     topic = topic.replace("$", ws.app_id || "unkown");
@@ -127,7 +127,7 @@ function ws_proxy_handler(node, ws, ws_msg) {
       node.subscribe(topic, (msg, cid, topic) => {  
         // handler for messages sent to the subscribed topic
         ws.send(util.json({ pub: topic, msg }));
-      });
+      }, timeout);
       break;
     case 'call':
       node.call('', topic, msg, (msg, error) => {

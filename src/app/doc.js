@@ -54,8 +54,8 @@ function cosine_similarity(ch1, ch2) {
 
 // request to a tcp socket for bulk loading a document
 // which will then be stored, chunked, and vector embedded
-async function doc_load(msg = {}, topic, cid) {
-  log({ doc_load: msg, topic, cid });
+async function doc_load(msg = {}) {
+  log({ doc_load: msg });
   const { name, type } = msg;
   const { node, app_id, net_addrs } = state;
   // create the file drop target with time+random file uid
@@ -176,12 +176,12 @@ async function doc_embed(frec, path) {
 }
 
 // list all docs along with the status (loading, embedding, ready)
-async function doc_list(msg, topic, cid) {
+async function doc_list(msg) {
   return state.doc_info.list();
 }
 
 // delete a document and all of its associated embeddings
-async function doc_delete(msg, topic, cid) {
+async function doc_delete(msg) {
   const { node, app_id, doc_info, cnk_data } = state;
   const { uid } = msg;
   const rec = await doc_info.get(uid);
@@ -203,9 +203,9 @@ async function doc_delete(msg, topic, cid) {
 }
 
 // given a query, get matching embed chunks from loaded docs
-async function docs_query(msg, topic, cid) {
+async function docs_query(msg) {
   const { node, embed, cnk_data } = state;
-  const { query, max_tokens, llm } = msg;
+  const { query, max_tokens, llm, topic } = msg;
   const vector = (await embed.vectorize([ query ]))[0];
   const index = vector_to_index(vector);
   const key = `${index.toString().padEnd(18, 0)}`;
@@ -247,25 +247,25 @@ async function docs_query(msg, topic, cid) {
           break;
         }
         continue;
-    }
-    const [ key, rec ] = next;
-    const coss = cosine_similarity({ vector, index }, {
-      vector: rec.vector,
-      index: rec.index
-    });
+      }
+      const [ key, rec ] = next;
+      const coss = cosine_similarity({ vector, index }, {
+        vector: rec.vector,
+        index: rec.index
+      });
 
-    found.push({ i: iter.pos, coss, text: rec.text, tokens: rec.tokens, key });
-    iter.pos += iter.add;
-    iter.coss = coss;
-    tokens += rec.tokens;
+      found.push({ i: iter.pos, coss, text: rec.text, tokens: rec.tokens, key });
+      iter.pos += iter.add;
+      iter.coss = coss;
+      tokens += rec.tokens;
 
-    if (coss < iter.next.coss && !iter.next.dead) {
-      which = 1 - which;
+      if (coss < iter.next.coss && !iter.next.dead) {
+        which = 1 - which;
+      }
+      if (tokens >= max_t * 2) {
+        break;
+      }
     }
-    if (tokens >= max_t * 2) {
-      break;
-    }
-  }
 
     // close iterators to prevent mem leak
     search.forEach(iter => iter.iter.close());
@@ -316,7 +316,7 @@ async function docs_query(msg, topic, cid) {
       });
       const once = "llm-query/org";
       const answer = await node.promise
-        .call('', once, { query: embed })
+        .call('', once, { query: embed, topic })
         .catch(error => {
           log({ llm_error: error });
           return { error: "llm service not responding" };

@@ -46,10 +46,10 @@ async function ws_proxy_api() {
     publish: (topic, msg) => {
       ctx.send({ fn: "publish", topic, msg });
     },
-    subscribe: (topic, handler) => {
+    subscribe: (topic, handler, timeout) => {
       topic = topic.replace("$", ctx.app_id || 'unknown');
       ctx.subs[topic] = handler;
-      ctx.send({ fn: "subscribe", topic });
+      ctx.send({ fn: "subscribe", topic, timeout });
     },
     call: (topic, msg, handler) => {
       const mid = uuid();

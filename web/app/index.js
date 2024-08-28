@@ -84,8 +84,10 @@ function query_llm(query, then, disable = true) {
   }
   then = then || set_answer;
   const start = Date.now();
+  const rand = Math.round(Math.random() * 0xffffffff).toString(36);
+  const topic = `~${start.toString(36)}:${rand}`;
   if (!state.embed)
-  state.api.call(state.topic_chat, { sid: state.ssn, query }, msg => {
+  state.api.call(state.topic_chat, { sid: state.ssn, query, topic }, msg => {
     if (msg) {
         console.log({ answer: msg.answer, time: Date.now() - start });
         then(msg.answer);
@@ -96,7 +98,7 @@ function query_llm(query, then, disable = true) {
     }
   });
   if (state.embed)
-  state.api.call("docs-query/$", { sid: state.ssn, query, llm: state.topic_embed }, msg => {
+  state.api.call("docs-query/$", { sid: state.ssn, query, llm: state.topic_embed, topic }, msg => {
     if (msg && msg.answer) {
       console.log({ answer: msg.answer, time: Date.now() - start });
       then(msg.answer);
@@ -104,6 +106,13 @@ function query_llm(query, then, disable = true) {
       console.log(msg);
       window.answer = msg;
     }
+  });
+  // ephemeral ~topic for receiving llm token stream
+  set_answer("...thinking");
+  const tokens = [];
+  state.api.subscribe(topic, (token) => {
+    tokens.push(token);
+    set_answer(tokens.join(''));
   });
 }
 

@@ -12,7 +12,10 @@ const sessions = {};
 
   process.on("message", async (work) => {
     const { cmd, mid, msg, debug } = work;
-    const { sid, query } = msg;
+    const { sid, query, topic } = msg;
+    const onToken = topic ? (token) => {
+      process.send({ topic, tokens });
+    } : undefined;
     switch (cmd) {
       case "ssn-start":
         const newsid = util.uid();
@@ -34,17 +37,18 @@ const sessions = {};
         break;
       case "ssn-query":
         const ssn = sessions[sid];
-        // console.log({ mid, sid, query, ssn, debug });
         if (ssn) {
+          console.log({ mid, sid, query, ssn, debug, topic, onToken });
           const answer = debug ?
-            await ssn.prompt_debug(query) :
-            await ssn.prompt(query);
+            await ssn.prompt_debug(query, onToken) :
+            await ssn.prompt(query, onToken);
           process.send({ mid, msg: { answer } });
         } else {
           process.send({ mid, msg: { error: "missing session" } });
         }
         break;
       case "query":
+        console.log({ mid, sid, query, debug, topic, onToken });
         const temp = await chat.create_session({
           debug,
           gpuLayers: msg.gpu,
@@ -63,8 +67,8 @@ const sessions = {};
           ].join("\n")
         });
         const answer = debug ?
-          await temp.prompt_debug(query) :
-          await temp.prompt(query);
+          await temp.prompt_debug(query, onToken) :
+          await temp.prompt(query, onToken);
         process.send({ mid, msg: { answer } });
       default:
         process.send({ mid, msg: { error: `invalid command: ${cmd}` } });

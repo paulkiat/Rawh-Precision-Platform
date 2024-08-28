@@ -117,18 +117,22 @@ export async function create_session(opt = {}) {
       return prompt_and_response(prompt, onToken, session, grammar);
     },
 
-    async prompt_debug(prompt) {
+    async prompt_debug(prompt, onToken) {
       if (opt.debug !== 42) {
         console.log({ useer: prompt });
       }
       let time = Date.now();
       let chunks = 0;
       const response = await fns.prompt(prompt, (chunk) => {
+        const text = context.decode(chunk);
+        if (onToken) {
+            onToken(text);
+        }
         if (chunks++ === 0) {
             console.log('-----[[  llm reply  ]]-----');
         }
-        // process.stdout.write('{'+context.decode(chunk)+'}');
-        process.stdout.write(context.decode(chunk));
+        // process.stdout.write('{'+text+'}');
+        process.stdout.write(text);
       });
       time = (Date.now() - time).toString();
       time = time.padStart(11 - (11 - time.length) / 2, ' ');

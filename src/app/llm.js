@@ -15,7 +15,11 @@ const settings = {
 };
 
 worker.on("message", message => {
-  const { mid, msg } = message;
+  const { mid, msg, topic, token } = message;
+  if (topic) {
+    state.node.publish(topic, token);
+    return;
+  }
   const fn = once[mid];
   delete once[mid];
   if (fn) {
