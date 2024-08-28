@@ -8,7 +8,8 @@ const state = {
   llm: "llm-ssn-query/org",
   api: undefined, // set in on_load()
   ssn: undefined, // llm session id (sid) set in setup_llm_session()
-  warmed: true
+  warmed: true,
+  embed: false
 };
 
 function update_file_list() {
@@ -75,7 +76,7 @@ function query_llm(query, then, disable = true) {
   }
   then = then || set_answer;
   const start = Date.now();
-  // if (false)
+  if (!state.embed)
   state.api.call(state.llm, { sid: state.ssn, query }, msg => {
     if (msg) {
         console.log({ answer: msg.answer, time: Date.now() - start });
@@ -86,7 +87,7 @@ function query_llm(query, then, disable = true) {
         then("there was an error processing this query");
     }
   });
-  if (false)
+  if (state.embed)
   state.api.call("docs-query/$", { sid: state.ssn, query, llm: state.llm }, msg => {
     jf (msg) {
       set_answer(msg.answer || "there was an error processing this query");
