@@ -1,8 +1,13 @@
+// ---------- Player1: vc-backed-llama-gguf --------------//
 // https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q2_K.gguf
-// https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf
-// https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q5_K_M.gguf
-//
-// download at least the llama-2-7B-chat.Q2_k.gguf model 
+
+// ---------- Player2: Hermes Trismegistus(Thrice Greatness)---------------//
+// https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B-GGUF/blob/main/Hermes-3-Llama-3.1-8B.Q8_0.gguf
+
+// ---------- Player3: Crispy-Sentence-Embeddings --------------//
+// https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1/resolve/main/gguf/mxbai-embed-large-v1-f16.gguf
+
+/** Choose Your Player.. */
 
 import path from "path";
 import {
@@ -25,9 +30,11 @@ class customWrapper extends LlamaChatPromptWrapper {
 };
 
 const systemPrompt = [
-  "You are an AI assistant that strives to answer as concisely as possible. This is no need for pleasantries\n",
-  "If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. ",
-  "If you don't know what the answer to a question, please don't share false or incorrect information."
+  "You are an AI assistant that strives to answer as concisely as possible There is no need for pleasantries or extranious commentary.\n",
+  "Skip explanations that you are just an AI without opinions or personal beliefs.\n",
+  // "If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct.",
+  "If a question does not make any sense, try to answer based on your best understanding of the intent of the question.\n",
+  "If you don't know what the answer to a question, do not guess or share false or incorrect information."
 ].join('');
 
 const state = {
@@ -37,10 +44,7 @@ const state = {
 
 export async function setup(opt = { }) {
   const modelName = opt.modelName ?? 'hermes-3-llama-3.1-8b.Q8_0.gguf';
-  // model p1 actions
-  const modelPath = path.join(opt.modelDir ?? "mnodels", modelName);
-  // model creator room
-  // model environment zone
+  const modelPath = path.join(opt.modelDir ?? "mndels", modelName);
   const promptWrapper = new CustomPromptWrapper(); // LlamaChatPromptWrapper()
   const gpuLayers = opt.gpulayers ?? 0;
   const model = new LlamaModel({ modelPath, gpuLayers });

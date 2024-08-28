@@ -230,7 +230,7 @@ function zmq_proxy(port = 6000) {
         }
         // as a courtesy, if the node is still up but not responding
         // send it a "dead" message so it can know when it wakes up
-        log({ notifying_dead_node: cid, delta });
+        log({ dead_node: cid, delta });
         server.send(cid, ['dead', 'you have been marked dead', delta]);
         // delete endpoint records here and on server
         delete clients[cid];
@@ -275,7 +275,7 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
         // detect dead proxy
         log({ proxy_dead_after: delta });
         on_disconnect.forEach(fn => fn());
-        client.reconnect();
+        // client.reconnect();
         lastHT = 0;
       }
     } else {

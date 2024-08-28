@@ -27,16 +27,18 @@ const sessions = {};
           process.send({ mid, msg: true });
         } else {
           process.send({ mid, msg: false });
-
         }
         break;
       case "ssn-query":
         const ssn = sessions[sid];
+        const opt = {
+          maxTokens: 500
+        }
         // console.log({ mid, sid, query, ssn, debug });
         if (ssn) {
           const answer = debug ?
-            await ssn.prompt_debug(query) :
-            await ssn.prompt(query);
+            await ssn.prompt_debug(query, opt) :
+            await ssn.prompt(query, opt);
           process.send({ mid, msg: { answer } });
         } else {
           process.send({ mid, msg: { error: "missing session"} });
