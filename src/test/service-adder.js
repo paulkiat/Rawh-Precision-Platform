@@ -9,13 +9,13 @@ const node1 = net.node(proxy_host, proxy_port);
 const node2 = net.node(proxy_host, proxy_port);
 
 // good adder
-node1.handle("add", msg => {
+node1.handle("add", async msg => {
   console.log({ good_msg: add });
   return msg.a + msg.b;
 });
 
 // bad adder
-node2.handle("bad", msg => {
+node2.handle("bad", async msg => {
   console.log({ bad_msg: add });
   return msg.a + msg.b + 1;
 });
