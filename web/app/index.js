@@ -1,79 +1,9 @@
 // isHot(); = onHover(), onMouseMove(x,y)
 // active(); = onClick(), onMouseDown(), onDrag(), onHover(), onMouseUp()
 
+import setup_file_drop from './lib/file-drop.js';
 import { ws_proxy_api } from "./lib/ws-net";
-
-function $(id) {
-  return document.getElementById(id);
-}
-function preventDefaults(e) {
-  e.preventDefault();
-  e.stopPropagation();
-}
-
-function setup_file_drop() {
-  const dropZone = $('upload');
-  const fileSelect = $('abc');
-
-  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-    dropZone.addEventListener(eventName, preventDefaults, false);
-  });
-
-  ['dragenter', 'dragover'].forEach(eventName => {
-    dropZone.addEventListener(eventName, () => {
-      dropZone.classList.add('highlight');
-    }, false);
-  });
-
-  ['dragleave', 'drop'].forEach(eventName => {
-    dropZone.addEventListener(eventName, () => {
-      dropZone.classList.remove('highlight');
-    }, false);
-  });
-  
-  dropZone.addEventListener('drop', (e) => {
-    uploadFiles([...e.dataTransfer.files]);
-  }, false);
-
-  function uploadFiles(files) {
-    files.forEach(file => {
-      const type = file.name.split(".").pop().toLowerCase();
-      uploadFiles(file, type);
-    });
-  }
-
-  function uploadFiles(file, type) {
-    console.log(`[uploading] ${type}`, file.name)
-
-    const params = { name: file.name, type };
-    const formData = new FormData();
-    formData.append('file', file);
-
-    let query = Object.keys(params).map(key => {
-      return `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`;
-    }).join('&');
-
-    fetch(`drop?${query}`, {
-      method: 'POST',
-      body: formData
-    })
-      .then(response => response.text())
-      .then(data => {
-        console.log({ drop_ok: data });
-      })
-      .catch((error) => {
-        console.error({ drop_fail: error });
-      });
-  }
-
-    fileSelect.onchange = function (ev) {
-      uploadFiles([...fileSelect.files]);
-    };
-
-    dropZone.onclick = () => {
-      fileSelect.click();
-    };
-}
+import { $ } from './lib/util.js';
 
 function update_file_list() {
   proxy_api.call("doc-list/$", {}, (msg) => {
@@ -104,20 +34,6 @@ function doc_delete(uid) {
   });
 }
 
-function add_test() {
-  proxy_api.pcall("add", { a: 100, b: 200 })
-    .then((add1) => {
-      console.log({ add1 });
-    }).catch((ad1_error) => {
-      console.log({ ad1_error });
-    });
-  // const add1 = await proxy_api.pcall("add", { a: 100, b:200 });
-  // console.log({ add1 });
-  proxy_api.call("add", { a: 200, b: 400 }, (add2, error, topic) => {
-    console.log({ add2, topic, error });
-  });
-}
-
 function setup_subscriptions() {
   proxy_api.subscribe("doc-loading/$", msg => {
     if (msg.state === 'ready') {
@@ -140,10 +56,9 @@ function setup_subscriptions() {
 async function on_load() {
   const api = window.proxy_api = (window.proxy_api || await ws_proxy_api());
   api.on_ready(setup_subscriptions);
-  setup_file_drop();
+  setup_file_drop('file-drop', 'file-select');
   update_file_list();
 }
 document.addEventListener('DOMContentLoaded', on_load);
 window.doc_delete = doc_delete;
-window.add_test = add_test;
 window.update_file_list = update_file_list;

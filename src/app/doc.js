@@ -168,7 +168,7 @@ async function doc_embed(frec, path) {
   frec.state = "ready";
   await doc_info.put(frec.uid, frec);
   node.publish([ 'doc-loading', app_id ], frec);
-  log({ doc_loaded: frec });
+  // log({ doc_loaded: frec });
 }
 
 // list all docs along with the status (loading, embedding, ready)
@@ -193,8 +193,8 @@ async function doc_delete(msg, topic, cid) {
   }
   await batch.write();
   await doc_info.del(uid);
-  log({ del_doc_info: rec, chunks: match });
-  node.publish(["doc-delete", app_id], rec);
+  // log({ del_doc_info: rec, chunks: match });
+  node.publish([ "doc-delete", app_id ], rec);
   return `analyzed ${recs} recs, ${match} matched`;
 }
 // given a query, get matching embed chunks from loaded docs

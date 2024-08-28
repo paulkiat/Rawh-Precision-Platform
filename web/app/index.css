@@ -4,11 +4,11 @@ body {
     margin: 0;
     padding: 10px;
     display: flex;
-    flex-direction: column;
     font-family: Arial, sans-serif;
+    flex-direction: column;
     gap: 10px;
-    background-color: #f5f5f5;
-    color: #333;
+      background-color: #f5f5f5;
+      color: #333;
 }
 
 div {
@@ -24,38 +24,36 @@ div {
     background-position: center;
     background-repeat: no-repeat;
     border-radius: 10px;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* App Container */
 #app {
     flex-grow: 1;
     border-radius: 10px;
-    background-color: #fff;
+    background-color: #eee;
     padding: 10px;
     display: flex;
     flex-direction: column;
     gap: 5px;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-    max-width: 1200px;
-    margin: auto;
-    transition: all 0.3s ease-in-out;
-    z-index: 1;
+      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease-in-out;
+      /* z-index: 0; */
 }
 
-#app:hover {
+/* #app:hover {
     box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.2);
-}
+} */
 
 /* Horizontal Rule within App */
 #app hr {
     width: 100%;
-    border: 0;
+    /* border: 0;
     border-top: 1px solid #ddd;
-    margin: 20px 0;
+    margin: 20px 0; */
 }
 
-#abc {
+#file-select {
   width: 0.1px;
   height: 0.1px;
   opacity: 0;
@@ -64,27 +62,27 @@ div {
   z-index: -1;
 }
 
-#abc + button {
+#file-select + button {
   cursor: pointer;
 }
-/* File Upload Section */
-#upload {
-    border: 2px dashed #ccc;
-    padding: 20px;
-    text-align: center;
-    border-radius: 5px;
-    background-color: #f9f9f9;
-    cursor: pointer;
+#file-drop {
+  margin: 5px 0 10px 0;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border: 1px dashed #888;
+  border-radius: 10px;
+  font-size: 24px;
+    /* text-align: center; */
     transition: background-color 0.3s ease, border-color 0.3s ease;
-    font-size: 24px;
 }
 
-#upload:hover {
+#file-drop:hover {
     background-color: #e0e0e0;
-    border-color: #0066cc;
+    border: 1px solid #000;
+      border-color: #e3b70a;
 }
 
-#upload.highlight {
+#file-drop.drop-hover {
   background-image: url('img/app-banner.jpg');
   color: white;
   opacity: 0.25;
@@ -93,19 +91,23 @@ div {
 
 /* file-list (left) | Q&A (right) */
 #parts {
-    margin-top: 20px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+    /* margin-top: 20px; */
+    /* display: flex; */
+    /* flex-wrap: wrap; */
+    /* gap: 10px; */
 }
 
 #parts > div {
-    flex: 1 1 calc(33.333% - 10px);
-    background-color: #f0f0f0;
-    padding: 15px;
-    border-radius: 5px;
-    text-align: center;
-    transition: background-color 0.3s ease, transform 0.3s ease;
+    /* flex-grow: 1 1 calc(33.333% - 10px); */
+    flex-grow: 1;
+      background-color: #f0f0f0;
+      padding: 6.93px;
+      border-radius: 5px;
+      text-align: center;
+      transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
 #parts > div:hover {
@@ -114,20 +116,25 @@ div {
 }
 
 #parts .vsep {
-    width: 1px;
-    background-color: #ddd;
-    height: auto;
-    margin: 0 10px;
+    width: 20px;
+    min-width: 20px;
+    max-width: 20px;
+      /* background-color: #ddd; */
+      /* height: auto; */
+      /* margin: 0 10px; */
 }
 
 #qna {
-    margin-top: 30px;
-    padding: 20px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
+  display: grid;
+  grid-template-columns: 1fr 4fr;
+    /* grid-gap: 5px; */
+    /* border: 1px solid #ddd; */
     background-color: #fff;
     box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
     transition: background-color 0.3s ease;
+    /* margin-top: 30px; */
+    /* padding: 20px; */
+    /* border-radius: 5px; */
 }
 
 #qna:hover {
@@ -136,18 +143,19 @@ div {
 
 /* table data */
 #file-list {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+  display: grid;
+  grid-gap: 5px;
+  grid-template-columns: 3fr 1fr 1fr 1fr 0.5fr;
+    /* margin-top: 20px; */
+    /* flex-direction: column; */
 }
 
 #file-list > div {
+  display: contents;
     padding: 10px;
     border: 1px solid #ddd;
     border-radius: 5px;
     background-color: #fff;
-    display: flex;
     justify-content: space-between;
     align-items: center;
     transition: background-color 0.3s ease, transform 0.3s ease;
@@ -155,28 +163,46 @@ div {
 
 #file-list > div:hover {
     background-color: #f0f8ff;
-    transform: scale(1.02);
+    transform: scale(1.03);
 }
 
 #file-list > .head > label {
-    font-weight: bold;
+  padding: 5x;
+  background-color: #ccc;
+  border: 1px solid #eee;
+  border-radius: 5px;
+  text-align: center;
+  font-weight: bold;
+  text-transform: uppercase;
     font-size: 18px;
 }
 
-#file-list > .list > label {
-    color: #333;
+#file-list > .data > label {
+  padding: 5x;
+  background-color: white;
+  border: 1px solid #ddd;
+  white-space: nowrap;
+  color: #333;
 }
 
-#file-list > .list:hover > label {
-    color: #007acc;
+#file-list > .data:hover > label {
+  background-color: #ddd;
+    /* color: #007acc; */
+}
+
+#file-list .actions {
+  display: flex;
+  flex-direction: row;
+  gap: 5x;
 }
 
 #file-list .actions button {
-    padding: 5px 10px;
+  flex-grow: 1;  
+   padding: 5px 10px;
     background-color: #0066cc;
     color: white;
     border: none;
-    border-radius: 5px;
+    border-radius: 3.96px;
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.3s ease;
 }
@@ -188,11 +214,11 @@ div {
 
 /* Consistent Control Styles */
 #upload, #file-list .actions button, #parts > div {
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.001);
 }
 
 #upload:focus, #file-list .actions button:focus, #parts > div:focus {
-    outline: 2px solid #0066cc;
+    outline: 2px solid #ffd502f8;
 }
 
 /* Consistent Text Focus */
@@ -210,7 +236,7 @@ div {
 
 
 /* Circuit Board Button Styles */
-#circuit-board-button {
+/* #circuit-board-button {
     position: fixed;
     bottom: 20px;
     right: 20px;
@@ -232,10 +258,10 @@ div {
 #circuit-board-toggle:hover {
     background-color: #004d99;
     transform: scale(1.1);
-}
+} */
 
 /* Circuit Board Overlay Styles */
-#circuit-board-overlay {
+/* #circuit-board-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -285,4 +311,4 @@ div {
 
 #close-circuit-board:hover {
     color: #333;
-}
+} */
