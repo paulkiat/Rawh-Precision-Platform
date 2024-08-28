@@ -18,7 +18,7 @@ import {
   LlamaGrammar
 } from "node-llama-cpp";
 
-class customWrapper extends LlamaChatPromptWrapper {
+class CustomPromptWrapper extends LlamaChatPromptWrapper {
   // let us track exactly what the llm (@).(@) --> sees   
   wrapPrompt(str, opt) {
     let ret = super.wrapPrompt(str, opt);
@@ -42,7 +42,13 @@ const state = {
   systemPrompt
 };
 
-export async function setup(opt = { }) {
+export async function setup(opt = {}) {
+  if (state.init) {
+      return;
+  } else {
+      state.init = true;
+  }
+
   const modelName = opt.modelName ?? 'hermes-3-llama-3.1-8b.Q8_0.gguf';
   const modelPath = path.join(opt.modelDir ?? "mndels", modelName);
   const promptWrapper = new CustomPromptWrapper(); // LlamaChatPromptWrapper()

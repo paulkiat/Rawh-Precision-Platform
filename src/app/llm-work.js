@@ -17,7 +17,11 @@ const sessions = {};
     switch (cmd) {
       case "ssn-start":
         const newsid = util.uid();
-        sessiona[newsid] = await chat.create_session({ debug });
+        sessions[newsid] = await chat.create_session({
+            debug,
+            gpuLayers: msg.gpu,
+            modelName: msg.model
+        });
         // console.log({ mid, newsid });
         process.send({ mid, msg: { sid: newsid} });
         break;

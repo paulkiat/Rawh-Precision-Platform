@@ -7,7 +7,7 @@ import { $ } from './lib/util.js';
 const state = {
   api: undefined, // set in on_load()
   ssn: undefined, // llm session id (sid) set in setup_llm_session()
-  warmed: false
+  warmed: true
 };
 
 function update_file_list() {
@@ -73,9 +73,10 @@ function query_llm(query, then, disabled = true) {
     disable_query("...");
   }
   then = then || set_answer;
+  const start = Date.now();
   state.api.call("llm-ssn-query/org", { sid: state.ssn, query }, msg => {
     if (msg) {
-      console.log({ answer: msg.answer });
+      console.log({ answer: msg.answer, time: Date.now() - start });
       then(msg.answer);
       enable_query();
     } else {

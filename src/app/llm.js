@@ -10,7 +10,11 @@ const { args, env } = util;
 const once = {};
 const settings = {
   debug: env['DEBUG_LLM'] || args['debug-llm'] || false,
+  model: env['LLM_MODEL'] || args['llm-model'],
+  gpu: env['LLM_GPU'] || args['llm-gpu'] || 0,
 };
+
+log({ llm: settings });
 
 worker.on("message", message => {
   const { mid, msg } = message;
@@ -33,8 +37,10 @@ function call(cmd, msg = {}) {
 }
   
 async function llm_ssn_start(msg) {
-  call("ssn-start");
-  const sid = await call("ssn-start");
+  const sid = await call("ssn-start", {
+    model: settings.model,
+    gpu: settings.gpu
+  });
   if (settings.debug) {
     log({ ssn_Start: sid });
   }
@@ -63,7 +69,7 @@ async function register_service() {
   node.publish("service-up", {
     app_id,
     type: "llm-server",
-    subtype: "llama-3.1"
+    subtype: "llama-3"
   });
   // bind api service endpoints
   node.handle([ "llm-ssn-start", app_id ], llm_ssn_start);
