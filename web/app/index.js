@@ -5,6 +5,7 @@ import setup_file_drop from './lib/file-drop.js';
 import { ws_proxy_api } from "./lib/ws-net";
 import { $ } from './lib/util.js';
 const state = {
+  llm: "llm-ssn-query/org",
   api: undefined, // set in on_load()
   ssn: undefined, // llm session id (sid) set in setup_llm_session()
   warmed: true
@@ -29,7 +30,7 @@ function update_file_list() {
       ].join(''))
     }
     $('file-data').innerHTML = html.join('');
-  })
+  });
 }
 
 function doc_delete(uid) {
@@ -49,7 +50,7 @@ function setup_subscriptions() {
     update_file_list();
   });
   setup_llm_session();
-};
+}
 
 function setup_llm_session() {
   state.api.call("llm-ssn-start/org", {}, (msg, error) => {
@@ -67,26 +68,31 @@ function set_answer(text) {
   $('answer').value = text;
 }
 
-function query_llm(query, then, disabled = true) {
+function query_llm(query, then, disable = true) {
   console.log({ query });
   if (disable) {
     disable_query("...");
   }
   then = then || set_answer;
   const start = Date.now();
-  state.api.call("llm-ssn-query/org", { sid: state.ssn, query }, msg => {
+  // if (false)
+  state.api.call(state.llm, { sid: state.ssn, query }, msg => {
     if (msg) {
-      console.log({ answer: msg.answer, time: Date.now() - start });
-      then(msg.answer);
-      enable_query();
+        console.log({ answer: msg.answer, time: Date.now() - start });
+        then(msg.answer);
+        enable_query();
     } else {
-      console.log({ llm_said: msg });
-      then("there was an error processing this query");
+        console.log({ llm_said: msg });
+        then("there was an error processing this query");
     }
   });
   if (false)
-      state.api.call("docs-query/$", { sid: state_ssn, query }, msg => {
-      console.log(msg)
+  state.api.call("docs-query/$", { sid: state.ssn, query, llm: state.llm }, msg => {
+    jf (msg) {
+      set_answer(msg.answer || "there was an error processing this query");
+    } else {
+      console.log(msg);
+    }
   });
 }
 
@@ -96,7 +102,7 @@ function setup_qna_bindings() {
   query.addEventListener("keypress", (ev) => {
     if (ev.code === 'Enter' && query.value) {
       query_llm(query.value);
-    } else if (state.warmed) {
+    } else if (!state.warmed) {
       // try to warmup the llm with a question when
       // the user starts typing for the first time
       state.warmed = true;
@@ -116,7 +122,7 @@ function disable_query(answer) {
 
 function enable_query() {
   $('query').disabled = false;
-  // $('query').value = '';
+  $('query').focus();
 }
 
 async function on_load() {

@@ -152,9 +152,10 @@ async function doc_embed(frec, path) {
     const key = `${chunk.index.toString().padEnd(18, 0)}:${frec.uid}`;
     // log({ key, index: chunk.index, uid: frec.uid });
     cnk_data.put(key, {
-      uid: frec_uid,
-      text: chunk.pageContent,
+      uid: frec.uid,
       vector: chunk.vector,
+      text: chunk.pageContent,
+      index: chunk.index,
       num_tokens: chunk.tokens,
       page: pageNumber,
       page_from: lines.from,
@@ -201,47 +202,95 @@ async function doc_delete(msg, topic, cid) {
 // given a query, get matching embed chunks from loaded docs
 async function docs_query(msg, topic, cid) {
   const { node, embed, cnk_data } = state;
-  const { query, sid } = msg;
+  const { query, max_tokens, sid, llm } = msg;
   const vector = (await embed.vectorize([ query ]))[0];
   const index = vector_to_index(vector);
   const key = `${index.toString().padEnd(18, 0)}`;
   log({ docs_query: msg, index, key });
 
-  const iter_lt = cnk_data.iter({ lt: key });
-  const iter_gte = cnk_data.iter({ gte: key });
-  const found = {};
+  const iter_lt = {
+    iter: cnk_data.iter({ lt: key }),
+    coss: 1,
+    pos: -1,
+    add: -1
+  };
+  const iter_gt = {
+    iter: cnk_data.iter({ gte: key }),
+    coss: 1,
+    pos: 1,
+    add: 1
+  };
+  iter_lt.next = iter_gt;
+  iter_gt.next = iter_lt;
 
-  for (let i = 0; i < 2; i++) {
-    const [lt_key, lt_next] = await iter_lt.next();
-    const [gte_key, gte_next] = await iter_gte.next();
-    
-    const lt_index = vector_to_index(lt_next.vector);
-    const lt_coss = cosine_similarity({ vector, index }, {
-      vector: lt_next.vector,
-      index: lt_index
+  const found = [];
+  const search = [ iter_gt, iter_lt ];
+  const max_t = max_tokens || 200;
+  let tokens = 0;
+  let which = 0;
+
+    for (let i=0; i<20; i++) {
+      const iter = search[which];
+      const next = await iter.iter.next();
+
+      if (!next) {
+        log({ iter_dead: iter.add });
+        // current iterator ehausted
+        iter.dead = true;
+        which = 1 - which;
+        // both iterators exhausted
+        if (search[which].dead) {
+          log("BOTH iterators dead");
+          break;
+        }
+        continue;
+    }
+    const [ key, rec ] = next;
+    const coss = cosine_similarity({ vector, index }, {
+      vector: rec.vector,
+      index: rec.index
     });
 
-    const gte_index = vector_to_index(gte_next.vector);
-    const gte_coss = cosine_similarity({ vector, index }, {
-      vector: gte_next.vector,
-      index: gte_index
-    });
+    found.push({ i: iter.pos, coss, text: rec.text, tok: rec.num_tokens });
+    iter.pos += iter.add;
+    iter.coss = coss;
+    tokens += rec.num_tokens;
 
-    found.push({ i: -(i+1), coss: lt_coss, text: lt_next.text, tok: lt_next.num_tokens });
-    found.push({ i: (i+1), coss: gte_coss, text: gte_next.text, tok: gte_next.num_tokens });
-    
-    log({ i, lt_coss, gte_coss });
+    if (coss < iter.next.coss) {
+      which = 1 - which;
+    }
+    if (tokens >= max_t) {
+      log({ reached_max_t: tokens });
+      break;
+    }
   }
 
+  // close iterators to prevent mem leak
+  search.forEach(iter => iter.iter.close());
+
   // sort by index
-  found.sort((a, b) => { return a.i - b.i });
+  // found.sort((a, b) => { return a.i - b.i });
   // sort by relevance
   found.sort((a, b) => { return b.coss - a.coss });
 
-  console.log(found);
+  console.log(tokens, found.map(r => r.coss), llm, sid);
 
-  iter_gte.close();
-  iter_lt.close();
+  // time to consult the llm
+  if (llm && sid) {
+    const embed = [
+      "based on the following texts, answer the question at the end. ",
+      "if the answer is not found in the provided texts, reply that you do not ",
+      "have a document related to the question,\n",
+      "-----\n",
+      ...found.map(r => `${r.text}\n------\n`),
+      `Question: ${query}`
+    ].join('');
+    console.log(embed.length, embed);
+    const cid = (await node.promise.locate(llm)).direct[0];
+    const answer = await node.promise.call(cid, llm, { sid, query: embed });
+    console.log({ llm_said: answer });
+    return answer;
+  }
 
   return found;
 }
