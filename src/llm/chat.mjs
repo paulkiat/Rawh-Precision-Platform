@@ -14,28 +14,31 @@ import {
   LlamaModel,
   LlamaContext,
   LlamaChatSession,
+  GeneralChatPromptWrapper,
   LlamaChatPromptWrapper,
   LlamaGrammar
 } from "node-llama-cpp";
 
-class CustomPromptWrapper extends LlamaChatPromptWrapper {
+// const PromptClass = GeneralChatPromptWrapper;
+const ChosenPromptClass = LlamaChatPromptWrapper;
+
+class CustomPromptWrapper extends ChosenPromptClass /*LlamaChatPromptWrapper*/ {
   // let us track exactly what the llm (@).(@) --> sees   
   wrapPrompt(str, opt) {
     let ret = super.wrapPrompt(str, opt);
     if (state.debug) {
-      console.log('-----------------');
-      console.log('[[ sent to llm ]]');
-      console.log('-----------------');
+      console.log('-----(( sent to llm ))-----');
       console.log(ret);
+      console.log('-------------------------\n');
     }
     return ret;
   }
 };
 
 const systemPrompt = [
-  "You are an AI assistant that strives to answer as concisely as possible There is no need for pleasantries or extranious commentary.\n",
-  "Skip explanations that you are just an AI without opinions or personal beliefs.\n",
-  // "If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct.",
+  // "You are an AI assistant that strives to answer as concisely as possible There is no need for pleasantries or extranious commentary.\n",
+  // "Skip explanations that you are just an AI without opinions or personal beliefs.\n",
+  "You are an AI assistant that strives to answer as concisely as possible. This is no need for pleasantries or other commentary.\n",
   "If a question does not make any sense, try to answer based on your best understanding of the intent of the question.\n",
   "If you don't know what the answer to a question, do not guess or share false or incorrect information."
 ].join('');
@@ -80,6 +83,22 @@ export async function setup(opt = { }) {
   }
 }
 
+// future allow aborting a runaway response
+class AbortIt extends EventTarget {
+  get aborted() {
+    return false;
+  }
+  get reason() {
+    console.log('reason() called');
+  }
+  onabort() {
+    console.log('on_abort', [...arguments]);
+  }
+  throwIfAbortedt() {
+    console.log('throwIfAborted', [...arguments]);
+  }
+}
+
 export async function create_session(opt = {}) {
   if (!state.init) {
     await setup(opt);
@@ -90,7 +109,8 @@ export async function create_session(opt = {}) {
   const session = new LlamaChatSession({
     context,
     promptWrapper,
-    systemPrompt: opt.systemPrompt ?? systemPrompt
+    systemPrompt: opt.systemPrompt ?? systemPrompt,
+    printLLamaSystemInfo: true
   });
 
   const fns = {
@@ -100,17 +120,19 @@ export async function create_session(opt = {}) {
 
     async prompt_debug(prompt) {
       console.log({ useer: prompt });
+      let time = Date.now();
       let chunks = 0;
       const response = await fns.prompt(prompt, (chunk) => {
         if (chunks++ === 0) {
-            console.log('-----------------');
-            console.log('[[  llm reply  ]]');
-            console.log('-----------------');
+            console.log('-----[[  llm reply  ]]-----');
         }
+        // process.stdout.write('{'+context.decode(chunk)+'}');
         process.stdout.write(context.decode(chunk));
       });
-      // process.stdout.write("\n---------------\n");
-      process.stdout.write("\n\n");
+      time = (Date.now() - time).toString();
+      time = time.padStart(11 - (11 - time.length) / 2, ' ');
+      time = time.padEnd(11, ' ');
+      console.log(`\n-----[[ ${time} ]]-----\n`);
       return response;
     }
   };
@@ -124,8 +146,14 @@ export async function create_session(opt = {}) {
 
 async function prompt_and_response(prompt, onToken, session, grammar) {
   return session.prompt(prompt, {
+    signal: new AbortIt(),
     onToken,
     grammar,
-    temperature: 0.08
+    // msxTokens: 5,
+    temperature: 0.08,
+    repeatPenalty: {
+      lastTokens: 64,
+      penalizeNewLine: true
+    }
   });
 }

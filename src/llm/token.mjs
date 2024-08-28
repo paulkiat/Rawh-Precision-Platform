@@ -53,8 +53,8 @@ export async function split(loader, opts = {}) {
   }
 
   const textSplitter = new RecursiveCharacterTextSplitter({
-    chunkSize: opt.chunkSize ?? 1000,
     chunkOverLap: opt.chunkOverlap ?? 200,
+    chunkSize: opt.chunkSize ?? 1000,
     separators: opt.separators
   });
 

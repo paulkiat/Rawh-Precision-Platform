@@ -10,6 +10,7 @@ const log = util.prelog('doc');
 
 async function setup_node() {
   const { node } = state;
+
   // re-connect the doc app when the proxy connection bounces
   node.on_reconnect(register_service);
 }
@@ -111,7 +112,7 @@ async function doc_load(msg = {}, topic, cid) {
 }
 
 async function doc_embed(frec, path) {
-  const { node, embed, token, app_id, doc_info, cnk_data } = state;
+  const { node, embed, token, app_id, doc_info, cnk_data, llama_token } = state;
   log({ doc_embed: frec });
   const start = Date.now();
 
@@ -135,6 +136,7 @@ async function doc_embed(frec, path) {
   // log({ embeds });
 
   // annotate chunks with their vector and db indewx (also use for cosine similarity)
+  // TODO: store prev/next pointers for gathering better contexts
   let maxI = -Infinity;
   let minI = Infinity;
   for (let i = 0; i < chunks.length; i++) {
@@ -142,7 +144,8 @@ async function doc_embed(frec, path) {
     const vec = chunk.vector = embeds[i];
     const idx = chunk.index = vector_to_index(vec);
     // generate a rough token count for maximizing the embed
-    chunk.tokens = chunk.pageContent.replace(/\n/g, ' ').split(' ').length;
+    // chunk.tokens = chunk.pageContent.replace(/\n/g, ' ').split(' ').length;
+    chunk.tokens = llama_token.encode(chunk.pageContent).length;
     maxI = Math.max(maxI, idx);
     minI = Math.min(minI, idx);
     // store in chunk data indexed by chunk.index
@@ -156,10 +159,10 @@ async function doc_embed(frec, path) {
       vector: chunk.vector,
       text: chunk.pageContent,
       index: chunk.index,
-      num_tokens: chunk.tokens,
+      tokens: chunk.tokens,
       page: pageNumber,
-      page_from: lines.from,
-      page_to: lines.to
+      line_from: lines.from,
+      line_to: lines.to
     });
   }
 
@@ -206,7 +209,7 @@ async function docs_query(msg, topic, cid) {
   const vector = (await embed.vectorize([ query ]))[0];
   const index = vector_to_index(vector);
   const key = `${index.toString().padEnd(18, 0)}`;
-  log({ docs_query: msg, index, key });
+  log({ docs_query: msg });
 
   const iter_lt = {
     iter: cnk_data.iter({ lt: key }),
@@ -225,7 +228,7 @@ async function docs_query(msg, topic, cid) {
 
   const found = [];
   const search = [ iter_gt, iter_lt ];
-  const max_t = max_tokens || 4096;
+  const max_t = max_tokens || 3500;
   let tokens = 0;
   let which = 0;
 
@@ -251,61 +254,78 @@ async function docs_query(msg, topic, cid) {
       index: rec.index
     });
 
-    found.push({ i: iter.pos, coss, text: rec.text, tok: rec.num_tokens, key });
+    found.push({ i: iter.pos, coss, text: rec.text, tokens: rec.tokens, key });
     iter.pos += iter.add;
     iter.coss = coss;
-    tokens += rec.num_tokens;
+    tokens += rec.tokens;
 
     if (coss < iter.next.coss && !iter.next.dead) {
       which = 1 - which;
     }
     if (tokens >= max_t * 2) {
-      log({ reached_max_t: tokens });
       break;
     }
   }
 
-  // close iterators to prevent mem leak
-  search.forEach(iter => iter.iter.close());
+    // close iterators to prevent mem leak
+    search.forEach(iter => iter.iter.close());
 
-  // sort by index
-  // found.sort((a, b) => { return a.i - b.i });
-  // sort by relevance, limit to top 10
-  found.sort((a, b) => { return b.coss - a.coss });
-  found.length = 10;
-
-  console.log(tokens, found.map(r => {
-    return {
-      dist: r.i,
-      coss: r.coss,
-    };
-  }), llm);
-
-  // time to consult the llm
-  if (llm) {
-    const embed = [
-      "Based on the following context, succinctly answer the question at the end.\n",
-      // "using only the text available in the fragments, Do not improvise.\n",
-      "If the answer is not found in the provided context, reply that you do not ",
-      "have a document related to the question,\n",
-      "-----\n",
-      ...found.slice(0,3).map(r => `\n${r.text}\n`),
-      `\nQuestion: ${query}\n`
-    ].join('');
+    // sort by relevance, limit to top 10
+    found.sort((a, b) => { return b.coss - a.coss });
     
-    log({ embed_length: embed.length });
-    const once = "llm-query/org";
-    const answer = await node.promise
-      .call('', once, { query: embed })
-      .catch(error => {
-        log({ llm_error: error });
-        return { error: "llm service not responding" };
-      });
-    log(answer);
-    return answer;
-  }
+    // reduce to max chunks that will fit in embed window and
+    // limit to chunks within 75% of max cosine_similarity value
+    let tleft = max_t;
+    let max_coss = 0;
+    let cnk_used = 0;
+    const embeds = found.map(r => {
+      max_coss = Math.max(max_coss, r.coss);
+      tleft = tleft - r.tokens;
+      const ok = tleft >= 0 && (r.coss > max_coss * 0.75 || cnk_used < 4);
+      cnk_used += ok ? 1 : 0;
+      // log({ t: r.tokens, use: ok, tleft });
+      return ok ? r: undefined
+    }).filter(c => c);
 
-  return found;
+    // do a little debug reporting on what we found
+    // let report;
+    // console.log(report = embeds.map(r => {
+    //   return {
+    //     dist: r.i,
+    //     coss: r.coss,
+    //     toks: r.tokens
+    //   };
+    // }), report.reduce((acc, r) => acc + r.toks, 0);
+
+    // time to consult the llm
+    if (llm) {
+      const embed = [
+        "Based on the following context, succinctly answer the question at the end.\n",
+        // "using only the text available in the fragments, Do not improvise.\n",
+        "If the answer is not found in the provided context, reply that you do not ",
+        "have a document related to the question,\n",
+        "-----\n",
+        ...embeds.map(r => `\n${r.text}\n`),
+        `\nQuestion: ${query}\n\nAnswer:`
+      ].join('');
+      log({
+        found: found.length,
+        using: embeds.length,
+        text: embed.length,
+        tokens: embed.reduce((acc, r) => acc + r.tokens, 0)
+      });
+      const once = "llm-query/org";
+      const answer = await node.promise
+        .call('', once, { query: embed })
+        .catch(error => {
+          log({ llm_error: error });
+          return { error: "llm service not responding" };
+        });
+      log(answer);
+      return answer;
+    }
+
+    return found;
 }
 
 (async () => {
@@ -314,6 +334,8 @@ async function docs_query(msg, topic, cid) {
   const store = await require('../lib/store').open(`${state.data_dir}/embed`);
   const doc_info = store.sub('docs'); // doc meta-data
   const cnk_data = store.sub('chunks'); // chunked embed data
+  const llama_token = (await import('llama-tokenizer-js')).default;
+  // console.log(tokenizer.encode("this is a fine day to code"));
 
   Object.assign(state, {
     store,
@@ -321,6 +343,7 @@ async function docs_query(msg, topic, cid) {
     token,
     doc_info,
     cnk_data,
+    llama_token
   });
 
   await setup_node();

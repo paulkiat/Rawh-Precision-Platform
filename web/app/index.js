@@ -98,7 +98,8 @@ function query_llm(query, then, disable = true) {
   if (state.embed)
   state.api.call("docs-query/$", { sid: state.ssn, query, llm: state.topic_embed }, msg => {
     if (msg && msg.answer) {
-      set_answer(msg.answer);
+      console.log({ answer: msg.answer, time: Date.now() - start });
+      then(msg.answer);
     } else {
       console.log(msg);
       window.answer = msg;
@@ -116,18 +117,24 @@ function setup_qna_bindings() {
     }
   }, false);
   $('mode-chat').onclick = () => {
+    LS.set('last-mode', 'chat');
     state.embed = false;
     $('mode-chat').classList.add('selected');
     $('mode-embed').classList.remove('selected');
     set_answer('', '');
   };
   $('mode-embed').onclick = () => {
+    LS.set('last-mode', 'embed');
     state.embed = true;
     $('mode-chat').classList.remove('selected');
     $('mode-embed').classList.add('selected');
     set_answer('', '');
   };
-  $('mode-embed').onclick();
+  if (LS.get('last-mode') === 'embed') {
+    $('mode-embed').onclick();
+  } else {
+    $('mode-chat').onclick();
+  }
 }
 
 function disable_query(answer) {
