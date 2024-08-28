@@ -55,31 +55,53 @@ function setup_llm_session() {
     if (msg && msg.sid) {
       console.log({ llm_session: msg.sid });
       state.ssn = msg.sid;
+      enable_query();
     } else {
       console.log({ llm_session_error: error, msg });
     }
   });
 }
 
-function query_llm(query) {
+function set_answer(text) {
+  $('answer').value = text;
+}
+
+function query_llm(query, then) {
   console.log({ query });
+  disable_query("...");
+  then = then || set_answer;
   state.api.call("llm-ssn-query/org", { sid: state.ssn, query }, msg => {
     if (msg) {
-      $('answer').value = msg.answer;
       console.log({ answer: msg.answer });
+      then(msg.answer);
+      enable_query();
     } else {
       console.log({ llm_said: msg });
+      then("there was an error processing this query");
     }
   });
 }
 
 function setup_qna_bindings() {
+  disable_query();
   const query = $('query');
   query.addEventListener("keypress", (ev) => {
     if (ev.code === 'Enter') {
       query_llm(query.value);
     }
   }, false);
+}
+
+function disable_query(answer) {
+  $('query').disabled = true;
+  if (answer) {
+    $('answer').value = answer;
+  }
+}
+
+function enable_query() {
+  $('query').disabled = false;
+  // $('query').value = '';
 }
 
 async function on_load() {

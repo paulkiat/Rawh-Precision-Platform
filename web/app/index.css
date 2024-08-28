@@ -137,6 +137,11 @@ div {
     /* border-radius: 5px; */
 }
 
+#answer {
+  resize: vertical;
+  background-color: white;
+}
+
 #qna:hover {
     background-color: #f0f8ff;
 }
