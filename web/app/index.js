@@ -15,7 +15,7 @@ const state = {
 
 const LS = {
   get(key) { return localStorage.getItem(key) },
-  get(key, val) { return localStorage.setItem(key, val) },
+  set(key, val) { return localStorage.setItem(key, val) },
 };
 
 function update_file_list() {
@@ -130,14 +130,14 @@ function setup_qna_bindings() {
     state.embed = false;
     $('mode-chat').classList.add('selected');
     $('mode-embed').classList.remove('selected');
-    set_answer('', '');
+    set_answer('');
   };
   $('mode-embed').onclick = () => {
     LS.set('last-mode', 'embed');
     state.embed = true;
     $('mode-chat').classList.remove('selected');
     $('mode-embed').classList.add('selected');
-    set_answer('', '');
+    set_answer('');
   };
   if (LS.get('last-mode') === 'embed') {
     $('mode-embed').onclick();

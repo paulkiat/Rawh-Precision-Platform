@@ -114,10 +114,6 @@ class AbortIt extends EventTarget {
 }
 
 export async function create_session(opt = { }) {
-  if (!state.init) {
-    await setup(opt);
-  }
-
   const { context, promptWrapper, systemPrompt } = state;
   const grammar = opt.grammar ? await LlamaGrammar.getFor("json") : undefined;
   const session = new LlamaChatSession({
@@ -126,7 +122,9 @@ export async function create_session(opt = { }) {
     systemPrompt: opt.systemPrompt ?? systemPrompt,
     printLLamaSystemInfo: opt.debug ? true : false,
   });
-
+  session.__uid = Date.now().toString(36)+
+                  Math.round(Math.random()*0xffff)
+                  .toString(36).toUpperCase();
   const fns = {
     async prompt(prompt, onToken) {
       return prompt_and_response(prompt, onToken, session, grammar);
@@ -134,7 +132,7 @@ export async function create_session(opt = { }) {
 
     async prompt_debug(prompt, onToken) {
       if (opt.debug !== 42) {
-        console.log({ useer: prompt });
+        console.log({ ssn: session.__uid, user: prompt });
       }
       let time = Date.now();
       let chunks = 0;
