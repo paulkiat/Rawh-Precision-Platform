@@ -3,6 +3,7 @@
 const { fork } = require('child_process');
 const worker = fork('./src/app/llm-work.js');
 const util = require('../lib/util');
+const { context } = require('zeromq/lib');
 const state = require('./service').init();
 const log = util.logpre('llm');
 const { args, env } = util;
@@ -10,8 +11,12 @@ const { args, env } = util;
 const once = {};
 const settings = {
   debug: env['DEBUG_LLM'] || args['debug-llm'] || false,
-  model: env['LLM_MODEL'] || args['llm-model'],
-  gpu: env['LLM_GPU'] || args['llm-gpu'] || 0,
+  gpu: env['LLM_GPU'] || args['llm-gpu'] || args['gpu'] || 0,
+  model: env['LLM_MODEL'] || args['llm-model'] || args['model'],
+  batch: env['DEBUG_BATCH'] || args['batch'] || undefined,
+  context: env['DEBUG_CONTEXT'] || args['context'] || undefined,
+  threads: env['DEBUG_THREADS'] || args['threads'] || undefined,
+
 };
 
 worker.on("message", message => {
@@ -38,10 +43,7 @@ function call(cmd, msg = {}) {
 }
   
 async function llm_ssn_start(msg) {
-  const sid = await call("ssn-start", {
-    model: settings.model,
-    gpu: settings.gpu
-  });
+  const sid = await call("ssn-start", {});
   if (settings.debug) {
     log({ ssn_Start: sid });
   }
@@ -61,11 +63,7 @@ async function llm_ssn_query(msg) {
 }
 
 async function llm_query(msg) {
-  return await call("query", {
-    model: settings.model,
-    gpu: settings.gpu,
-    ...msg
-  });
+  return await call("query", msg);
 }
 
 async function register_service() {
@@ -82,6 +80,14 @@ async function register_service() {
   node.handle([ "llm-ssn-end", app_id ], llm_ssn_end);
   node.handle([ "llm-query", app_id ], llm_query);
   log({ service_up: app_id, type: "llm-server" });
+  // initialize llm
+  await call("init", {
+    threads: settings.threads,
+    context: settings.context,
+    batch: settings.batch,
+    model: settings.model,
+    gpu: settings.gpu,
+  });
 }
 
 (async () => {

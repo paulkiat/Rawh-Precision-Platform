@@ -1,37 +1,37 @@
-// ---------- Player1: vc-backed-llama-gguf --------------//
+//---------- P1: vc-backed-llama-gguf --------------//
 // https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q2_K.gguf
 
-// ---------- Player2: Hermes Trismegistus(Thrice Greatness)---------------//
+//---------- P2: Hermes Trismegistus(Thrice Greatness)---------------//
 // https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B-GGUF/blob/main/Hermes-3-Llama-3.1-8B.Q8_0.gguf
 
-// ---------- Player3: Crispy-Sentence-Embeddings --------------//
+//---------- P3: Crispy-Sentence-Embeddings --------------//
 // https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1/resolve/main/gguf/mxbai-embed-large-v1-f16.gguf
 
-/** Choose Your Player.. */
 
-import path from "path";
+/** Choose Your Player.. */
+import path from "path"; path;
 import {
-  LlamaModel,
-  LlamaContext,
-  LlamaChatSession,
-  GeneralChatPromptWrapper,
-  LlamaChatPromptWrapper,
-  LlamaGrammar
+    LlamaModel,
+    LlamaContext,
+    LlamaChatSession,
+    GeneralChatPromptWrapper,
+    LlamaChatPromptWrapper,
+    LlamaGrammar
 } from "node-llama-cpp";
 
 // const PromptClass = GeneralChatPromptWrapper;
 const ChosenPromptClass = LlamaChatPromptWrapper;
 
 class CustomPromptWrapper extends ChosenPromptClass /*LlamaChatPromptWrapper*/ {
-  // let us track exactly what the llm (@).(@) --> sees   
-  wrapPrompt(str, opt) {
-    let ret = super.wrapPrompt(str, opt);
-    // to get the exact details of what the llm sees
-    if (state.debug == 42) {
-      console.log({ send_to_llm: ret });
+    // let us track exactly what the llm (@).(@) --> sees   
+    wrapPrompt(str, opt) {
+      let ret = super.wrapPrompt(str, opt);
+      // to get the exact details of what the llm sees
+      if (state.debug == 42) {
+        console.log({ send_to_llm: ret });
+      }
+      return ret;
     }
-    return ret;
-  }
 }
 
 const systemPrompt = [
@@ -52,7 +52,7 @@ export async function setup(opt = { }) {
       return;
   } else {
       state.init = true;
-  }
+  }w
 
   const modelName = opt.modelName ?? 'llama-2-7b-chat.Q2_K.gguf';
   const modelPath = path.join(opt.modelDir ?? "models", modelName);
@@ -60,25 +60,40 @@ export async function setup(opt = { }) {
   const contextSize = opt.contextSize ?? 4096;
   const batchSize = opt.batchSize ?? 4096;
   const gpuLayers = opt.gpulayers ?? 0;
+  const threads = opt.threads ?? undefined;
   const model = new LlamaModel({
-    modelPath,
-    gpuLayers
+         modelPath,
+         gpuLayers,
+         batchSize,
+         contextSize,
+         threads,
   });
   const context = new LlamaContext({
-    model,
-    batchSize,
-    contextSize
+         model,
+         batchSize,
+         contextSize,
+         threads,
   });
   Object.assign(state, {
     debug: opt.debug ?? false,
     model,
     context,
+    batchSize,
+    contextSize,
     promptWrapper,
     systemPrompt: opt.systemPrompt ?? systemPrompt
   });
 
   if (opt.debug) {
-    console.log({ llm_setup: opt, modelName, modelPath });
+      console.log({
+        llm_setup: opt,
+        modelName,
+        modelPath,
+        gpuLayers,
+        batchSize,
+        contextSize,
+        threads
+    });
   }
 }
 
@@ -98,7 +113,7 @@ class AbortIt extends EventTarget {
   }
 }
 
-export async function create_session(opt = {}) {
+export async function create_session(opt = { }) {
   if (!state.init) {
     await setup(opt);
   }

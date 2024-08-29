@@ -17,14 +17,19 @@ const sessions = {};
       process.send({ topic, tokens });
     } : undefined;
     switch (cmd) {
-      case "ssn-start":
-        const newsid = util.uid();
-        sessions[newsid] = await chat.create_session({
+      case "init":
+        await chat.setup({
           debug,
           gpuLayers: msg.gpu,
-          modelName: msg.model
+          modelName: msg.mode,
+          batchSize: msg.batch,
+          contextSize: msg.context,
+          thereads: msg.threads
         });
-        // console.log({ mid, newsid });
+        break;
+      case "ssn-start":
+        const newsid = util.uid();
+        sessions[newsid] = await chat.create_session({ debug });
         process.send({ mid, msg: { sid: newsid } });
         break;
       case "ssn-end":
@@ -51,8 +56,6 @@ const sessions = {};
         // console.log({ mid, sid, query, debug, topic });
         const temp = await chat.create_session({
           debug,
-          gpuLayers: msg.gpu,
-          modelName: msg.model,
           xsystemPrompt: [
             "You are an AI assistant that strives to answer as concisely as possible. ",
 
