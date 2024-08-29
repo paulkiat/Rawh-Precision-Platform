@@ -1,26 +1,7 @@
-body {
-    border: 0;
-    margin: 0;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    font-family: Arial, sans-serif;
-    gap: 10px;
-}
-
-div {
-    position: relative;
-    display: flex;
-    gap: 5px;
-}
+@import url('../lib/common.css');
 
 #header {
     background-image: url('img/rawh-banner.jpg');
-    height: 70px;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    border-radius: 10px;
 }
 
 #apps {
@@ -43,61 +24,5 @@ div {
 
 /* table data */
 #app-list {
-    display: grid;
-    grid-gap: 5px;
     grid-template-columns: 2fr 2fr 1fr 1fr 0.5fr;
-}
-
-#app-list > div {
-  display: contents;
-}
-
-#app-list > .head > label {
-  padding: 5px;
-  background-color: #555; 
-  border: 1px solid #eee;
-  border-radius: 5px;
-  text-align: center;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
-#app-list > .data > label {
-  padding: 5px;
-  background-color: whitesmoke; 
-  border: 1px solid #ddd;
-  white-space: nowrap;
-}
-
-#app-list > .data:hover > label {
-  user-select: none;
-  background-color: #ddd;
-  transition: background-color 0.05s ease;
-    cursor: pointer;
-    padding: 2px 4px;
-    border-radius: 5px;
-}
-
-#app-list > .data:hover > label.flash {
-  background-color: #cce0ff !important;
-}
-
-#app-list > div > .actions {
-  display: flex;
-  flex-direction: row;
-  gap: 5x;
-}
-
-#app-list > div > .actions button {
-  flex-grow: 1;
-  padding: 5px 10px;
-  background-color: #0066cc;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-#app-list > .actions button:hover {
-    background-color: #004d99;
 }

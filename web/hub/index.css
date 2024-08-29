@@ -1,28 +1,7 @@
-/* Base Styles */
-body {
-    border: 0;
-    margin: 0;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    font-family: Arial, sans-serif;
-    gap: 10px;
-}
-
-div {
-    position: relative;
-    display: flex;
-    gap: 5px;
-}
-
+@import url('../lib/common.css');
 /* Header Styles */
 #header {
     background-image: url('img/red-blue-banner.jpg');
-    height: 70px;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    border-radius: 10px;
 }
 
 /* App Container */
@@ -36,145 +15,15 @@ div {
     gap: 5px;
 }
 
-/* Horizontal Rule within App */
 #app hr {
     width: 100%;
 }
 
-/* Organization Create Section */
 #org-create {
     flex-direction: row;
-    align-items: center;
-    gap: 10px;
-    padding: 10px;
-    background-color: #f9f9f9;
-    border-radius: 5px;
 }
 
 /* table data*/
 #org-list {
-    display: grid;
-    grid-gap: 10px;
     grid-template-columns: 3fr 2fr 3fr 1fr 1fr 2fr 1fr;
-    padding: 10px;
-    background-color: #fff;
-    border-radius: 5px;
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-#org-list > div {
-    display: contents;
-}
-
-#org-list > .head > label {
-    padding: 5px;
-    background-color: #555; 
-    border: 1px solid #eee;
-    border-radius: 5px;
-    text-align: center;
-    font-weight: bold;
-    text-transform: uppercase;
-    color: white;
-}
-
-#org-list > .data > label {
-    padding: 5px;
-    background-color: whitesmoke; 
-    border: 1px solid #ddd;
-    white-space: nowrap;
-    font-family: 'Arial', sans-serif;
-    font-size: 14px;
-    color: #333;
-}
-
-#org-list > .data:hover > label {
-    cursor: pointer;
-    user-select: none;
-    background-color: #e0e0e0;
-    padding: 2px 4px;
-    border-radius: 5px;
-    transition: background-color 0.05s ease;
-}
-
-#org-list > .data > label.flash {
-  background-color: #cce0ff !important;
-}
-
-#org-list > div > .actions {
-    display: flex;
-    flex-direction: row;
-    gap: 5px;
-}
-
-#org-list > div > .actions button {
-    flex-grow: 1;
-    padding: 5px 10px;
-    background-color: #0066cc;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.3s ease;
-}
-
-#org-list > div > .actions button:hover {
-    background-color: #004d99;
-}
-
-/* modal editing */
-#modal {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  background-color: rgba(255, 255, 255, 0.75);
-  display: none;
-  justify-content: center;
-  align-items: center;
-}
-
-#modal.showing, #modal .showing {
-  display: flex !important;
-}
-
-#modal-title {
-  text-align: center;
-  justify-content: center;
-  border-bottom: 1px solid black;
-  border-top-right-radius: 10px;
-  border-top-left-radius: 10px;
-  background-color: #eee;
-}
-
-#modal-close {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  position: absolute;
-  padding: 0 !important;
-  margin: 0;
-  bottom: 0;
-  right: 5px;
-  top: 0;
-}
-
-#modal-content {
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-  flex-direction: column;
-  background-color: rgba(255, 255, 255, 0.9);
-  border: 1px solid black;
-  border-radius: 10px;
-  margin: 10px;
-}
-
-#modal-content > div {
-  padding: 10px;
-}
-
-#modal-content .hidden {
-  display: none;
 }

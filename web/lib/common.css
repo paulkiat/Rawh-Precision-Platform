@@ -1,0 +1,140 @@
+/* Base Styles */
+body {
+  border: 0;
+  margin: 0;
+  padding: 10px;
+  display: flex;
+  font-family: Arial, sans-serif;
+  flex-direction: column;
+  gap: 10px;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+div {
+  position: relative;
+  display: flex;
+  gap: 5px;
+}
+
+#header {
+  height: 70px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 10px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* table data */
+.table {
+  display: grid;
+  grid-gap: 5px;
+    padding: 10px;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.table > div {
+  display: contents;
+}
+
+.table > .head > label {
+  padding: 5px;
+  background-color: #ccc;
+  border: 1px solid #eee;
+  border-radius: 5px;
+  text-align: center;
+  font-weight: bold;
+  text-transform: uppercase;
+    font-size: 18px;
+}
+
+.table > .data > label {
+  padding: 5px;
+  background-color: white;
+  border: 1px solid #ddd;
+  white-space: nowrap;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 14px;
+}
+
+.table > .data:hover > label {
+  user-select: none;
+  background-color: #ddd;
+  transition: background-color 0.05s ease;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 5px;
+}
+
+.table > .data > label.flash {
+  background-color: #cce0ff !important;
+}
+
+.table > .actions {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+}
+
+.table > .actions button {
+  flex-grow: 1;
+    padding: 5px 10px;
+    background-color: #0066cc;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease;
+}
+
+/* modal dialogs */
+.modal {
+  background-color: rgba(255, 255, 255, 0.75);
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  display: none;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.modal.showing .modal.showing {
+  display: flex !important;
+}
+
+.modal-title {
+  font-weight: bold;
+  font-size: 18px;
+  text-align: center;
+  justify-content: center;
+  border-bottom: 1px solid black;
+  border-top-right-radius: 10px;
+  border-top-left-radius: 10px;
+  background-color: #eee;
+}
+
+.modal-close {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  flex-direction: column;
+  border: 1px solid black;
+  border-radius: 10px;
+  margin: 10px;
+}
+
+.modal-content > div {
+  padding: 10px;
+}
+
+.modal-content .hidden {
+  display: none;
+}

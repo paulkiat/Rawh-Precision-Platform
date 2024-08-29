@@ -2,4 +2,8 @@ docs
 data
 models
 node_modules
-.DS_data
+package-lock.json
+.*workspace
+.*workspace
+.DS_Store
+.venv
