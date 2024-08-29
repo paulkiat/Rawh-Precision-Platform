@@ -41,7 +41,7 @@ exports.on_ws_msg = async function (ws, msg) {
   } else {
     return send({ cid, error: `no matching command: ${cmd}` });
   }
-};
+}
 
 async function app_create(args) {
   const { meta_app } = context;

@@ -1,9 +1,14 @@
 import { $, $class, annotate_copyable, preventDefaults } from '../lib/utils.js';
+import WsCall from './lib/ws-call.js';
 
-const context = {};
+const ws_api = new WsCall("admin.api");
+const report = (o) => ws_api.report(o);
+const call = (c, a) => ws_api.call(c, a);
+const context = { };
+
 
 function org_list() {
-  fetch("/org.list").then(r => r.json()).then(list => {
+  call("org_list", {}).then(list => {
     const html = [
       '<div class="head">',
       '<label>name</label>',
@@ -37,7 +42,7 @@ function org_list() {
     }
     $('org-list').innerHTML = html.join('');
     annotate_copyable();
-  });
+  }).catch(report);
 }
 
 function setup_modal() {
@@ -72,13 +77,8 @@ function org_edit(uid) {
 }
 
 function org_delete(uid, name) {
-  const params = new URLSearchParams({ uid }).toString();
-  const url = `/org.delete?${params}`;
-  const ok = confirm(`Are you sure you want to delete "${name}"?`);
-  if (ok) fetch(url).then(r => r.text()).then(text => {
-      console.log({ org_delete: text });
-      org_list();
-  });
+  confirm(`Are you sure you want to delete "${name}"?`) &&
+    call("org_delete", { uid }).then(org_list).catch(report);
 }
 
 function org_create() {
@@ -86,11 +86,7 @@ function org_create() {
   if (!name) {
     alert('missing org name');
   } else {
-    const params = new URLSearchParams({ name, creator: "unknown" }).toString();
-    const url = `/org.create?${params}`;
-    fetch(url).then(r = r.json()).then(json => {
-      org_list();
-    });
+    call("org_create", { name, creator: "unknown" }).then(org_list).catch(report);
   }
 }
 
@@ -101,7 +97,8 @@ window.orgfn = {
   delete: org_delete,
 };
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
+  ws_api.on_connect(org_list);
   setup_modal();
   $('create-org').onclick = org_create;
   $('org-name').onkeydown = (ev) => {
@@ -110,5 +107,4 @@ document.addEventListener('DOMContentLoaded', function() {
       $('org-name').value = '';
     }
   };
-  org_list();
 });

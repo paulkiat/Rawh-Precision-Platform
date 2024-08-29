@@ -15,7 +15,7 @@ class WsCall {
   }
 
   report(error) {
-    console.error(error);
+    console.log(error);
   }
 
   on_connect(fn) {

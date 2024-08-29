@@ -7,6 +7,7 @@
 const { args } = require('../lib/util');
 const log = require('../lib/util').logpre('hub');
 const web = require('../lib/web');
+const api = require('../web-api');
 const net = require('../lib/net');
 const store = require('../lib/store');
 const crypto = require('../lib/crypto');
@@ -20,8 +21,8 @@ Object.assign(state, {
   app_handler,
   web_handler,
   wss_handler: require('./org-link.js').setup(state),
-  // wss_handler: ws_handler,
-  // ws_handler: ws_handler
+  wss_handler: ws_handler,
+  ws_handler: ws_handler
 });
 
 /**
@@ -36,17 +37,17 @@ Object.assign(state, {
 // directs web socket messages to the `web-api.js` handler
 // look in `src/lib/web` for `ws_proxy_path()` as an
 // example of how to handle a new web socket connection
-// function ws_handler(ws, req) {
-//   // todo: add a little auth here :)
-//   if (req.url === "/admin.api") {
-//     api.on_ws_connect(ws);
-//     ws.on("message", msg => api.on_ws_msg(ws, msg));
-//     ws.on("error", error => log({ ws_error: error }) )
-//   } else {
-//     log({ invalid_ws_url: req.url });
-//     ws.close();
-//   }
-// }
+function ws_handler(ws, req) {
+  // todo: add a little auth here :)
+  if (req.url === "/admin.api") {
+    api.on_ws_connect(ws);
+    ws.on("message", msg => api.on_ws_msg(ws, msg));
+    ws.on("error", error => log({ ws_error: error }) )
+  } else {
+    log({ invalid_ws_url: req.url, host: req.headers.host });
+    ws.close();
+  }
+}
 
 async function setup_data_store() {
   log({ initializing: 'data store' });
@@ -59,8 +60,7 @@ async function setup_log_store() {
 }
 
 async function setup_org_adm() {
-  state.adm_org = require('./org-api');
-  state.adm_org.init(state);
+  app.init(state);
 }
 async function setup_keys() {
   const { meta, logs } = state;
@@ -79,7 +79,7 @@ function setup_web_handlers() {
     .use(web.parse_query)
     .use(store.web_admin(state, 'meta'))
     .use(store.web_admin(state, 'logs'))
-    .use(require('./web-api').setup(state))
+    .use(api.web_handler)
     .use(static)
     .use(web.four_oh_four)
   // production https web interface

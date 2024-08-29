@@ -1,50 +1,108 @@
 /** server-side simple curl-able REST admin api */
 
+const router = require('express').Router();
 const util = require('../lib/util');
 const log = util.logpre('adm');
-const { json } = util;
+const { uuid, json, parse } = util;
+const context = {};
 
-function setup(state) {
-  return function (req, res, next) {
-    admin_handler(req, res, next, state);
-  }
+exports.init = function (state) {
+  Object.assign(context, state);
+  context.orgs = state.meta.sub('org');
 }
 
-async function admin_handler(req, res, next, state) {
-  const { url, query } = req.parsed;
-  const { meta, logs, adm_org } = state;
-  const { name, creator, uid } = query;
-  switch (url.pathname) {
-    case '/state':
-      return log({ state });
-    case '/uid':
-      return res.end(util.uid());
-    case 'org/list':
-      return res.end(json(await adm_org.list()));
-    case 'org/create':
-      return res.end(json({ orgid: await adm_org.create(name, creator) }));
-    case 'org/delete':
-      return res.end(json({ orgid: await adm_org.delete_by_uid(uid) }));
-    case '/org.byname':
-      const kv = await adm_org.get_by_name(name);
-        if (!kv) {
-          res.end(json({ error: "`no org: ${name" }));
-        } else {
-          const [ uid, rec ] = kv;
-          res.end(json({ uid, rec }));
-        }
-      return;
-    case '/org.byuid':
-      const rec = adm_org.get_by_uid(uid);
-        if (rec) {
-          res.end(json(rec));
-        } else {
-          res.end(json({ error: `no org id: ${uid}`}));
-        }
-      return;
-    default:
-        return next();
-  }
+function send(msg) {
+  context.ws.send(json(msg));
 }
 
-exports.setup = setup;
+exports.on_ws_connect = function (ws) {
+  context.ws = ws;
+}
+
+exports.on_ws_msg = async function (ws, msg) {
+  msg = parse(msg.toString());
+  const { cmd, cid, args } = msg;
+  // get a sub-level for application meta-data
+  const cmd_fn = commands[cmd];
+  if (cmd_fn) {
+    if (cid) {
+      cmd_fn(args)
+        .then(reply => send({ cid, args: reply }))
+        .catch(error => {
+        log({ cid, args, error });
+        send({ cid, error: error.toString() });
+      });
+    } else {
+      cmd_fn(args);
+    }
+  } else {
+    return send({ cid, error: `no matching command: ${cmd}` });
+  }
+};
+
+const commands = {
+  org_list,
+  org_create,
+  org_update,
+  org_delete,
+  org_by_uid,
+  org_by_name
+};
+
+async function org_create(args) {
+  const { name, creator } = args;
+  const uid = util.uid().toUpperCase();
+  const exists = await org_by_name(name);
+  // prevent creating two orgs with the same name
+  if (exists) {
+    throw "duplicate org name";
+  }
+  // create org record stub, assign new uid and return it
+  await context.orgs.put(uid, {
+    name: name || "unknown",
+    secret: uuid(),
+    creator: creator || "unknown",
+    created: Date.now(),
+    state: 'pending',
+    saas: true, // true if Rawh hosts
+    admins: { }, // email address of org admins
+  });
+  return uid;
+}
+
+async function org_list() {
+  return (await context.orgs.list()).map(row => {
+    return {
+      uid: row[0],
+      ...row[1]
+    };
+  });
+}
+
+async function org_update(args) {
+  const { uid, rec } = args;
+  // todo: add filtering to limit updates to allowed fields
+  // which means first fetch the record then merge updates
+  return await context.orgs.put(uid, rec);
+}
+
+async function org_delete(args) {
+  return await context.orgs.del(uid, rec);
+}
+
+async function org_by_uid(args) {
+  return await context.orgs.get(uid, rec);
+}
+
+async function org_list() {
+  const { meta_app } = context;
+  const list = await context.orgs.list({ limit: Infinity });
+  for (let [ uid, rec ] of list ) {
+    if (rec.name === org.name) {
+      return [ uid, rec ];
+    }
+  }
+  return undefined;
+}
+
+exports.web_handler = router;

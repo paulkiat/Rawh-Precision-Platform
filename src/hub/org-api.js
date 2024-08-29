@@ -58,7 +58,6 @@ async function get_by_uid(uid) {
 
 async function get_by_name(name) {
   const list = await env.orgs.list({ limit: Infinity });
-  log({ name, list });
   for (let [uid, rec] of list) {
     if (rec.name === name) {
       return [ uid, rec ];
