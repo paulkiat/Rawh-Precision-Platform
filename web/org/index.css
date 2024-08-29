@@ -69,10 +69,16 @@ div {
 }
 
 #app-list > .data:hover > label {
+  user-select: none;
+  background-color: #ddd;
+  transition: background-color 0.05s ease;
     cursor: pointer;
-    background-color: #ddd;
     padding: 2px 4px;
     border-radius: 5px;
+}
+
+#app-list > .data:hover > label.flash {
+  background-color: #cce0ff !important;
 }
 
 #app-list > div > .actions {

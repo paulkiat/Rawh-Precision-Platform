@@ -1,4 +1,11 @@
-const ms_days_300 = 330 * 24 * 60 * 60 * 1000;
+/**
+ * startup wrapper for all back end web servers
+ * 
+ * looks for adm/app/web/ws/wss handlers and attaches them
+ * todo: add more details about how to use these
+ */
+
+const ms_days_330 = 330 * 24 * 60 * 60 * 1000;
 const util = require('../lib/util');
 const log = util.logpre('web');
 const path = require('path');
@@ -44,8 +51,8 @@ async function start_web_listeners(state) {
     });
   }
 
-  // generate new https key if missing or over 300 days old
-  if (web_handler && (!state.ssl || Date.now() - state.ssl.date > ms_days_300)) {
+  // generate new https key if missing or over 330 days old
+  if (web_handler && (!state.ssl || Date.now() - state.ssl.date > ms_days_330)) {
     state.ssl - await meta.get("ssl-keys");
     let found = state.ssl !== undefined;
     if (state.ssl_dir) {
@@ -140,7 +147,7 @@ function ws_proxy_handler(node, ws, ws_msg) {
   }
 }
 
-function ws_proxy_path(node, path = "./proxy.api") {
+function ws_proxy_path(node, path = "/proxy.api", pass) {
   log({ installing_ws_proxy: path });
   return function (ws, req) {
     // extract app-id from url
@@ -158,6 +165,10 @@ function ws_proxy_path(node, path = "./proxy.api") {
       });
       ws.send(util.json({ app_id: ws.app_id }));
     } else {
+      // optional pass-thru handler if it's not an app/ proxied connection
+      if (pass) {
+        return pass(ws, req);
+      }
       log({ invalid_ws_url: req.url });
       ws.close();
     }

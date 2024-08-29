@@ -88,10 +88,15 @@ div {
 
 #org-list > .data:hover > label {
     cursor: pointer;
+    user-select: none;
     background-color: #e0e0e0;
     padding: 2px 4px;
     border-radius: 5px;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.05s ease;
+}
+
+#org-list > .data > label.flash {
+  background-color: #cce0ff !important;
 }
 
 #org-list > div > .actions {

@@ -12,10 +12,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Rawh Hub</title>
   <link rel="icon" type="image/png" sizes="128x128" href="img/matrix-128.png">
-  <link rel="apple-touch-icon" href="img/matrix-128.jpg">
   <link rel="stylesheet" type="text/css" href="index.css">
-  <script src="index.js" defer></script>
-  <script src="dayjs.js" defer></script>
+  <script src="index.js" defer type="module"></script>
+  <script src="../lib/dayjs.js" defer></script>
 </head>
 <body>
   <div id="header"></div>
@@ -26,27 +25,9 @@
       <label>App Name</label>
       <input id="app-name" size="35" />
       <button id="create-app">create</button>
-      </div>
-      <hr>
-      <div id="app-list">
-        <div class="head">
-          <label>name</label>
-          <label>app-id</label>
-          <label>created</label>
-          <label>creator</label>
-          <label></label>
-        </div>
-        <div class="data">
-          <label>sample app</label>
-          <label>ABCDEFG</label>
-          <label>2024/01/01</label>
-          <label>himself</label>
-          <label class="actions">
-            <button>X</button>
-          </label>
-        </div>
-      </div>
     </div>
+    <hr>
+    <div id="app-list"></div>
   </div>
 </body>
 </html>

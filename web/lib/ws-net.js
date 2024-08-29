@@ -1,15 +1,9 @@
 // provides web-socket handlers for net (node/api/proxy) access
 
+import { uuid, json, parse } from '../lib/utils';
 const { protocol, hostname, port, pathname } = location;
 
-function uuid() {
-  return 'xxxx-xxxx-xxxxx-xxxx-xxxx'.replace(/[xy]/g, function (c) {
-    var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
-function ws_connect(wsPath = "/", on_open, on_msg, retry = 10000) {
+export function ws_connect(wsPath = "", on_open, on_msg, retry = 10000) {
   const wsProtocol = protocol === 'https:' ? 'wss://' : 'ws://';
   const wsHost = hostname;
   const wsPort = port ? ':' + port : '';
@@ -17,7 +11,7 @@ function ws_connect(wsPath = "/", on_open, on_msg, retry = 10000) {
   const ws = new WebSocket(wsUrl);
 
   ws.onopen = (event) => {
-    // ws.send(JSON.stringify({ fn: "call", topic: "ping", msg: "123" }));
+    // ws.send(json({ fn: "call", topic: "ping", msg: "123" }));
     on_open(ws, event);
   }
 
@@ -36,7 +30,7 @@ function ws_connect(wsPath = "/", on_open, on_msg, retry = 10000) {
 async function ws_proxy_api() {
   const ctx = {
     send: (msg) => {
-      ctx.ws.send(JSON.stringify(msg));
+      ctx.ws.send(json(msg));
     },
     once: {},
     subs: {},
@@ -82,32 +76,33 @@ async function ws_proxy_api() {
   return new Promise(resolve => {
     ws_connect("proxy.api", ws => {
       ctx.ws = ws;
-      resolve(api);
+      resolve(api)
     }, event => {
-      const ws_msg = JSON.parse(event.data);
+      const ws_msg = parse(event.data);
       const { pub, msg, app_id } = ws_msg;
       if (app_id) {
         ctx.app_id = app_id;
         console.log({ app_id });
         ctx.ready.forEach(fn => fn(app_id));
       } else if (pub) {
-          const handler = ctx.subs[pub];
-          if (handler) {
-            handler(msg, pub);
-          } else {
-            console.log({ missing_sub: pub, subs: ctx.subs });
-          }
-       } else {
-          const handler = ctx.once[mid];
-          delete ctx.once[mid];
-          if (!handler) {
-            console.log({ missing_once: mid });
-          } else if (error) {
-            handler(undefined, error, topic)
-            } else {
-            handler(msg, undefined, topic);
-          }
+        const handler = ctx.subs[pub];
+        if (handler) {
+          handler(msg, pub);
+        } else {
+          console.log({ missing_sub: pub, subs: ctx.subs });
         }
+      } else {
+        const { mid, topic, error } = ws_msg;
+        const handler = ctx.once[mid];
+        delete ctx.once[mid];
+        if (!handler) {
+          console.log({ missing_once: mid });
+        } else if (error) {
+          handler(undefined, error, topic)
+          } else {
+          handler(msg, undefined, topic);
+        }
+      }
     });
   });
 }

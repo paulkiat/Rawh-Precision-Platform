@@ -1,6 +1,4 @@
-function $(id) {
-  return document.getElementById(id);
-}
+import { $, annotate_copyable } from '../lib/utils.js';
 
 function org_edit(uid) {
   console.log({ edit: uid });
@@ -11,7 +9,7 @@ function org_delete(uid, name) {
   const url = `/org.delete?${params}`;
   const ok = confirm(`Are you sure you want to delete "${name}"?`);
   if (ok)
-    fetch.url().then(r => r.text()).then(text => {
+    fetch(url).then(r => r.text()).then(text => {
       console.log({ org_delete: text });
       org_list();
   });
@@ -35,19 +33,21 @@ function org_list() {
       const date = dayjs(created).format('YYYY/MM/DD HH:mm');
       html.push([
         '<div class="data">',
-        `<label>${name}</label>`,
-        `<label>${uid}</label>`,
-        `<label>${secret}</label>`,
+        `<label class="copyable">${name}</label>`,
+        `<label class="copyable">${uid}</label>`,
+        `<label class="copyable">${secret}</label>`,
         `<label>${state}</label>`,
         `<label>${creator}</label>`,
         `<label>${date}</label>`,
         `<label class="actions">`,
         `<button onClick="org_edit('${uid}')">?</button>`,
         `<button onClick="org_delete('${uid}','${name}')">X</button>`,
+        `</label>`,
         '</div>',
-      ]).join('');
+      ].join(''));
     }
     $('org-list').innerHTML = html.join('');
+    annotate_copyable();
   });
 }
 

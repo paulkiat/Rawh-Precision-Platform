@@ -35,8 +35,13 @@ function wrap(db, name, closeable) {
   const keys = async function (opt = {}) {
     return (await list(Object.assign(opt, { values: false }))).map(r => r[0]);
   }
+
   const list = async function(opt = { limit: 100 }) {
     return await db.iterator(opt).all();
+  };
+
+  const vals = async function (opt = {}) {
+    return (await list(Object.assign(opt, { keys: false, values: true }))).map(r => r[1]);
   };
 
   const iter = function(opt = {}) {
@@ -97,6 +102,7 @@ function wrap(db, name, closeable) {
       del,
       keys,
       list,
+      vals,
       iter,
       dump,
       load,
