@@ -93,7 +93,7 @@ div {
 }
 
 /* modal dialogs */
-.modal {
+#modal {
   background-color: rgba(255, 255, 255, 0.75);
   justify-content: center;
   align-items: center;
@@ -106,11 +106,11 @@ div {
   left: 0;
 }
 
-.modal.showing .modal.showing {
+#modal.showing #modal.showing {
   display: flex !important;
 }
 
-.modal-title {
+#modal-title {
   font-weight: bold;
   font-size: 18px;
   text-align: center;
@@ -121,7 +121,7 @@ div {
   background-color: #eee;
 }
 
-.modal-close {
+#modal-close {
   display: flex;
   align-items: stretch;
   justify-content: center;
@@ -131,10 +131,10 @@ div {
   margin: 10px;
 }
 
-.modal-content > div {
+#modal-content > div {
   padding: 10px;
 }
 
-.modal-content .hidden {
+#modal-content .hidden {
   display: none;
 }
