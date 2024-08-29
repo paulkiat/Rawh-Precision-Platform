@@ -1,22 +1,9 @@
-import { $, annotate_copyable } from '../lib/utils.js';
+import { $, $class, annotate_copyable, preventDefaults } from '../lib/utils.js';
 
-function org_edit(uid) {
-  console.log({ edit: uid });
-}
-
-function org_delete(uid, name) {
-  const params = new URLSearchParams({ uid }).toString();
-  const url = `/org.delete?${params}`;
-  const ok = confirm(`Are you sure you want to delete "${name}"?`);
-  if (ok)
-    fetch(url).then(r => r.text()).then(text => {
-      console.log({ org_delete: text });
-      org_list();
-  });
-}
+const context = {};
 
 function org_list() {
-  fetch("/org.list").then(r => r.json()).then(json => {
+  fetch("/org.list").then(r => r.json()).then(list => {
     const html = [
       '<div class="head">',
       '<label>name</label>',
@@ -28,7 +15,8 @@ function org_list() {
       '<label>actions</label>',
       '</div>',
     ];
-    for (let org of json) {
+    const orgs = context.orgs = {};
+    for (let org of list) {
       const { uid, name, secret, creator, created, state } = org;
       const date = dayjs(created).format('YYYY/MM/DD HH:mm');
       html.push([
@@ -40,14 +28,56 @@ function org_list() {
         `<label>${creator}</label>`,
         `<label>${date}</label>`,
         `<label class="actions">`,
-        `<button onClick="org_edit('${uid}')">?</button>`,
-        `<button onClick="org_delete('${uid}','${name}')">X</button>`,
+        `<button onClick="orgfn_edit('${uid}')">?</button>`,
+        `<button onClick="orgfn_delete('${uid}','${name}')">X</button>`,
         `</label>`,
         '</div>',
       ].join(''));
+      orgs[uid] = org;
     }
     $('org-list').innerHTML = html.join('');
     annotate_copyable();
+  });
+}
+
+function setup_modal() {
+  $('modal-close-button').onclick = hide_modal;
+  document.onkeydown = ev => {
+    if (context.modal && ev.code === 'Escape') {
+      hide_modal();
+      preventDefaults(ev);
+    }
+  };
+}
+
+function hide_modal() {
+  context.modal = false;
+  $('modal').classList.remove("showing");
+}
+
+function show_modal(el_id) {
+  context.modal = true;
+  $class('content').forEach(el => {
+    el.classList.add("hidden");
+  });
+  $(el_id).classList.remove("hidden");
+  $('modal').classList.add("showing");
+}
+
+function org_edit(uid) {
+  const rec = context.orgs[uid];
+  console.log({ edit: uid, rec });
+  if (!rec) throw `invalid org uid: ${uid}`;
+  show-modal('org-edit');
+}
+
+function org_delete(uid, name) {
+  const params = new URLSearchParams({ uid }).toString();
+  const url = `/org.delete?${params}`;
+  const ok = confirm(`Are you sure you want to delete "${name}"?`);
+  if (ok) fetch(url).then(r => r.text()).then(text => {
+      console.log({ org_delete: text });
+      org_list();
   });
 }
 
@@ -64,7 +94,15 @@ function org_create() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', function () {
+window.orgfn = {
+  list: org_list,
+  edit: org_edit,
+  create: org_create,
+  delete: org_delete,
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+  setup_modal();
   $('create-org').onclick = org_create;
   $('org-name').onkeydown = (ev) => {
     if (ev.code === 'Enter') {

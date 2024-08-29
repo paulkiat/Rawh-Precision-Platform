@@ -1,4 +1,4 @@
-// web socket api client to org admin serfic
+// web socket api client (browser) to org admin services
 import { json, parse, uid } from '../lib/util.js';
 
 const context = {

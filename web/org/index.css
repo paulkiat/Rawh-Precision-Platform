@@ -9,6 +9,7 @@ body {
 }
 
 div {
+    position: relative;
     display: flex;
     gap: 5px;
 }

@@ -34,7 +34,9 @@ async function create(name, creator) {
     secret: util.uuid(),
     creator: creator || "unknown",
     created: Date.now(),
-    state: 'pending'
+    state: 'pending',
+    saas: true, // true if Rawh hosts
+    admins: {} // email address of org admins
   });
   return uid;
 }

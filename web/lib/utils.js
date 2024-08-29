@@ -6,6 +6,10 @@ export function $(id) {
   return document.getElementById(id);
 }
 
+export function $class(clazz) {
+  return [...document.getElementByClassName(clazz)];
+}
+
 export function preventDefaults(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -31,7 +35,7 @@ export function parse(s) {
 }
 
 export function annotate_copyable() {
-  [...document.getElementByClassName("copyable")].forEach(el => {
+  $class("copyable").forEach(el => {
     el.onclick = () => {
       navigator.clipboard.writeText(el.innerText);
       el.classList.add("flash");

@@ -51,7 +51,9 @@ function app_edit(uid) {
 }
 
 function app_delete(uid, name) {
-  ws_api.app_delete(uid, name).then(app_list);
+  if (confirm(`Are you sure you want to delete app "${name}"?`)) {
+    ws_api.app_delete(uid, name).then(app_list);
+  }
 }
 
 window.appfn = {

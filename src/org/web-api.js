@@ -1,4 +1,4 @@
-/** simple curl-able web admin api (for now) */
+/** web socket api handler (node/server) for org admin */
 
 const log = require('../lib/util').logpre('api');
 const router = require('express').Router();
@@ -10,7 +10,7 @@ exports.init = function (state) {
   context.state = state;
   const { meta, logs } = context.state;
   context.meta_app = meta.sub("apps");
-  // setup file drop handler
+  // attach file drop handler (for proxied apps)
   router.use(file_drop(state));
 };
 
@@ -28,7 +28,6 @@ exports.on_ws_msg = async function (ws, msg) {
   // get a sub-level for application meta-data
   const cmd_fn = commands[cmd];
   if (cmd_fn) {
-    // console.log({ cid, cmd_fn, args });
     if (cid) {
       cmd_fn(args)
         .then(reply => send({ cid, args: reply }))

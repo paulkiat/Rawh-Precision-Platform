@@ -10,6 +10,7 @@ body {
 }
 
 div {
+    position: relative;
     display: flex;
     gap: 5px;
 }
@@ -119,4 +120,61 @@ div {
 
 #org-list > div > .actions button:hover {
     background-color: #004d99;
+}
+
+/* modal editing */
+#modal {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(255, 255, 255, 0.75);
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+
+#modal.showing, #modal .showing {
+  display: flex !important;
+}
+
+#modal-title {
+  text-align: center;
+  justify-content: center;
+  border-bottom: 1px solid black;
+  border-top-right-radius: 10px;
+  border-top-left-radius: 10px;
+  background-color: #eee;
+}
+
+#modal-close {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  position: absolute;
+  padding: 0 !important;
+  margin: 0;
+  bottom: 0;
+  right: 5px;
+  top: 0;
+}
+
+#modal-content {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  flex-direction: column;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid black;
+  border-radius: 10px;
+  margin: 10px;
+}
+
+#modal-content > div {
+  padding: 10px;
+}
+
+#modal-content .hidden {
+  display: none;
 }

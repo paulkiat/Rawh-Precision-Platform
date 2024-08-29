@@ -7,6 +7,7 @@ const { json, parse } = util;
 const connected = { };
 
 function setup(state) {
+  // wss_handler function
   return function (ws) {
     ws.on('message', (message) => {
       link_handler(state, json(message), obj => {
@@ -25,7 +26,7 @@ async function link_handler(state, msg, send, socket) {
 
   //log({ org_id, org_rec, msg });
 
-  if (!org_rect) {
+  if (!org_rec) {
     log({ invalid_org_id: org_id });
     socket.close();
     return;
@@ -49,7 +50,7 @@ async function link_handler(state, msg, send, socket) {
       log({ org_failed_key_challenge: org_id });
     }
   }
-
+  
   connected[org_id] = socket;
   sock_stat.org_id = org_id;
   sock_stat.org_rec = org_rec;
