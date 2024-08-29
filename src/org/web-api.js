@@ -1,4 +1,4 @@
-/** web socket api handler (node/server) for org admin */
+/** web socket api handler (node/server) for org site admin (apps/users) */
 
 const log = require('../lib/util').logpre('api');
 const router = require('express').Router();

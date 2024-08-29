@@ -1,9 +1,13 @@
 import { $, annotate_copyable } from '../lib/utils.js';
-import { ws_connect} from '../lib/ws-net.js';
-import ws_api from './ws-api.js';
+import WsCall from './lib/ws-call.js'
+
+const ws_api = new WsCall("admin.api");
+const report = (o) => ws_api.report(o);
+const call = (c, a) => ws_api.call(c,a);
+
 
 function app_list() {
-  ws_api.app_list().then(list => {
+  call(app_list, {}).then(list => {
     const html = [
       '<div class="head">',
       '<label>name</label>',
@@ -31,7 +35,7 @@ function app_list() {
     }
     annotate_copyable();
     $('app-list').innerHTML = html.join('');
-  });
+  }).catch(report);
 }
 
 function app_create() {
@@ -39,7 +43,7 @@ function app_create() {
   if (!name) {
     alert('missing app name');
   } else {
-    ws_api.app_create(name).then(reply => {
+    call("app_create", { name }).then(reply => {
       console.log({ app_create_said: reply });
       app_list();
     });
@@ -52,7 +56,7 @@ function app_edit(uid) {
 
 function app_delete(uid, name) {
   if (confirm(`Are you sure you want to delete app "${name}"?`)) {
-    ws_api.app_delete(uid, name).then(app_list);
+    call("app_delete", { uid, name }).then(app_list).catch(report);
   }
 }
 
@@ -64,10 +68,7 @@ window.appfn = {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
-  ws_connect('admin.api', (ws) => {
-    ws_api.on_connect(ws);
-    app_list();
-  }, ws_api.on_message);
+  ws_api.on_connect(app_list);
   $('create-app').onclick = app_create;
   $('app-name').onkeydown = (ev) => {
     if (ev.code === 'Enter') {

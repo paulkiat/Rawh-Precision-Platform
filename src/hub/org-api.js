@@ -1,16 +1,9 @@
-/** api for managing org data */
-/**00|--> swim-lane pre-flight checklist -> */
-/**01|------> init(sate) -----------------> */
-/**02|-------> create: your creator ------> */
-/**03|---------> refresh: timestep state attr from (a) -> (b) */
-/****\__Closed__/->_object( environment, [state, meta, orgs] ) */
+/** server-side api for managing org data */
 
-// 00
 const util = require('../lib/util');
 const log = util.logpre('org');
 const env = { };
 
-// 01.i
 function init(state) {
   const { meta } = state;
   Object.assign(env, {
@@ -20,7 +13,6 @@ function init(state) {
   })
 }
 
-// 02
 async function create(name, creator) { 
   const uid = util.uid().toUpperCase();
   const exists = await get_by_name(name);
@@ -40,7 +32,7 @@ async function create(name, creator) {
   });
   return uid;
 }
-// 02.ii
+
 async function list() {
   return (await env.orgs.list()).map(row => {
     return {
@@ -50,8 +42,9 @@ async function list() {
   });
 }
 
-// 03
 async function update(uid, rec) {
+  // todo: add filtering to limit updates to allowed fields
+  // which means first fetch the record then merge update
   await env.orgs.put(uid, rec);
 }
 

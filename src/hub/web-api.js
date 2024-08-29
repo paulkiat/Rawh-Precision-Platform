@@ -1,4 +1,4 @@
-/** simple curl-able web admin api */
+/** server-side simple curl-able REST admin api */
 
 const util = require('../lib/util');
 const log = util.logpre('adm');

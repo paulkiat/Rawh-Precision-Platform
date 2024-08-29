@@ -19,7 +19,9 @@ Object.assign(state, {
   web_port: args['web-port'] || (args.prod ? 443 : 8443),
   app_handler,
   web_handler,
-  wss_handler: require('./org-link.js').setup(state)
+  wss_handler: require('./org-link.js').setup(state),
+  // wss_handler: ws_handler,
+  // ws_handler: ws_handler
 });
 
 /**
@@ -30,6 +32,21 @@ Object.assign(state, {
  * 3. detect first-time setup, create pub/priv key pair
  * 4. start http / https listening endpoints
  */
+
+// directs web socket messages to the `web-api.js` handler
+// look in `src/lib/web` for `ws_proxy_path()` as an
+// example of how to handle a new web socket connection
+// function ws_handler(ws, req) {
+//   // todo: add a little auth here :)
+//   if (req.url === "/admin.api") {
+//     api.on_ws_connect(ws);
+//     ws.on("message", msg => api.on_ws_msg(ws, msg));
+//     ws.on("error", error => log({ ws_error: error }) )
+//   } else {
+//     log({ invalid_ws_url: req.url });
+//     ws.close();
+//   }
+// }
 
 async function setup_data_store() {
   log({ initializing: 'data store' });
