@@ -54,7 +54,7 @@ export async function setup(opt = { }) {
       state.init = true;
   }w
 
-  const modelName = opt.modelName ?? 'llama-2-7b-chat.Q2_K.gguf';
+  const modelName = opt.modelName ?? "llama-2-7b-chat.Q2_K.gguf";
   const modelPath = path.join(opt.modelDir ?? "models", modelName);
   const promptWrapper = opt.debug ? new CustomPromptWrapper() : new LlamaChatPromptWrapper();
   const contextSize = opt.contextSize ?? 4096;
@@ -64,20 +64,14 @@ export async function setup(opt = { }) {
   const model = new LlamaModel({
          modelPath,
          gpuLayers,
-         batchSize,
-         contextSize,
-         threads,
-  });
-  const context = new LlamaContext({
-         model,
-         batchSize,
-         contextSize,
-         threads,
+        //  batchSize,
+        //  contextSize,
+        //  threads,
   });
   Object.assign(state, {
     debug: opt.debug ?? false,
     model,
-    context,
+    threads,
     batchSize,
     contextSize,
     promptWrapper,
@@ -114,8 +108,15 @@ class AbortIt extends EventTarget {
 }
 
 export async function create_session(opt = { }) {
-  const { context, promptWrapper, systemPrompt } = state;
+  const { promptWrapper, systemPrompt } = state;
+  const { model, batchSize, contextSize, threads } = state;
   const grammar = opt.grammar ? await LlamaGrammar.getFor("json") : undefined;
+  const context = new LlamaContext({
+    model,
+    batchSize,
+    contextSize,
+    threads,
+  });
   const session = new LlamaChatSession({
     context,
     promptWrapper,
