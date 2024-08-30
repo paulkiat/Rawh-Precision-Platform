@@ -1,5 +1,6 @@
-import { $, $class, annotate_copyable, preventDefaults } from '../lib/utils.js';
+import { $, annotate_copyable } from '../lib/utils.js';
 import WsCall from './lib/ws-call.js';
+import modal from './lib/common.js';
 
 const ws_api = new WsCall("admin.api");
 const report = (o) => ws_api.report(o);
@@ -45,35 +46,13 @@ function org_list() {
   }).catch(report);
 }
 
-function setup_modal() {
-  $('modal-close-button').onclick = hide_modal;
-  document.onkeydown = ev => {
-    if (context.modal && ev.code === 'Escape') {
-      hide_modal();
-      preventDefaults(ev);
-    }
-  };
-}
-
-function hide_modal() {
-  context.modal = false;
-  $('modal').classList.remove("showing");
-}
-
-function show_modal(el_id) {
-  context.modal = true;
-  $class('content').forEach(el => {
-    el.classList.add("hidden");
-  });
-  $(el_id).classList.remove("hidden");
-  $('modal').classList.add("showing");
-}
 
 function org_edit(uid) {
   const rec = context.orgs[uid];
-  console.log({ edit: uid, rec });
   if (!rec) throw `invalid org uid: ${uid}`;
-  show-modal('org-edit');
+  console.log({ edit: uid, rec });
+
+  modal.show('org-edit', rec.name);
 }
 
 function org_delete(uid, name) {
@@ -98,8 +77,10 @@ window.orgfn = {
 };
 
 document.addEventListener('DOMContentLoaded', function () {
+  modal.init(context, [
+    "<div id='org-edit' class='content'>org edit</div>"
+  ]);
   ws_api.on_connect(org_list);
-  setup_modal();
   $('create-org').onclick = org_create;
   $('org-name').onkeydown = (ev) => {
     if (ev.code === 'Enter') {

@@ -1,10 +1,11 @@
 import { $, annotate_copyable } from '../lib/utils.js';
-import WsCall from './lib/ws-call.js'
+import WsCall from './lib/ws-call.js';
+import modal from './lib/common.js';
 
 const ws_api = new WsCall("admin.api");
 const report = (o) => ws_api.report(o);
-const call = (c, a) => ws_api.call(c,a);
-
+const call = (c, a) => ws_api.call(c, a);
+const context = {};
 
 function app_list() {
   call(app_list, {}).then(list => {
@@ -33,8 +34,8 @@ function app_list() {
         '</div>',
       ].join(''));
     }
-    annotate_copyable();
     $('app-list').innerHTML = html.join('');
+    annotate_copyable();
   }).catch(report);
 }
 
@@ -52,6 +53,7 @@ function app_create() {
 
 function app_edit(uid) {
   console.log({ edit: uid });
+  modal.show('app-edit', uid);
 }
 
 function app_delete(uid, name) {
@@ -67,7 +69,10 @@ window.appfn = {
   delete: app_delete,
 };
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
+  modal.init(context, [
+    "<div id='app-edit' class='content'>app edit</div>"
+  ]);
   ws_api.on_connect(app_list);
   $('create-app').onclick = app_create;
   $('app-name').onkeydown = (ev) => {
