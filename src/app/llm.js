@@ -56,7 +56,9 @@ async function llm_ssn_start(msg) {
   if (settings.debug) {
     log({ ssn_Start: reply.sid });
   }
-  log({ hb_topic: `~${reply.sid}` });
+  // listen for browser heartbeats to keep session alive
+  // if the browser tab closes or refreshes, this stops
+  // which lets us remove the context/session so they can GC
   node.subscribe(`~${reply.sid}`, llm_ssn_keepalive, 30);
   return reply;
 }
