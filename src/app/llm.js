@@ -43,21 +43,22 @@ function call(cmd, msg = {}) {
 }
 
 async function llm_ssn_keepalive(msg) {
-  const sid = await call("ssn-keepalive", {});
+  const sid = await call("ssn-keepalive", { sid: msg.sid });
   if (settings.debug) {
-    log({ ssn_keepalive: sid });
+    // log({ ssn_keepalive: sid });
   }
   return sid;
 }
 
 async function llm_ssn_start(msg) {
   const { node } = state;
-  const sid = await call("ssn-start", {});
+  const reply = await call("ssn-start", {});
   if (settings.debug) {
-    log({ ssn_Start: sid });
+    log({ ssn_Start: reply.sid });
   }
-  node.subscribe(`~${sid}`, llm_ssn_keepalive, 30);
-  return sid;
+  log({ hb_topic: `~${reply.sid}` });
+  node.subscribe(`~${reply.sid}`, llm_ssn_keepalive, 30);
+  return reply;
 }
 
 async function llm_ssn_end(msg) {
@@ -90,15 +91,15 @@ async function register_service() {
   node.handle([ "llm-ssn-query", app_id ], llm_ssn_query);
   node.handle([ "llm-ssn-end", app_id ], llm_ssn_end);
   node.handle([ "llm-query", app_id ], llm_query);
-  log({ service_up: app_id, type: "llm-server" });
   // initialize llm
-  await call("init", {
+  const ok = await call("init", {
     threads: settings.threads,
     context: settings.context,
     batch: settings.batch,
     model: settings.model,
     gpu: settings.gpu,
   });
+  log({ service_up: app_id, type: "llm-server" }, ...ok);
 }
 
 (async () => {

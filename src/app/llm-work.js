@@ -6,6 +6,18 @@
 const util = require('../lib/util');
 const sessions = {};
 
+// check for expiring sessions that haven't been heartbeated
+setInterval(() => {
+  const now = Date.now();
+  for (let [key, rec] of Object.entries(session)) {
+    if (rec.timeout < now) {
+      // console.log({ ssn_timeout: key });
+      delete sessions[key];
+    }
+  }
+}, 5000);
+
+
 (async () => {
   
   const { chat } = await require('../llm/api.js').init();
@@ -26,6 +38,7 @@ const sessions = {};
           contextSize: msg.context,
           thereads: msg.threads
         });
+        process.send({ mid, msg: { init: true } });
         break;
       case "ssn-start":
         const newsid = util.uid();
@@ -58,8 +71,9 @@ const sessions = {};
       case "ssn-keepalive":
         if (sessions[sid]) {
           sessions[sid].timeout = Date.now() + 60000;
-          break;
         }
+        process.send({ mid, msg: { sid } });
+        break;
       case "query":
         // console.log({ mid, sid, query, debug, topic });
         const temp = await chat.create_session({
