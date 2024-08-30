@@ -70,9 +70,7 @@ window.appfn = {
 };
 
 document.addEventListener('DOMContentLoaded', function () {
-  modal.init(context, [
-    "<div id='app-edit' class='content'>app edit</div>"
-  ]);
+  modal.init(context, "modal.html");
   ws_api.on_connect(app_list);
   $('create-app').onclick = app_create;
   $('app-name').onkeydown = (ev) => {

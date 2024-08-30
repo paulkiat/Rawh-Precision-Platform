@@ -4,7 +4,7 @@ const router = require('express').Router();
 const util = require('../lib/util');
 const log = util.logpre('adm');
 const { uuid, json, parse } = util;
-const context = {};
+const context = { };
 
 exports.init = function (state) {
   Object.assign(context, state);
@@ -79,26 +79,36 @@ async function org_list() {
   });
 }
 
-async function org_update(args) {
+async function org_update(args, trusted) {
   const { uid, rec } = args;
-  // todo: add filtering to limit updates to allowed fields
-  // which means first fetch the record then merge updates
-  return await context.orgs.put(uid, rec);
+  // limits updates to a subset of fields
+  const old = await context.orgs.get(uid);
+  if (old) {
+    Object.assign(old, {
+      name: rec.name ?? old.name,
+      admin: rec.admin ?? old.admin,
+    });
+    if (trusted) {
+      Object.assign(old, {
+        state: rec.state
+      });
+    }
+    return await context.orgs.put(uid, old);
+  }
 }
 
 async function org_delete(args) {
-  return await context.orgs.del(uid, rec);
+  return await context.orgs.del(args.uid);
 }
 
 async function org_by_uid(args) {
-  return await context.orgs.get(uid, rec);
+  return await context.orgs.get(args.uid);
 }
 
-async function org_list() {
-  const { meta_app } = context;
+async function org_by_name(args) {
   const list = await context.orgs.list({ limit: Infinity });
   for (let [ uid, rec ] of list ) {
-    if (rec.name === org.name) {
+    if (rec.name === args.name) {
       return [ uid, rec ];
     }
   }

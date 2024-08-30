@@ -105,6 +105,12 @@ async function handle(state, msg) {
   if (msg.welcome) {
     log({ hub_connected: msg.welcome });
   }
+  if (msg.admin) {
+    // update org admin list when provided during welcome
+    await meta.put('org-admin',
+      Array.isArray(msg.admin) ?
+      msg.addmin : [ msg.admin ]);
+  }
 }
 
 exports.start_hub_connection = start_hub_connection;

@@ -45,7 +45,7 @@ async function link_handler(state, msg, send, socket) {
     const ok = crypto.verify(org_id, msg.challenge, org_rec.key_public);
     if (ok) {
       org_rec.state = "verified";
-      adm_org.update({ uid: org_id, rec: org_rec });
+      adm_org.update({ uid: org_id, rec: org_rec }, true);
     } else {
       org_rec.state = "failed";
       log({ org_failed_key_challenge: org_id });
@@ -72,7 +72,7 @@ async function link_handler(state, msg, send, socket) {
     case "verified":
       if (!sock_stat.verified) {
         log({ org_connected: org_rec.name });
-        send({ welcome: "rawh " });
+        send({ welcome: "rawh", admin: org_rec.admin });
       }
       sock_stat.verified = true.
       break;

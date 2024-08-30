@@ -50,9 +50,21 @@ function org_list() {
 function org_edit(uid) {
   const rec = context.orgs[uid];
   if (!rec) throw `invalid org uid: ${uid}`;
-  console.log({ edit: uid, rec });
-
-  modal.show('org-edit', rec.name);
+  const edit = {
+    name: $('edit-name'),
+    admin: $('edit-admin'),
+  }
+  modal.show('org-edit', "edit org record", {
+    update(b) {
+      org_update(rec.uid, {
+        name: edit.name.value,
+        admin: edit.admin.value,
+      });
+    },
+    cancel: undefined,
+  });
+  edit.name.value = rec.name;
+  edit.admin.value = rec.admin || '';
 }
 
 function org_delete(uid, name) {
@@ -69,6 +81,10 @@ function org_create() {
   }
 }
 
+function org_update(uid, rec) {
+    call("org_update", { uid, rec }).then(org_list).catch(report);
+}
+
 window.orgfn = {
   list: org_list,
   edit: org_edit,
@@ -76,10 +92,10 @@ window.orgfn = {
   delete: org_delete,
 };
 
+window.$ = $;
+
 document.addEventListener('DOMContentLoaded', function () {
-  modal.init(context, [
-    "<div id='org-edit' class='content'>org edit</div>"
-  ]);
+  modal.init(context, "modal.html");
   ws_api.on_connect(org_list);
   $('create-org').onclick = org_create;
   $('org-name').onkeydown = (ev) => {
