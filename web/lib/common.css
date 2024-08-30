@@ -12,8 +12,6 @@
         color: white !important;
         background-color: #222 !important;
         border: 1px solid #555 !important;
-        border-radius: 3px !important;
-        padding: 3px 5px 3px 5px !important;
     }
 
     button:not(:disabled):hover {
@@ -90,6 +88,12 @@ div {
   position: relative;
   display: flex;
   gap: 5px;
+}
+
+input, button, textarea, select {
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  padding: 3px 5px 3px 5px;
 }
 
 #header {

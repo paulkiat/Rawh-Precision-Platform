@@ -8,7 +8,8 @@ const modal = {
   hide: modal_hide,
   set_title: modal_set_title,
   load_modal: modal_load,
-  add: modal_add
+  add: modal_add,
+  get showing() { return context.showing ? true : false }
 }
 
 function modal_init() {

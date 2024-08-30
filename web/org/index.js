@@ -1,6 +1,7 @@
 import { $, $class, annotate_copyable } from './lib/utils.js';
 import { on_key, flash, show, hide, LS } from './lib/utils.js';
 import { ws_proxy_api } from "./lib/ws-net.js";
+import { apps_header, apps_line } from "./html.js";
 import WsCall from './lib/ws-call.js';
 import modal from './lib/modal.js';
 
@@ -11,35 +12,13 @@ const context = { };
 
 function app_list() {
   call(app_list, {}).then(list => {
-    const html = [
-      '<div class="head">',
-      '<label>type</label>',
-      '<label>name</label>',
-      '<label>app-id</label>',
-      '<label>created</label>',
-      '<label>creator</label>',
-      '<label>users</label>',
-      '<label>actions</label>',
-      '</div>',
-    ];
+    const html = [];
+    apps_header(html);
     const apps = context.apps = {};
     for (let app of list) {
-      const { uid, type, name, creator, create, users } = org;
+      const { uid, created } = app;
       const date = dayjs(created).format('YYYY/MM/DD HH:mm');
-      html.push([
-        '<div class="data">',
-        `<label>${type || "undefined"}</label>`,
-        `<label class="copyable">${name}</label>`,
-        `<label class="copyable">${uid}</label>`,
-        `<label>${date}</label>`,
-        `<label>${creator}</label>`,
-        `<label>${users || 0}</label>`,
-        `<label class="actions">`,
-        `<button class="admin" onClick="appfn.edit('${uid}')">?</button>`,
-        `<button class="admin" onClick="appfn.delete('${uid}','${name}')">X</button>`,
-        `</label>`,
-        '</div>',
-      ].join(''));
+      apps_line(html, { date, ...app });
       apps[uid] = app;
     }
     $('app-list').innerHTML = html.join('');
@@ -104,25 +83,30 @@ function app_update(uid, rec) {
   call("app_update", { uid, rec }).then(app_list).catch(report);
 }
 
-function show_login(error, init) {
+function login_submit() {
+  if (!modal.show) {
+    console.log({ cannot_login_submit: "modal not showing" });
+    return;
+  }
+  const user = $('username').value;
+  const pass = $('password').value;
+  if (context.login.init) {
+    ssn_heartbeat(user, pass, $('password2').value, $('secret').value);
+  } else {
+    ssn_heartbeat(user, pass);
+  }
+      modal.hide();
+}
+  
+function login_show(error, init) {
   if (!context.login_init) {
     hide($("login_init"));
   }
   const show = error ? [ "login", "login-error" ] : [ "login" ];
-  modal.show(show, "login", {
-    login: () => {
-      const user = $('username').value;
-      const pass = $('password').value;
-      if (context.login.init) {
-        ssn_heartbeat(user, pass, $('password2').value, $('secret').value);
-      } else {
-        ssn_heartbeat(user, pass);
-      }
-      modal.hide();
-    }
-  }, { cancellable: false });
+  modal.show(show, "login", { login: login_submit }, { cancellable: false });
+  $('username').value = context.iam || LS.get("iam") ||"";
   if (init) {
-    $('username').value = context.iam || "";
+    $('secret').value =  "";
   } else {
     $('password').value = "";
   }
@@ -150,7 +134,7 @@ function ssn_heartbeat(user, pass, pass2, secret) {
           $("login-error").classList.add("hidden");
           if (context.login_init) {
             console.log({ failed_admin: user });
-            show_login("invalid secret", true);
+            login_show("invalid secret", true);
           }
           show($("login-init"));
           context.login_init = true;
@@ -172,14 +156,13 @@ function ssn_heartbeat(user, pass, pass2, secret) {
       .catch(error => {
         delete context.login_init;
         LS.delete("session");
-        show_login(error);
+        login_show(error);
         console.log({ auth_error: error });
       });
   } else {
-      show_login();
+      login_show();
   }
 }
-
 
 window.appfn = {
   list: app_list,
@@ -189,13 +172,10 @@ window.appfn = {
 };
 
 document.addEventListener('DOMContentLoaded', async function () {
-  const api = context.api = (context.api || await ws_proxy_api());
-  // api.on_ready(setup_subscriptions);
-  modal.init(context, "modal.html").then(ssn_heartbeat);
-  ws_api.on_connect(() => {
-    // on_key('Enter', 'iam', ev => set_iam(ev.target.value));
-    // set_iam(LS.get('iam') || '');
-    // app_list();
+  context.api = (context.api || await ws_proxy_api());
+  modal.init(context, "modal.html").then(() => {
+    on_key('Enter', 'password', login_submit);
+    ssn_heartbeat()
   });
   $('logout').onclick = logout;
   $('create-app').onclick = app_create;
