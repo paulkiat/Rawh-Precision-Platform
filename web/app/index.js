@@ -68,7 +68,6 @@ function setup_llm_session() {
       // heartbeat ~ssn topic to keep from being cleaned up
       setInterval(() => {
         state.api.publish(`~${msg.sid}`, { sid: msg.sid })
-        console.log({ hb: msg.sid });
       }, 10000);
     } else {
       console.log({ llm_session_error: error, msg });

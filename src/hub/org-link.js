@@ -6,8 +6,7 @@ const log = util.logpre('link');
 const { json, parse } = util;
 const connected = { };
 
-function setup(state) {
-  // wss_handler function
+function setup(state, ws) {
   return function (ws) {
     ws.on('message', (message) => {
       link_handler(state, json(message), obj => {
@@ -15,14 +14,16 @@ function setup(state) {
       }, ws);
     });
   }
+  ws.on('error', error => log({ ws_org_link_error: error }) )
 }
 
 async function link_handler(state, msg, send, socket) {
-  const { meta, logs, adm_org } = state;
+  const { meta, logs } = state;
+  const adm_org = state.org_api_commands;
   const sock_stat = socket.stat = socket.stat || { };
   
   const org_id = sock_stat.org_id || msg.org_id;
-  const org_rec = sock_stat.org_rec || await adm_org.get_by_uid(org_id);
+  const org_rec = sock_stat.org_rec || await adm_org.by_uid({ uid: org_id});
 
   //log({ org_id, org_rec, msg });
 
@@ -44,7 +45,7 @@ async function link_handler(state, msg, send, socket) {
     const ok = crypto.verify(org_id, msg.challenge, org_rec.key_public);
     if (ok) {
       org_rec.state = "verified";
-      adm_org.update(org_id, org_rec);
+      adm_org.update({ uid: org_id, rec: org_rec });
     } else {
       org_rec.state = "failed";
       log({ org_failed_key_challenge: org_id });

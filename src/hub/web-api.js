@@ -106,3 +106,11 @@ async function org_list() {
 }
 
 exports.web_handler = router;
+exports.commands = {
+  list: org_list,
+  create: org_create,
+  update:  org_update,
+  delete: org_delete,
+  by_uid: org_by_uid,
+  by_name: org_by_name
+}

@@ -20,9 +20,10 @@ Object.assign(state, {
   web_port: args['web-port'] || (args.prod ? 443 : 8443),
   app_handler,
   web_handler,
-  wss_handler: require('./org-link.js').setup(state),
+  org_api: api,
+  org_link: require('./org-link.js'),
   wss_handler: ws_handler,
-  ws_handler: ws_handler
+  ws_handler: ws_handler,
 });
 
 /**
@@ -39,13 +40,15 @@ Object.assign(state, {
 // example of how to handle a new web socket connection
 function ws_handler(ws, req) {
   // todo: add a little auth here :)
-  if (req.url === "/admin.api") {
+  if (req.url === "/") {
+      state.org_link.setup(state, ws);
+  } else if (req.url === "/admin.api") {
     api.on_ws_connect(ws);
     ws.on("message", msg => api.on_ws_msg(ws, msg));
     ws.on("error", error => log({ ws_error: error }) )
-  } else {
-    log({ invalid_ws_url: req.url, host: req.headers.host });
-    ws.close();
+    } else {
+  log({ invalid_ws_url: req.url, host: req.headers.host });
+  ws.close();
   }
 }
 
