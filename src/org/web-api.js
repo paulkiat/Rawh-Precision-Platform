@@ -96,7 +96,8 @@ async function app_delete(args) {
 
 async function is_admin(args) {
   const { meta } = context.state;
-  return (await meta.get("org-admins")).indexOf(args.iam) >= 0;
+  return (await meta.get("org-admins")).indexOf(args.username) >= 0;
 }
 
 exports.web_handler = router;
+exports.is_admin = (username) => is_admin({ username });

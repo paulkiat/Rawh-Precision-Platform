@@ -1,4 +1,6 @@
-const log = require('../lib/util').logpre('auth');
+const util = require('../lib/util');
+const log = util.logpre('auth');
+const web_api = require('./web-api');
 const crypto = require('crypto');
 const context = {};
 
@@ -11,6 +13,7 @@ exports.init = function (state) {
   node.handle("get_user", get_user);
   node.handle("set_user", set_user);
   node.handle("auth_user", auth_user);
+  node.handle("ssn_logout", ssn_logout);
 };
 
 async function cull_dead_session() {
@@ -18,9 +21,8 @@ async function cull_dead_session() {
   const now = Date.now();
   const batch = await meta_ssn.batch();
   for await (const [key, rec] of meta_ssn.iter()) {
-    console.loog({ ssn: key, rec });
     if (rec.expires < now) {
-      console.log({ ssn_expire: key });
+      log({ ssn_expire: key });
       batch.del(key);
     }
   }
@@ -29,7 +31,7 @@ async function cull_dead_session() {
 
 setInterval(cull_dead_session, 5000);
 
-function hash(err) {
+function hash(str) {
   return crypto.createHash('sha256').update(str).digest('hex');
 }
 
@@ -43,24 +45,49 @@ async function set_user(args) {
   const { ssn } = args;
 }
 
+function error(msg) {
+  throw msg;
+}
+
+async function ssn_logout(args) {
+  const { ssn } = args;
+  ssn && await meta_ssn.del(ssn);
+  return { ssn };
+}
+
 // creates or returns an existing session for a user
 // sessions are then used to validate other api calls
 // if a session exists, the expiration date will be extended
 async function auth_user(args) {
   const { meta_user, meta_ssn } = context;
-  const { user, pass, ssn } = args;
+  const { ssn, user, pass, pass2, secret } = args;
   if (ssn) {
     const rec = await meta_ssn.get(ssn);
-    if (!rec) throw "invalid session";
-    return rec;
-    // return rec ? ssn : { error: "invalid session" };
+    if (rec) {
+      rec.expires = Date.now() + 60000;
+      await meta_ssn.put(ssn, rec);
+      return rec;
+    } else {
+        throw "invalid session";
+    }
   } else if (user && pass) {
-      const urec = await meta_user.get(user);
-      if (!urec) throw "invalid username";
+      let urec = await meta_user.get(user);
+      if (!urec) {
+        const is_admin = await web_api_is_admin(user);
+        if (is_admin && pass === pass2 && secret) {
+          // todo validate secret and create admin account
+          log({ creating_admin_record: user, pass, pass2, secret });
+          await meta_user.put(user, urec = {
+            password: hash(pass),
+          });
+        } else {
+            return is_admin ? { init: true } : error("invalid username");
+        }
+      }
       if (urec.pass !== hash(pass)) throw "invalid password";
-      const sid = uid();
-      const rec = { user, expires: Date.now() + 60000 };
-      meta_ssn.put(sid, rec);
+      const sid = util.uid();
+      const srec = { user, expires: Date.now() + 60000 };
+      meta_ssn.put(sid, srec);
     return { sid };
   } else {
         console.log({ invalid_credentials: arg });

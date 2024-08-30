@@ -41,8 +41,8 @@ function modal_init() {
   }
 }
 
-function modal_hide() {
-  if (context.cancellable) {
+function modal_hide(force) {
+  if (force || context.cancellable) {
     context.showing = false;
     $('modal').classList.remove("showing");
   }

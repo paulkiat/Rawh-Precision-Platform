@@ -86,10 +86,12 @@ function app_delete(uid, name) {
 }
 
 // set user and check admin flags
-function set_iam(iam) {
+function set_iam(iam, indicate = true) {
   LS.set('iam', context.iam = $('iam').value = iam);
-  flash($('iam'));
-  call("is_admin", { iam }).then(ok => {
+  if (indicate) {
+    flash($('iam'));
+  }
+  call("is_admin", { username: iam }).then(ok => {
     if (ok) {
       show($class('admin'));
     } else {
@@ -103,34 +105,61 @@ function app_update(uid, rec) {
 }
 
 function show_login(error) {
-  const show = error ? ["login", "login-error"] : ["login"];
+  const show = error ? [ "login", "login-error" ] : [ "login" ];
   modal.show(show, "login", {
     login: () => {
-      ssn_heartbeat($('username').value, $('password').value);
+      const user = $('username').value;
+      const pass = $('password').value;
+      if (context.login.init) {
+        ssn_heartbeat(user, pass, $('password2').value, $('secret').value);
+        delete context.login_init;
+      } else {
+        ssn_heartbeat(user, pass);
+      }
       modal.hide();
     }
   }, { cancellable: false });
+  hide($("login-init"));
   $('username').value = context.iam || "";
   $('password').value = "";
   $("login-error").innerText = error || "...";
 }
 
-function ssn_heartbeat(user, pass) {
+async function logout() {
+  const { api, ssn } = context;
+  delete context.ssn;
+  LS.delete("session");
+  await api.pcall("ssn_logout", { ssn }, ssn_heartbeat);
+  ssn_heartbeat();
+}
+
+function ssn_heartbeat(user, pass, pass2, secret) {
   clearTimeout(context.ssn_hb);
   const ssn = LS.get("session");
   if (ssn || (user && pass)) {
-    context.api.pcall("auth_user", { ssn, user, pass })
+    if (user) {
+      set_iam(user, false);
+    }
+    context.api.pcall("auth_user", { ssn, user, pass, pass2, secret })
       .then((msg, error) => {
-        const { ssn, admin, } = msg;
-        LS.set("session", ssn);
-        console.log({ auth: msg });
-        modal.hide();
-        context.ssn_hb = setTimeout(ssn_heartbeat, 5000);
+        const { sid, init, user } = msg;
+        if (init) {
+          // show init org fields
+          context.login_init = true;
+          show($("login-init"));
+        } else if (sid) {
+          LS.set("session", sid);
+          modal.hide(true);
+          context.ssn_hb = setTimeout(ssn_heartbeat, 5000);
+        } else {
+          context.ssn_hb = setTimeout(ssn_heartbeat, 5000);
+          set_iam(user, false);
+        }
       })
       .catch(error => {
         LS.delete("session");
-        console.log({ auth_error: error });
         show_login(error);
+        console.log({ auth_error: error });
       });
   } else {
       show_login();
@@ -150,10 +179,11 @@ document.addEventListener('DOMContentLoaded', async function () {
   // api.on_ready(setup_subscriptions);
   modal.init(context, "modal.html").then(ssn_heartbeat);
   ws_api.on_connect(() => {
-    on_key('Enter', 'iam', ev => set_iam(ev.target.value));
-    set_iam(LS.get('iam') || '');
+    // on_key('Enter', 'iam', ev => set_iam(ev.target.value));
+    // set_iam(LS.get('iam') || '');
     app_list();
   });
+  $('logout').onclick = logout;
   $('create-app').onclick = app_create;
   on_key('Enter', 'app-name', ev => {
       app_create();

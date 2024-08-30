@@ -48,6 +48,15 @@
   padding: 8px;
 }
 
+#login-init {
+  display: contents;
+}
+
+#login {
+  justify-content: flex-start;
+  align-items: center;
+}
+
 /* table data */
 #app-list {
     grid-template-columns: 0.5fr 1fr 1fr 0.75fr 0.75fr 0.5fr 0.25fr;

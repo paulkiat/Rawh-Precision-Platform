@@ -390,7 +390,7 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
           endpoint(msg, topic, cid).then(msg => {
             client.send([ "repl", '', rmsg, cid, mid] );
           }).catch(error => {
-            client.send([ 'err', '', error, cid, mid ]);
+            client.send([ 'err', '', error.toString(), cid, mid ]);
           });
         }
         break;
@@ -403,7 +403,12 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
             return log({ missing_once_reply: mid });
           }
           delete once[mid];
-          return reply(msg);
+          try {
+            return reply(msg);
+          } catch (error) {
+            log({ once_error: error });
+            return;
+          }
         }
         break;
       case 'loc':
