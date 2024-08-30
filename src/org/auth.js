@@ -36,14 +36,22 @@ function hash(str) {
   return crypto.createHash('sha256').update(str).digest('hex');
 }
 
+async function list_users(args) {
+  const { meta_user } = context;
+  // TODO requires authenticated session
+  return await meta_user.keys();
+  
+}
 async function get_user(args) {
   const { meta_user } = context;
+  // TODO requires authenticated session
   return await meta_user.get(args.username);
 }
 
 async function set_user(args) {
   const { meta_ssn, meta_user } = context;
   const { ssn } = args;
+  // TODO requires authenticated session
 }
 
 function error(msg) {
