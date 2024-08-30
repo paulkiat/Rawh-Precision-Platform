@@ -1,5 +1,11 @@
 @import url('../lib/common.css');
 
+@media (prefers-color-scheme: dark) {
+  #edit-mode button.selected {
+    color: black !important;
+  }
+}
+
 #header {
     background-image: url('img/rawh-banner.jpg');
 }
@@ -16,23 +22,34 @@
   background-color: #cce !important;
 }
 
-#apps {
+#org {
     flex-grow: 1;
     border-radius: 10px;
     background-color: #eee;
     padding: 10px;
-    display: flex;
+    /* display: flex; */
+    display: none;
     flex-direction: column;
     gap: 5px;
 }
 
-#apps hr {
+#org hr {
     width: 100%;
 }
 
-#app-create {
+#app-create, #user-create {
     flex-direction: row;
     align-items: center;
+}
+
+#edit-mode, #edit-mode > div {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+#edit-mode button.selected {
+  background-color: #8da;
 }
 
 #login {
@@ -58,12 +75,16 @@
 }
 
 /* table data */
+#user-list {
+  display: grid;
+  grid-template-columns: 0.5fr 1fr 1fr 0.75fr 0.75fr 0.5fr 0.25fr;
+}
+
 #app-list {
     grid-template-columns: 0.5fr 1fr 1fr 0.75fr 0.75fr 0.5fr 0.25fr;
 }
 
 #app-edit {
-  display: grid;
   grid-template-columns: 1fr 3fr;
 }
 

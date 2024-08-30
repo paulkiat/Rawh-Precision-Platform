@@ -18,16 +18,22 @@
 </head>
 <body>
   <div id="header"></div>
-  <div id="apps">
+  <div id="org">
     <div id="welcome">
       <div>Welcome to the Rawh Apps!!</div>
       <div class="grow"></div>
+        <div id="edit-mode" class="admin-mode">
+          <div>edit mode</div>
+         <button id="set-edit-app">apps</button>
+         <button id="set-edit-users">users</button>
+      </div>
+      <div class="grow"></div>
       <div>i am</div>
-      <input id="iam" size="30" spellcheck="false" diasbled />
+      <input id="iam" size="25" spellcheck="false" diasbled />
       <button id="logout">logout</button>
     </div>
-    <hr class="admin">
-    <div id="app-create" class="admin">
+    <hr id="edit-mode" class="admin-mode">
+    <div id="app-create" class="admin-mode edit-app">
       <label for="app-name">App Name</label>
       <input id="app-name" size="35" />
       <label for="app-type">Type</label>
@@ -39,7 +45,14 @@
       <button id="create-app">create</button>
     </div>
     <hr>
-    <div id="app-list" class="table"></div>
+    <div id="user-create" class="edit-user">
+      <label for="user-name">User Name</label>
+      <input id="user-name" size="35" />
+      <button id="create-user">create</button>
+    </div>
+    <hr>
+    <div id="app-list" class="table edit-app"></div>
+    <div id="user-list" class="table admin-mode edit-user"></div>
     <div id="modal"></div> 
   </div>
 </body>

@@ -1,6 +1,7 @@
 import { $, $class, annotate_copyable } from './lib/utils.js';
 import { on_key, flash, show, hide, LS } from './lib/utils.js';
 import { ws_proxy_api } from "./lib/ws-net.js";
+import { users_header, users_line } from "./html.js";
 import { apps_header, apps_line } from "./html.js";
 import WsCall from './lib/ws-call.js';
 import modal from './lib/modal.js';
@@ -8,7 +9,54 @@ import modal from './lib/modal.js';
 const ws_api = new WsCall("admin.api");
 const report = (o) => ws_api.report(o);
 const call = (c, a) => ws_api.call(c, a);
-const context = { };
+const context = {};
+
+function set_user_mode(mode) {
+  switch (mode) {
+    case "admin":
+      show($class('admin-mode'));
+      break;
+    case "user":
+      hide($class('admin-mode'));
+      break;
+  }
+}
+
+function set_edit_mode(mode) {
+  switch (mode) {
+    case "app":
+      show($class('edit-app'));
+      hide($class('edit-user'));
+      $('set-edit-app').classList.add("selected");
+      $('set-edit-user').classList.remove("selected");
+      break;
+    case "user":
+      hide($class('edit-app'));
+      show($class('edit-user'));
+      $('set-edit-app').classList.remove("selected");
+      $('set-edit-user').classList.add("selected");
+      user_list();
+      break;
+  }
+}
+
+function user_list() {
+  context.api.pcall("list_users", {},).then(list => {
+    const html = [];
+    users_header(html);
+    const users = context.users = {};
+    for (let name of list) {
+      users_line(html, { name });
+      users[name] = name;
+      users_list_set(html);
+    }
+    annotate_copyable();
+  }).catch(report);
+}
+
+function user_list_set(html) {
+  $("user-list").innerHTML = html.join('');
+}
 
 function app_list() {
   call(app_list, {}).then(list => {
@@ -20,10 +68,14 @@ function app_list() {
       const date = dayjs(created).format('YYYY/MM/DD HH:mm');
       apps_line(html, { date, ...app });
       apps[uid] = app;
+      app_list_set(html);
     }
-    $('app-list').innerHTML = html.join('');
     annotate_copyable();
   }).catch(report);
+}
+
+function app_list_set(html = []) {
+    $('app-list').innerHTML = html.join('');
 }
 
 function app_create() {
@@ -118,6 +170,10 @@ async function logout() {
   const { api, ssn } = context;
   LS.delete("session");
   await api.call("ssn_logout", { ssn }, ssn_heartbeat);
+  set_user_mode('user');
+  set_edit_mode('app');
+  app_list_set();
+  delete context.app_list;
 }
 
 function ssn_heartbeat(user, pass, pass2, secret) {
@@ -149,13 +205,13 @@ function ssn_heartbeat(user, pass, pass2, secret) {
             set_iam(user, false);
           }
           if (org_admin) {
-            show("as-admin");
+            set_user_mode('admin');
           } else {
-            show("as-admin");
+            set_user_mode('user');
           }
           delete context.login_init;
           context.org_admin = org_admin;
-          context.ssn_hb = setTimeout(ssn_heartbeat, 1000);
+          context.ssn_hb = setTimeout(ssn_heartbeat, 10000);
           if (!context.app_list) {
             context.app_list = (context.app_list || 0) + 1;
             app_list();
@@ -180,16 +236,26 @@ window.appfn = {
   delete: app_delete,
 };
 
+window.userfn = {
+  edit: undefined,
+  delete: undefined,
+};
+
 document.addEventListener('DOMContentLoaded', async function () {
   context.api = (context.api || await ws_proxy_api());
   modal.init(context, "modal.html").then(() => {
     on_key('Enter', 'password', login_submit);
-    ssn_heartbeat()
+    show('org', 'flex');
+    ssn_heartbeat();
   });
   $('logout').onclick = logout;
   $('create-app').onclick = app_create;
+  $('set-edit-app').onclick = () => set_edit_mode('app');
+  $('set-edit-user').onclick = () => set_edit_mode('user');
   on_key('Enter', 'app-name', ev => {
       app_create();
       $('app-name').value = '';
   });
+  set_user_mode('user');
+  set_edit_mode('app');
 });

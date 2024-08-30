@@ -10,6 +10,7 @@ exports.init = function (state) {
   context.state = state;
   context.meta_ssn = meta.sub("sub");
   context.meta_user = meta.sub("user");
+  node.handle("list_users", list_user);
   node.handle("get_user", get_user);
   node.handle("set_user", set_user);
   node.handle("auth_user", auth_user);

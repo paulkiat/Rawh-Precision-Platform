@@ -31,3 +31,25 @@ export function apps_line(html, data) {
     '</div>',
   );
 }
+
+export function user_header(html) {
+  html.push(
+    '<div class="head">',
+    '<label>name</label>',
+    '<label>actions</label>',
+    '</div>',
+  );
+}
+
+export function user_line(html, data) {
+  const { name } = data;
+  html.push(
+    '<div class="data">',
+    `<label>${name}</label>`,
+    `<label class="actions">`,
+    `<button onClick="appfn.edit('${uid}')">?</button>`,
+    `<button onClick="appfn.delete('${uid}','${name}')">X</button>`,
+    `</label>`,
+    '</div>',
+  );
+}

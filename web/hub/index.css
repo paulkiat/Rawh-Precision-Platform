@@ -4,8 +4,7 @@
     background-image: url('img/red-blue-banner.jpg');
 }
 
-/* App Container */
-#app {
+#hub {
     flex-grow: 1;
     border-radius: 10px;
     background-color: #eee;
@@ -15,7 +14,7 @@
     gap: 5px;
 }
 
-#app hr {
+#hub hr {
     width: 100%;
 }
 
