@@ -44,6 +44,7 @@ async function start_hub_connection(state) {
     link.state = link_states.opened;
     // hearbeat ping every 5 seconds will allow link error detection and reset
     heartbeat_timer = setInterval(() => { link.send({ ping: Date.now() }) }, 2500);
+    // defined send function and send a welcome message (org-id)
     link.send = (msg) => ws.send(json(msg));
     link.send({ org_id: state.org_id });
     // reset error state on successful connection
@@ -89,11 +90,13 @@ async function start_hub_connection(state) {
 
 async function handle(state, msg) {
   const { meta, logs } = state;
+
   if (msg.hub_key_public) {
     state.hub_key_public = msg.hub_key_public;
     await meta.put('hub-key-public', state.hub_key_public);
     link.send({ org_key_public: state.org_keys.public });
   }
+
   if (msg.challenge) {
     const ok = crypto.verify("rawh", msg.challenge, state.hub_key_public);
     if (ok) {
@@ -102,9 +105,15 @@ async function handle(state, msg) {
       log({ failed_hub_key: "rawh" });
     }
   }
+
   if (msg.welcome) {
     log({ hub_connected: msg.welcome });
   }
+
+  if (msg.secret) {
+    await meta.put('org-secret', state.secret = msg.secret);
+  }
+  
   if (msg.admins) {
     const admins = msg.admins;
     // update org admin list when provided during welcome

@@ -66,8 +66,19 @@ export function flash(el) {
 
 export function hide(el) {
   to_array(el).forEach(el => {
+    if (el._old_display || el.style.display === "none") {
+      // already hidden
+      return;
+    }
     el._old_display = el.style.display;
     el.style.display = 'none';
+  });
+}
+
+export function show(el, mode) {
+  to_array(el).forEach(el => {
+    el.style.display = mode || el._old_display || '';
+    delete el._old_display;
   });
 }
 

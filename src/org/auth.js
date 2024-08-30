@@ -59,7 +59,7 @@ async function ssn_logout(args) {
 // sessions are then used to validate other api calls
 // if a session exists, the expiration date will be extended
 async function auth_user(args) {
-  const { meta_user, meta_ssn } = context;
+  const { state, meta_user, meta_ssn } = context;
   const { ssn, user, pass, pass2, secret } = args;
   if (ssn) {
     const rec = await meta_ssn.get(ssn);
@@ -74,14 +74,14 @@ async function auth_user(args) {
       let urec = await meta_user.get(user);
       if (!urec) {
         const is_admin = await web_api_is_admin(user);
-        if (is_admin && pass === pass2 && secret) {
+        if (is_admin && pass === pass2 && secret === state.secret) {
           // todo validate secret and create admin account
           log({ creating_admin_record: user, pass, pass2, secret });
           await meta_user.put(user, urec = {
             password: hash(pass),
           });
         } else {
-            return is_admin ? { init: true } : error("invalid username");
+            return is_admin ? { init: true } : error("invalid credentials");
         }
       }
       if (urec.pass !== hash(pass)) throw "invalid password";
@@ -91,6 +91,6 @@ async function auth_user(args) {
     return { sid };
   } else {
         console.log({ invalid_credentials: arg });
-        throw "invalid credentials";
+        throw "missing session and credentials";
   }
 }

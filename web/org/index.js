@@ -1,5 +1,5 @@
-import { $, $class, annotate_copyable } from '../lib/utils.js';
-import { on_key, flash, show, hide, LS } from '../lib/utils.js';
+import { $, $class, annotate_copyable } from './lib/utils.js';
+import { on_key, flash, show, hide, LS } from './lib/utils.js';
 import { ws_proxy_api } from "./lib/ws-net.js";
 import WsCall from './lib/ws-call.js';
 import modal from './lib/modal.js';
@@ -7,7 +7,7 @@ import modal from './lib/modal.js';
 const ws_api = new WsCall("admin.api");
 const report = (o) => ws_api.report(o);
 const call = (c, a) => ws_api.call(c, a);
-const context = {};
+const context = { };
 
 function app_list() {
   call(app_list, {}).then(list => {
@@ -104,7 +104,10 @@ function app_update(uid, rec) {
   call("app_update", { uid, rec }).then(app_list).catch(report);
 }
 
-function show_login(error) {
+function show_login(error, init) {
+  if (!context.login_init) {
+    hide($("login_init"));
+  }
   const show = error ? [ "login", "login-error" ] : [ "login" ];
   modal.show(show, "login", {
     login: () => {
@@ -112,25 +115,24 @@ function show_login(error) {
       const pass = $('password').value;
       if (context.login.init) {
         ssn_heartbeat(user, pass, $('password2').value, $('secret').value);
-        delete context.login_init;
       } else {
         ssn_heartbeat(user, pass);
       }
       modal.hide();
     }
   }, { cancellable: false });
-  hide($("login-init"));
-  $('username').value = context.iam || "";
-  $('password').value = "";
+  if (init) {
+    $('username').value = context.iam || "";
+  } else {
+    $('password').value = "";
+  }
   $("login-error").innerText = error || "...";
 }
 
 async function logout() {
   const { api, ssn } = context;
-  delete context.ssn;
   LS.delete("session");
-  await api.pcall("ssn_logout", { ssn }, ssn_heartbeat);
-  ssn_heartbeat();
+  await api.call("ssn_logout", { ssn }, ssn_heartbeat);
 }
 
 function ssn_heartbeat(user, pass, pass2, secret) {
@@ -144,19 +146,31 @@ function ssn_heartbeat(user, pass, pass2, secret) {
       .then((msg, error) => {
         const { sid, init, user } = msg;
         if (init) {
-          // show init org fields
-          context.login_init = true;
+          console.log("init", msg);
+          $("login-error").classList.add("hidden");
+          if (context.login_init) {
+            console.log({ failed_admin: user });
+            show_login("invalid secret", true);
+          }
           show($("login-init"));
-        } else if (sid) {
-          LS.set("session", sid);
-          modal.hide(true);
-          context.ssn_hb = setTimeout(ssn_heartbeat, 5000);
+          context.login_init = true;
         } else {
+          if (sid) {
+            LS.set("session", sid);
+            modal.hide(true);
+          } else if (user) {
+            set_iam(user, false);
+          }
+          delete context.login_init;
           context.ssn_hb = setTimeout(ssn_heartbeat, 5000);
-          set_iam(user, false);
-        }
+          if (!context.app_list) {
+            context.app_list = (context.app_list || 0) + 1;
+            app_list();
+          }
+        } 
       })
       .catch(error => {
+        delete context.login_init;
         LS.delete("session");
         show_login(error);
         console.log({ auth_error: error });
@@ -181,7 +195,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   ws_api.on_connect(() => {
     // on_key('Enter', 'iam', ev => set_iam(ev.target.value));
     // set_iam(LS.get('iam') || '');
-    app_list();
+    // app_list();
   });
   $('logout').onclick = logout;
   $('create-app').onclick = app_create;

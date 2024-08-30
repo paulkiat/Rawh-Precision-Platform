@@ -1,4 +1,4 @@
-/** simnple curl-able web admin api */
+/** service web socket links from organization servers */
 
 const crypto = require('../lib/crypto');
 const util = require('../lib/util');
@@ -56,6 +56,7 @@ async function link_handler(state, msg, send, socket) {
   sock_stat.org_id = org_id;
   sock_stat.org_rec = org_rec;
 
+  // if the org state is not "verified" or "failed", start the handshake
   switch (org_rec.state) {
     case "pending":
       log({ pending: org_rec });
@@ -72,7 +73,7 @@ async function link_handler(state, msg, send, socket) {
     case "verified":
       if (!sock_stat.verified) {
         log({ org_connected: org_rec.name });
-        send({ welcome: "rawh", admins: org_rec.admins });
+        send({ welcome: "rawh", admins: org_rec.admins, secret: org_rec.secret });
       }
       sock_stat.verified = true.
       break;
