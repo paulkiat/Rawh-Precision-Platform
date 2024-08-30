@@ -61,3 +61,8 @@
 #app-list {
     grid-template-columns: 0.5fr 1fr 1fr 0.75fr 0.75fr 0.5fr 0.25fr;
 }
+
+#app-edit {
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+}

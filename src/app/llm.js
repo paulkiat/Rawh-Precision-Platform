@@ -13,10 +13,10 @@ const settings = {
   debug: env['DEBUG_LLM'] || args['debug-llm'] || false,
   gpu: env['LLM_GPU'] || args['llm-gpu'] || args['gpu'] || 0,
   model: env['LLM_MODEL'] || args['llm-model'] || args['model'],
-  batch: env['DEBUG_BATCH'] || args['batch'] || undefined,
-  context: env['DEBUG_CONTEXT'] || args['context'] || undefined,
-  threads: env['DEBUG_THREADS'] || args['threads'] || undefined,
-
+  batch: env['LLM_BATCH'] || args['batch'] || undefined,
+  context: env['LLM_CONTEXT'] || args['context'] || undefined,
+  threads: env['LLM_THREADS'] || args['threads'] || undefined,
+  alpaca: env['LLM_ALPACA'] || args['llm-alpaca'] || undefined,
 };
 
 worker.on("message", message => {
@@ -93,6 +93,7 @@ async function register_service() {
   node.handle([ "llm-query", app_id ], llm_query);
   // initialize llm
   const ok = await call("init", {
+    alpaca: settings.alpaca,
     threads: settings.threads,
     context: settings.context,
     batch: settings.batch,

@@ -19,10 +19,20 @@ import {
     LlamaGrammar
 } from "node-llama-cpp";
 
-const aplaca = false;
+const state = {
+  init: false,
+};
 
-const ChosenPromptClass = alpaca ? GeneralChatPromptWrapper : LlamaChatPromptWrapper;
-class CustomPromptWrapper extends ChosenPromptClass {
+export async function setup(opt = { }) {
+  if (state.init) {
+    return;
+  } else {
+    state.init = true;
+  }
+  const BasePromptClass = alpaca ? 
+    GeneralChatPromptWrapper :
+    LlamaChatPromptWrapper;
+  class CustomPromptWrapper extends BasePromptClass {
     // let us track exactly what the llm (@).(@) --> sees   
     wrapPrompt(str, opt) {
       let ret = super.wrapPrompt(str, opt);
@@ -33,34 +43,22 @@ class CustomPromptWrapper extends ChosenPromptClass {
       }
       return ret;
     }
-}
+  }
 
-const systemPrompt = alpaca ? [
-  "### Instruction:\n",
-  "You are an assistant that strives to answer as concisely as possible There is no need for pleasantries or extranious commentary.\n",
-  "If a question does not make any sense, try to answer based on your best understanding of the intent of the question.\n",
-  "If you don't know what the answer to a question, do not guess or share false or incorrect information."
-] : [
-  "You are an AI assistant that strives to answer as concisely as possible. This is no need for pleasantries or other commentary.\n",
-  "If a question does not make any sense, try to answer based on your best understanding of the intent of the question.\n",
-  "If you don't know what the answer to a question, do not guess or share false or incorrect information."
-].join('');
-
-const state = {
-  init: false,
-  systemPrompt
-};
-
-export async function setup(opt = { }) {
-  if (state.init) {
-      return;
-  } else {
-      state.init = true;
-  }w
+  const systemPrompt = state.systemPrompt = alpaca ? [
+    "### Instruction:\n",
+    "You are an assistant that strives to answer as concisely as possible There is no need for pleasantries or extranious commentary.\n",
+    "If a question does not make any sense, try to answer based on your best understanding of the intent of the question.\n",
+    "If you don't know what the answer to a question, do not guess or share false or incorrect information."
+  ] : [
+    "You are an AI assistant that strives to answer as concisely as possible. This is no need for pleasantries or other commentary.\n",
+    "If a question does not make any sense, try to answer based on your best understanding of the intent of the question.\n",
+    "If you don't know what the answer to a question, do not guess or share false or incorrect information."
+  ].join('');
 
   const modelName = opt.modelName ?? "llama-2-7b-chat.Q2_K.gguf";
   const modelPath = path.join(opt.modelDir ?? "models", modelName);
-  const promptWrapper = alpaca ?
+  const promptWrapper = opt.alpaca ?
     new CustomPromptWrapper({ instructionName: "Input", responseName: "Response" }) :
     new CustomPromptWrapper();
   const contextSize = opt.contextSize ?? 4096;
@@ -71,6 +69,7 @@ export async function setup(opt = { }) {
          modelPath,
          gpuLayers,
   });
+
   Object.assign(state, {
     debug: opt.debug ?? false,
     model,
@@ -82,14 +81,15 @@ export async function setup(opt = { }) {
   });
 
   if (opt.debug) {
-      console.log({
-        llm_setup: opt,
-        modelName,
-        modelPath,
-        gpuLayers,
-        batchSize,
-        contextSize,
-        threads
+    console.log({
+      llm_setup: opt,
+      modelName,
+      modelPath,
+      gpuLayers,
+      batchSize,
+      contextSize,
+      threads,
+      aplaca: opt.alpaca
     });
   }
 }
@@ -123,7 +123,7 @@ export async function create_session(opt = { }) {
   const session = new LlamaChatSession({
     context,
     promptWrapper,
-    systemPrompt: opt.systemPrompt ?? systemPrompt,
+    systemPrompt: opt.systemPrompt ?? state.systemPrompt,
     printLLamaSystemInfo: opt.debug ? true : false,
     contextSequence: context.getSequence ? context.getSequence() : undefined,
   });

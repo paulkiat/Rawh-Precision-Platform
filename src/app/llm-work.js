@@ -43,6 +43,7 @@ setInterval(() => {
       case "init":
         await chat.setup({
           debug,
+          alpaca: msg.alpaca,
           gpuLayers: msg.gpu,
           modelName: msg.mode,
           batchSize: msg.batch,
