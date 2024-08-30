@@ -95,15 +95,16 @@ function login_submit() {
   } else {
     ssn_heartbeat(user, pass);
   }
-      modal.hide();
+      modal.hide(true);
 }
   
 function login_show(error, init) {
   if (!context.login_init) {
-    hide($("login_init"));
+    hide("login_init");
   }
   const show = error ? [ "login", "login-error" ] : [ "login" ];
   modal.show(show, "login", { login: login_submit }, { cancellable: false });
+  $('password').focus();
   $('username').value = context.iam || LS.get("iam") ||"";
   if (init) {
     $('secret').value =  "";
@@ -128,7 +129,7 @@ function ssn_heartbeat(user, pass, pass2, secret) {
     }
     context.api.pcall("auth_user", { ssn, user, pass, pass2, secret })
       .then((msg, error) => {
-        const { sid, init, user } = msg;
+        const { sid, init, user, org_admin } = msg;
         if (init) {
           console.log("init", msg);
           $("login-error").classList.add("hidden");
@@ -136,17 +137,25 @@ function ssn_heartbeat(user, pass, pass2, secret) {
             console.log({ failed_admin: user });
             login_show("invalid secret", true);
           }
-          show($("login-init"));
+          show("login-init");
           context.login_init = true;
         } else {
           if (sid) {
             LS.set("session", sid);
-            modal.hide(true);
-          } else if (user) {
+          } if (context.login_init) {
+              modal.hide(true);
+          }
+          if (user) {
             set_iam(user, false);
           }
+          if (org_admin) {
+            show("as-admin");
+          } else {
+            show("as-admin");
+          }
           delete context.login_init;
-          context.ssn_hb = setTimeout(ssn_heartbeat, 5000);
+          context.org_admin = org_admin;
+          context.ssn_hb = setTimeout(ssn_heartbeat, 1000);
           if (!context.app_list) {
             context.app_list = (context.app_list || 0) + 1;
             app_list();

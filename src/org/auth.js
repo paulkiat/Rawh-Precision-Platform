@@ -72,8 +72,9 @@ async function auth_user(args) {
     }
   } else if (user && pass) {
       let urec = await meta_user.get(user);
+      let org_admin = false;
       if (!urec) {
-        const is_admin = await web_api_is_admin(user);
+        const is_admin = org_admin =  await web_api_is_admin(user);
         if (is_admin && pass === pass2 && secret === state.secret) {
           // todo validate secret and create admin account
           log({ creating_admin_record: user, pass, pass2, secret });
@@ -83,12 +84,21 @@ async function auth_user(args) {
         } else {
             return is_admin ? { init: true } : error("invalid credentials");
         }
+      } else {
+        org_admin = await web_api.is_admin(user);
       }
-      if (urec.pass !== hash(pass)) throw "invalid password";
+      if (urec.pass !== hash(pass)) {
+        throw "invalid password";
+      }
       const sid = util.uid();
-      const srec = { user, expires: Date.now() + 60000 };
+      const srec = {
+        sid,
+        user,
+        org_admin,
+        expires: Date.now() + 60000
+      };
       meta_ssn.put(sid, srec);
-    return { sid };
+    return srec;
   } else {
         console.log({ invalid_credentials: arg });
         throw "missing session and credentials";
