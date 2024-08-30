@@ -8,6 +8,8 @@ button.selected {
 }
 
 textarea {
+  padding: 5px;
+  font-size: large;
   font-family: Arial, sans-serif;
 }
 

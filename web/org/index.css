@@ -37,5 +37,5 @@
 
 /* table data */
 #app-list {
-    grid-template-columns: 2fr 2fr 1fr 1fr 0.5fr;
+    grid-template-columns: 0.5fr 1fr 1fr 0.75fr 0.75fr 0.5fr 0.25fr;
 }

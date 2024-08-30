@@ -7,7 +7,6 @@ const report = (o) => ws_api.report(o);
 const call = (c, a) => ws_api.call(c, a);
 const context = { };
 
-
 function org_list() {
   call("org_list", {}).then(list => {
     const html = [
@@ -45,7 +44,6 @@ function org_list() {
     annotate_copyable();
   }).catch(report);
 }
-
 
 function org_edit(uid) {
   const rec = context.orgs[uid];
