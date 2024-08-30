@@ -75,7 +75,7 @@ async function app_list() {
 
 async function is_admin(args) {
   const { meta } = context.state;
-  return (await meta.get("org-admin")).indexOf(args.iam) >= 0;
+  return (await meta.get("org-admins")).indexOf(args.iam) >= 0;
 }
 
 const commands = {

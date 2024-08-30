@@ -65,7 +65,7 @@ async function org_create(args) {
     created: Date.now(),
     state: 'pending',
     saas: true, // true if Rawh hosts
-    admins: { }, // email address of org admins
+    admins: [], // email address of org admins
   });
   return uid;
 }
@@ -86,7 +86,7 @@ async function org_update(args, trusted) {
   if (old) {
     Object.assign(old, {
       name: rec.name ?? old.name,
-      admin: rec.admin ?? old.admin,
+      admins: rec.admins ?? old.admins,
     });
     if (trusted) {
       Object.assign(old, {

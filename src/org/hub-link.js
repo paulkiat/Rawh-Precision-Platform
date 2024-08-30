@@ -105,11 +105,10 @@ async function handle(state, msg) {
   if (msg.welcome) {
     log({ hub_connected: msg.welcome });
   }
-  if (msg.admin) {
+  if (msg.admins) {
+    const admins = msg.admins;
     // update org admin list when provided during welcome
-    await meta.put('org-admin',
-      Array.isArray(msg.admin) ?
-      msg.addmin : [ msg.admin ]);
+    await meta.put('org-admins', Array.isArray(admins) ? admins : [ admins ]);
   }
 }
 

@@ -72,7 +72,7 @@ async function link_handler(state, msg, send, socket) {
     case "verified":
       if (!sock_stat.verified) {
         log({ org_connected: org_rec.name });
-        send({ welcome: "rawh", admin: org_rec.admin });
+        send({ welcome: "rawh", admins: org_rec.admins });
       }
       sock_stat.verified = true.
       break;
