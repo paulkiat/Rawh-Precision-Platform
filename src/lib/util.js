@@ -96,7 +96,7 @@ exports.logone = function (b = true) {
 
 exports.logpre = function (pre) {
   return function () {
-    exports.log(`(${pre})`, ...arguments);
+    exports.log(`(${pre})`.padEnd(6, ' '), ...arguments);
   }
 };
 

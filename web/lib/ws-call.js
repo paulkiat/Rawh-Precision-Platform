@@ -1,4 +1,5 @@
 // web socket api client (browser) for implement function calls
+// not for calling api app services, that's ws-net
 
 import { json, parse, uid } from './utils.js';
 import { ws_connect } from './ws-net.js';

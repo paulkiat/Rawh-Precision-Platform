@@ -198,6 +198,10 @@ function zmq_proxy(port = 6000) {
           (watch[callto] = watch[callto] || []).push({ cid, topic, callto, mid });
         }
         break;
+      case 'err':
+        // propagate errors returned from callee handler to caller
+        send(callto, [ 'err', msg, cid, mid ]);
+        break;
       case 'repl':
         send(callto, ['repl', msg, mid]);
         const watchers = watch[cid];
@@ -384,7 +388,9 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
             return log('call handle', { missing_call_handler: topic });
           }
           endpoint(msg, topic, cid).then(msg => {
-            client.send(["repl", '', rmsg, cid, mid]);
+            client.send([ "repl", '', rmsg, cid, mid] );
+          }).catch(error => {
+            client.send([ 'err', '', error, cid, mid ]);
           });
         }
         break;

@@ -86,6 +86,7 @@ export function on_key(key, el, fn) {
   el.onkeydown = (ev) => {
     if (ev.code === key) {
       fn(ev);
+      preventDefaults(ev);
     }
   };
 }

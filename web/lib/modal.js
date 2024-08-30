@@ -26,19 +26,19 @@ function modal_init() {
      `</div>`
   ].join('');
   $('modal-close-button').onclick = hide_modal;
-  if (html) {
-    if (Array.isArray(html)) {
-      modal_add(html);
-    } else {
-      modal_load(html);
-    }
-  }
   document.onkeydown = ev => {
     if (context.modal && ev.code === 'Escape') {
       hide_modal();
       preventDefaults(ev);
     }
   };
+  if (html) {
+    if (Array.isArray(html)) {
+      modal_add(html);
+    } else {
+      return modal_load(html);
+    }
+  }
 }
 
 function modal_hide() {
@@ -67,7 +67,7 @@ function modal_add(html) {
 }
 
 function modal_load(url) {
-  load_text(url).then(html => modal_ad(html));
+  return load_text(url).then(html => modal_ad(html));
 }
 
 function modal_buttons(buttons) {

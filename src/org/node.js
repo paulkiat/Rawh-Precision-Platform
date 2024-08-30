@@ -4,6 +4,7 @@
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const log = require('../lib/util').logpre('node');
 const net = require('../lib/net');
+const auth = require('./auth');
 const router = require('express').Router();
 const apps = { };
 
@@ -35,6 +36,9 @@ function get_app_rec(app_id, overlay = {}) {
 
 exports.init = function (state) {
   node = state.node = net.node('localhost', state.proxy_port);
+
+  // initialize authentication services
+  auth.init(state);
 
   // allow an app to capture an url under its proxy root
   // and redirect it to a common url outside of the app

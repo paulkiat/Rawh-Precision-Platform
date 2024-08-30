@@ -3,7 +3,7 @@
 
 import setup_file_drop from './lib/file-drop.js';
 import { ws_proxy_api } from "./lib/ws-net";
-import { $, LS } from './lib/util.js';
+import { $, LS, on_key } from './lib/util.js';
 
 const state = {
   topic_embed: "llm-query/org",
@@ -119,12 +119,10 @@ function query_llm(query, then, disable = true) {
 function setup_qna_bindings() {
   disable_query();
   const query = $('query');
-  query.addEventListener("keypress", (ev) => {
-    if (ev.code === 'Enter' && query.value) {
-      query_llm(query.value);
-      LS.set('last-query', query.value);
-    }
-  }, false);
+  on_key('Enter', query, () => {
+    query_llm(query.value);
+    LS.set('last-query', query.value);
+  });
   $('mode-chat').onclick = () => {
     LS.set('last-mode', 'chat');
     state.embed = false;

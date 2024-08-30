@@ -9,7 +9,7 @@ const context = { };
 exports.init = function (state) {
   context.state = state;
   const { meta, logs } = context.state;
-  context.meta_app = meta.sub("apps");
+  context.meta_app = meta.sub("app");
   // attach file drop handler (for proxied apps)
   router.use(file_drop(state));
 };

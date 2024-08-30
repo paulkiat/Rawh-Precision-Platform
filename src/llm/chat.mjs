@@ -19,24 +19,28 @@ import {
     LlamaGrammar
 } from "node-llama-cpp";
 
-// const PromptClass = GeneralChatPromptWrapper;
-const ChosenPromptClass = LlamaChatPromptWrapper;
+const aplaca = false;
 
-class CustomPromptWrapper extends ChosenPromptClass /*LlamaChatPromptWrapper*/ {
+const ChosenPromptClass = alpaca ? GeneralChatPromptWrapper : LlamaChatPromptWrapper;
+class CustomPromptWrapper extends ChosenPromptClass {
     // let us track exactly what the llm (@).(@) --> sees   
     wrapPrompt(str, opt) {
       let ret = super.wrapPrompt(str, opt);
       // to get the exact details of what the llm sees
       if (state.debug == 42) {
-        console.log({ send_to_llm: ret });
+        // let { systemPrompt, promptIndex, lastStopString, lastStopStringSuffix } = opt;
+        console.log({ opt, send_to_llm: ret });
       }
       return ret;
     }
 }
 
-const systemPrompt = [
-  // "You are an AI assistant that strives to answer as concisely as possible There is no need for pleasantries or extranious commentary.\n",
-  // "Skip explanations that you are just an AI without opinions or personal beliefs.\n",
+const systemPrompt = alpaca ? [
+  "### Instruction:\n",
+  "You are an assistant that strives to answer as concisely as possible There is no need for pleasantries or extranious commentary.\n",
+  "If a question does not make any sense, try to answer based on your best understanding of the intent of the question.\n",
+  "If you don't know what the answer to a question, do not guess or share false or incorrect information."
+] : [
   "You are an AI assistant that strives to answer as concisely as possible. This is no need for pleasantries or other commentary.\n",
   "If a question does not make any sense, try to answer based on your best understanding of the intent of the question.\n",
   "If you don't know what the answer to a question, do not guess or share false or incorrect information."
@@ -56,7 +60,9 @@ export async function setup(opt = { }) {
 
   const modelName = opt.modelName ?? "llama-2-7b-chat.Q2_K.gguf";
   const modelPath = path.join(opt.modelDir ?? "models", modelName);
-  const promptWrapper = opt.debug ? new CustomPromptWrapper() : new LlamaChatPromptWrapper();
+  const promptWrapper = alpaca ?
+    new CustomPromptWrapper({ instructionName: "Input", responseName: "Response" }) :
+    new CustomPromptWrapper();
   const contextSize = opt.contextSize ?? 4096;
   const batchSize = opt.batchSize ?? 4096;
   const gpuLayers = opt.gpulayers ?? 0;

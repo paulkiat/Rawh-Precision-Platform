@@ -1,7 +1,7 @@
 // provides web-socket handlers for net (node/api/proxy) access
 
 import { uuid, json, parse } from '../lib/utils';
-const { protocol, hostname, port, pathname } = location;
+const { protocol, hostname, port, pathname } = window.location;
 
 export function ws_connect(wsPath = "", on_open, on_msg, retry = 10000) {
   const wsProtocol = protocol === 'https:' ? 'wss://' : 'ws://';
