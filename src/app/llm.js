@@ -57,9 +57,6 @@ async function llm_ssn_keepalive(msg) {
 async function llm_ssn_start(msg) {
   const { node } = state;
   const reply = await call("ssn-start", {});
-  if (settings.debug) {
-    log({ ssn_Start: reply.sid });
-  }
   // listen for browser heartbeats to keep session alive
   // if the browser tab closes or refreshes, this stops
   // which lets us remove the context/session so they can GC
@@ -69,9 +66,6 @@ async function llm_ssn_start(msg) {
 
 async function llm_ssn_end(msg) {
   const ok = await call("ssn-end", { sid: msg.sid });
-  if (settings.debug) {
-    log({ ssn_end: ok, sid: msg.sid });
-  }
   return ok;
 }
 

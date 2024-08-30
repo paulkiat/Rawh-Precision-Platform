@@ -5,14 +5,24 @@
 
 const util = require('../lib/util');
 const sessions = {};
+const context = {};
+
+function log(debug) {
+  if (context.debug) {
+    process.send({ debug });
+  }
+}
 
 // check for expiring sessions that haven't been heartbeated
 setInterval(() => {
   const now = Date.now();
   for (let [key, rec] of Object.entries(session)) {
     if (rec.timeout < now) {
-      process.send({ debug: { ssn_expire: key } });
       delete sessions[key];
+      log({
+        ssn_expire: key,
+        open: Object.keys(sessions).length
+      });
     }
   }
 }, 5000);
@@ -25,6 +35,7 @@ setInterval(() => {
   process.on("message", async (work) => {
     const { cmd, mid, msg, debug } = work;
     const { sid, query, topic } = msg;
+    context.debug = debug;
     const onToken = topic ? (token) => {
       process.send({ topic, tokens });
     } : undefined;
@@ -47,6 +58,10 @@ setInterval(() => {
           timeout: Date.now() + 60000
         };
         process.send({ mid, msg: { sid: newsid } });
+        log({
+          ssn_start: newsid,
+          open: Object.keys(sessions).length
+        });
         break;
       case "ssn-query":
         const ssn = sessions[sid];
@@ -67,6 +82,10 @@ setInterval(() => {
         } else {
           process.send({ mid, msg: false });
         }
+        log({
+          ssn_end: sid,
+          open: Object.keys(sessions).length
+      });
         break;
       case "ssn-keepalive":
         if (sessions[sid]) {
