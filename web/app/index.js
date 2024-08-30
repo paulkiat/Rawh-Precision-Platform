@@ -65,6 +65,10 @@ function setup_llm_session() {
       console.log({ llm_session: msg.sid });
       state.ssn = msg.sid;
       enable_query();
+      // heartbeat ~ssn topic to keep from being cleaned up
+      setInterval(() => {
+        state.api.publish(`~${msg.sid}`, {});
+      }, 10000);
     } else {
       console.log({ llm_session_error: error, msg });
     }

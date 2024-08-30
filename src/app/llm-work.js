@@ -29,16 +29,11 @@ const sessions = {};
         break;
       case "ssn-start":
         const newsid = util.uid();
-        sessions[newsid] = await chat.create_session({ debug });
+        sessions[newsid] = {
+          ssn: await chat.create_session({ debug }),
+          timeout: Date.now() + 60000
+        };
         process.send({ mid, msg: { sid: newsid } });
-        break;
-      case "ssn-end":
-        if (sessions[sid]) {
-          delete sessions[sid];
-          process.send({ mid, msg: true });
-        } else {
-          process.send({ mid, msg: false });
-        }
         break;
       case "ssn-query":
         const ssn = sessions[sid];
@@ -52,6 +47,19 @@ const sessions = {};
           process.send({ mid, msg: { error: "missing session" } });
         }
         break;
+      case "ssn-end":
+        if (sessions[sid]) {
+          delete sessions[sid];
+          process.send({ mid, msg: true });
+        } else {
+          process.send({ mid, msg: false });
+        }
+        break;
+      case "ssn-keepalive":
+        if (sessions[sid]) {
+          sessions[sid].timeout = Date.now() + 60000;
+          break;
+        }
       case "query":
         // console.log({ mid, sid, query, debug, topic });
         const temp = await chat.create_session({

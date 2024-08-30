@@ -138,6 +138,7 @@ function zmq_proxy(port = 6000) {
   };
 
   // update last touch time and timeout for ephemeral ~topics
+  // default timeout is 5 minutes
   const update_ttimeer = function(topic, msg) {
     if (topic.charAt(0) === '~') {
       // topic timeout is last subscriber time + timeout

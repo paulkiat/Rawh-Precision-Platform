@@ -41,12 +41,22 @@ function call(cmd, msg = {}) {
     worker.send({ mid, cmd, msg, debug: settings.debug });
   });
 }
-  
+
+async function llm_ssn_keepalive(msg) {
+  const sid = await call("ssn-keepalive", {});
+  if (settings.debug) {
+    log({ ssn_keepalive: sid });
+  }
+  return sid;
+}
+
 async function llm_ssn_start(msg) {
+  const { node } = state;
   const sid = await call("ssn-start", {});
   if (settings.debug) {
     log({ ssn_Start: sid });
   }
+  node.subscribe(`~${sid}`, llm_ssn_keepalive, 30);
   return sid;
 }
 
@@ -75,6 +85,7 @@ async function register_service() {
     subtype: "llama-2"
   });
   // bind api service endpoints
+  // node.handle([ "llm-ssn-keepalive", app_id ], llm_ssn_keepalive);
   node.handle([ "llm-ssn-start", app_id ], llm_ssn_start);
   node.handle([ "llm-ssn-query", app_id ], llm_ssn_query);
   node.handle([ "llm-ssn-end", app_id ], llm_ssn_end);
