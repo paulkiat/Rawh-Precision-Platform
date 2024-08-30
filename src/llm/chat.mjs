@@ -70,16 +70,13 @@ export async function setup(opt = { }) {
   const model = new LlamaModel({
          modelPath,
          gpuLayers,
-        //  batchSize,
-        //  contextSize,
-        //  threads,
   });
   Object.assign(state, {
     debug: opt.debug ?? false,
     model,
     threads,
     batchSize,
-    contextSize,
+    contextSize: Math.min(contextSize, model.trainContextSize || contextSize),
     promptWrapper,
     systemPrompt: opt.systemPrompt ?? systemPrompt
   });
@@ -128,6 +125,7 @@ export async function create_session(opt = { }) {
     promptWrapper,
     systemPrompt: opt.systemPrompt ?? systemPrompt,
     printLLamaSystemInfo: opt.debug ? true : false,
+    contextSequence: context.getSequence ? context.getSequence() : undefined,
   });
 
   const fns = {
@@ -142,14 +140,15 @@ export async function create_session(opt = { }) {
       let time = Date.now();
       let chunks = 0;
       const response = await fns.prompt(prompt, (chunk) => {
-        const text = context.decode(chunk);
+        const text = model.detokenize ?
+          model.detokenize(chunk) : // v3.x
+          context.decode(chunk);    // v2.x
         if (onToken) {
             onToken(text);
         }
         if (chunks++ === 0) {
             console.log('-----[[  llm reply  ]]-----');
         }
-        // process.stdout.write('{'+text+'}');
         process.stdout.write(text);
       });
       time = (Date.now() - time).toString();

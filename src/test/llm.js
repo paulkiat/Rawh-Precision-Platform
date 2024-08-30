@@ -1,16 +1,17 @@
 (async () => {
 
+const { embed, token } = await require('../llm/api').init();
+
 const fsp = require('fs/promises');
 await fsp.mkdir("models").catch(e => e);
 
 // tokenize all docs in a directory into chunks
-const token = await import('../../src/llm/token.mjs');
-const chunks = await token.load_and_split("docs", { debug: false, clean: true });
+// const token = await import('../../src/llm/token.mjs');
+const chunks = await token.load_dir("docs", { debug: false, clean: true });
 
 // create vector embeddings for each chunk
-const embed = await import('./lib/embed.js');
+// const embed = await import('./lib/embed.js');
 const embeds = await embed.vectorize(chunks.map(c => c.pageContent));
-
 
 function vec_2_index(vec) {
   return Math.sqrt(vec.map(v => v * v).reduce((x, y) => x + y));
@@ -65,18 +66,5 @@ sim.sort((a, b) => b[0] - a[0]);
 // show first 2 most similar chunks
 console.log(sim.map(r => [ r[0], r[1].pageContent ]).slice(0, 2));
 console.log([ query.index, sim[0][1], sim[1][1].index ]);
-  
-// wait 2 seconds
-// await new Promise((ok, fail) => setTimeout(ok, 2000));
-  
-// TODO: add embeds to the prompt/qert least important so first so that
-// those will be the ones dropped if the prompt exceeds the llm token window
-  
-// test llm integration
-const llm = await import('./lib/llm.mjs');
-const ssn1 = await llm.create_session();
-await ssn1.prompt_debug("Why is the earth called a pale blue dot?");
-await ssn1.prompt_debug("shorter answer please");
-await ssn1.prompt_debug("what was my questions");
   
 })();
