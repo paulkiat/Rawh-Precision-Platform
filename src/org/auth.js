@@ -55,15 +55,15 @@ async function auth_user(args) {
     return rec;
     // return rec ? ssn : { error: "invalid session" };
   } else if (user && pass) {
-    const urec = await meta_ssn.get(user);
-    if (!urec) throw "invalid username";
-    if (urec.pass !== hash(pass)) throw "invalid password";
-    const sid = uid();
-    const rec = { user, expires: Date.now() + 60000 };
-    meta_ssn.put(sid, rec);
-    return sid;
+      const urec = await meta_user.get(user);
+      if (!urec) throw "invalid username";
+      if (urec.pass !== hash(pass)) throw "invalid password";
+      const sid = uid();
+      const rec = { user, expires: Date.now() + 60000 };
+      meta_ssn.put(sid, rec);
+    return { sid };
   } else {
-    console.log({ invalid_credentials: arg });
-    throw "invalid credentials";
+        console.log({ invalid_credentials: arg });
+        throw "invalid credentials";
   }
 }

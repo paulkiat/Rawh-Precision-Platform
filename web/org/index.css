@@ -40,6 +40,14 @@
   grid-template-columns: 1fr 3fr;
 }
 
+#login-error {
+  justify-content: center;
+  background: rgba(255, 0, 0, 0.396);
+  border-radius: 3px;
+  font-size: larger;
+  padding: 8px;
+}
+
 /* table data */
 #app-list {
     grid-template-columns: 0.5fr 1fr 1fr 0.75fr 0.75fr 0.5fr 0.25fr;

@@ -1,4 +1,4 @@
-import { $, $class, preventDefaults, load_text } from './lib/util';
+import { $, $class, preventDefaults, load_text, to_array } from './lib/util';
 
 const context = {};
 
@@ -27,7 +27,7 @@ function modal_init() {
   ].join('');
   $('modal-close-button').onclick = hide_modal;
   document.onkeydown = ev => {
-    if (context.modal && ev.code === 'Escape') {
+    if (context.showing && ev.code === 'Escape') {
       hide_modal();
       preventDefaults(ev);
     }
@@ -42,16 +42,22 @@ function modal_init() {
 }
 
 function modal_hide() {
-  context.modal = false;
-  $('modal').classList.remove("showing");
+  if (context.cancellable) {
+    context.showing = false;
+    $('modal').classList.remove("showing");
+  }
 }
 
 function modal_show(el_id, title, buttoms = []) {
-  context.modal = true;
+  context.showing = true;
+  const cc = context.cancellable = opt.cancellable !== false;
+  $('modal-close-button').style.display = cc ? '' : 'none';
   $class('content').forEach(el => {
     el.classList.add("hidden");
   });
-  $(el_id).classList.remove("hidden");
+  to_array(el_id).forEach(el_id => {
+    $(el_id).classList.remove("hidden");
+  });
   modal_set_title(title);
   $('modal').classList.add("showing");
   modal.buttons(buttons);

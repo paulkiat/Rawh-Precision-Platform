@@ -233,6 +233,10 @@ div {
   margin: 10px;
 }
 
+#modal-body {
+  flex-direction: column;
+}
+
 #modal-content > div {
   padding: 10px;
 }

@@ -163,7 +163,10 @@ function ws_proxy_path(node, path = "/proxy.api", pass) {
       ws.on('error', error => {
         log({ ws_error: error });
       });
-      ws.send(util.json({ app_id: ws.app_id }));
+      if (ws.app_id) {
+        // if app connection, let app know its id
+        ws.send(util.json({ app_id: ws.app_id }));
+      }
     } else {
       // optional pass-thru handler if it's not an app/ proxied connection
       if (pass) {

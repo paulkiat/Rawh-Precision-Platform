@@ -102,9 +102,41 @@ function app_update(uid, rec) {
   call("app_update", { uid, rec }).then(app_list).catch(report);
 }
 
-function ssn_heartbeat() {
-
+function show_login(error) {
+  const show = error ? ["login", "login-error"] : ["login"];
+  modal.show(show, "login", {
+    login: () => {
+      ssn_heartbeat($('username').value, $('password').value);
+      modal.hide();
+    }
+  }, { cancellable: false });
+  $('username').value = context.iam || "";
+  $('password').value = "";
+  $("login-error").innerText = error || "...";
 }
+
+function ssn_heartbeat(user, pass) {
+  clearTimeout(context.ssn_hb);
+  const ssn = LS.get("session");
+  if (ssn || (user && pass)) {
+    context.api.pcall("auth_user", { ssn, user, pass })
+      .then((msg, error) => {
+        const { ssn, admin, } = msg;
+        LS.set("session", ssn);
+        console.log({ auth: msg });
+        modal.hide();
+        context.ssn_hb = setTimeout(ssn_heartbeat, 5000);
+      })
+      .catch(error => {
+        LS.delete("session");
+        console.log({ auth_error: error });
+        show_login(error);
+      });
+  } else {
+      show_login();
+  }
+}
+
 
 window.appfn = {
   list: app_list,
@@ -115,25 +147,8 @@ window.appfn = {
 
 document.addEventListener('DOMContentLoaded', async function () {
   const api = context.api = (context.api || await ws_proxy_api());
-  modal.init(context, "modal.html").then(() => {
-    modal.show("login", "login", {
-      login: modal.hide,
-      cancel: modal.hide
-    });
-    const ssn = LS.get("session") || "no session";
-    if (ssn) {
-      api.pcall("auth_user", { ssn })
-        .then((ssn, error) => {
-          console.log({ auth: ssn });
-          modal.hide();
-          ssn_heartbeat();
-        })
-        .catch(err => {
-          console.log({ auth_err: err });
-          // reauth
-        })
-    }
-  });
+  // api.on_ready(setup_subscriptions);
+  modal.init(context, "modal.html").then(ssn_heartbeat);
   ws_api.on_connect(() => {
     on_key('Enter', 'iam', ev => set_iam(ev.target.value));
     set_iam(LS.get('iam') || '');

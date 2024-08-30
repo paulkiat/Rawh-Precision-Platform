@@ -12,6 +12,9 @@ export function array_remove(arr, val) {
   }
 }
 
+export function to_array(o) {
+  return Array.isArray(o) ? o : [ o ];
+}
 
 export function $(id) {
   return document.getElementById(id);
@@ -68,11 +71,6 @@ export function hide(el) {
   });
 }
 
-export function to_array(o) {
-  return Array.isArray(o) ? o : [ o ];
-}
-
-
 async function load_text(url) {
   return fetch(url).then(r => r.text());
 }
@@ -93,5 +91,7 @@ export function on_key(key, el, fn) {
 
 export const LS = {
   get(key) { return localStorage.getItem(key) },
-  set(key, val) { return localStorage.setItem(key, val) }
+  set(key, val) { return localStorage.setItem(key, val) },
+  delete(key) { return localStorage.removeItem(key) },
+
 };

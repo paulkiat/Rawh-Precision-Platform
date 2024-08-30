@@ -96,7 +96,7 @@ async function ws_proxy_api() {
         const handler = ctx.once[mid];
         delete ctx.once[mid];
         if (!handler) {
-          console.log({ missing_once: mid });
+          console.log({ missing_once: mid, ws_msg });
         } else if (error) {
           handler(undefined, error, topic)
           } else {
