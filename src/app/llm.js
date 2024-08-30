@@ -20,9 +20,13 @@ const settings = {
 };
 
 worker.on("message", message => {
-  const { mid, msg, topic, token } = message;
+  const { mid, msg, topic, token, debug } = message;
   if (topic) {
     state.node.publish(topic, token);
+    return;
+  }
+  if (debug) {
+    log(debug);
     return;
   }
   const fn = once[mid];

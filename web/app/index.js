@@ -78,6 +78,7 @@ function set_answer(text, query) {
 
 function query_llm(query, then, disable = true) {
   console.log({ query });
+  set_answer("...thinking");
   if (disable) {
     disable_query("...");
   }
@@ -85,6 +86,13 @@ function query_llm(query, then, disable = true) {
   const start = Date.now();
   const rand = Math.round(Math.random() * 0xffffffff).toString(36);
   const topic = `~${start.toString(36)}:${rand}`;
+  // ephemeral ~topic for receiving llm token strema
+  const tokens = [];
+  state.api.subscribe(topic, (token) => {
+    tokens.push(token);
+    set_answer(tokens.join(''));
+  }, 120);
+  // make different call depending on the node
   if (!state.embed)
   state.api.call(state.topic_chat, { sid: state.ssn, query, topic }, msg => {
     if (msg) {
@@ -106,13 +114,6 @@ function query_llm(query, then, disable = true) {
       window.answer = msg;
     }
   });
-  // ephemeral ~topic for receiving llm token stream
-  set_answer("...thinking");
-  const tokens = [];
-  state.api.subscribe(topic, (token) => {
-    tokens.push(token);
-    set_answer(tokens.join(''));
-  }, 120);
 }
 
 function setup_qna_bindings() {

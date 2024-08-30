@@ -11,7 +11,7 @@ setInterval(() => {
   const now = Date.now();
   for (let [key, rec] of Object.entries(session)) {
     if (rec.timeout < now) {
-      // console.log({ ssn_timeout: key });
+      process.send({ debug: { ssn_expire: key } });
       delete sessions[key];
     }
   }
