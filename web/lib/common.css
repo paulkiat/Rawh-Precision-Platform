@@ -86,7 +86,7 @@ div {
 }
 
 .table > .data > label.flash {
-  background-color: #cce0ff !important;
+  background-color: #cce !important;
 }
 
 .table > .actions {
@@ -121,7 +121,7 @@ div {
   left: 0;
 }
 
-#modal.showing #modal.showing {
+#modal.showing, #modal.showing {
   display: flex !important;
 }
 
@@ -152,4 +152,8 @@ div {
 
 #modal-content .hidden {
   display: none;
+}
+
+#modal-footer {
+  justify-content: flex-end;
 }

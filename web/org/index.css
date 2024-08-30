@@ -4,6 +4,18 @@
     background-image: url('img/rawh-banner.jpg');
 }
 
+#welcome {
+  align-items: center;
+}
+
+#welcome input {
+  text-align: center;
+}
+
+#welcome input.flash {
+  background-color: #cce !important;
+}
+
 #apps {
     flex-grow: 1;
     border-radius: 10px;

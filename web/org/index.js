@@ -1,6 +1,7 @@
-import { $, annotate_copyable } from '../lib/utils.js';
+import { $, $class, annotate_copyable } from '../lib/utils.js';
+import { on_key, flash, show, hide, LS } from '../lib/utils.js';
 import WsCall from './lib/ws-call.js';
-import modal from './lib/common.js';
+import modal from './lib/modal.js';
 
 const ws_api = new WsCall("admin.api");
 const report = (o) => ws_api.report(o);
@@ -28,8 +29,8 @@ function app_list() {
         `<label>${date}</label>`,
         `<label>${creator}</label>`,
         `<label class="actions">`,
-        `<button onClick="appfn.edit('${uid}')">?</button>`,
-        `<button onClick="appfn.delete('${uid}','${name}')">X</button>`,
+        `<button class="admin" onClick="appfn.edit('${uid}')">?</button>`,
+        `<button class="admin" onClick="appfn.delete('${uid}','${name}')">X</button>`,
         `</label>`,
         '</div>',
       ].join(''));
@@ -62,6 +63,19 @@ function app_delete(uid, name) {
   }
 }
 
+// set user and check admin flags
+function set_iam(iam) {
+  LS.set('iam', context.iam = $('iam').value = iam);
+  flash($('iam'));
+  call("is_admin", { iam }).then(ok => {
+    if (ok) {
+      show($class('admin'));
+    } else {
+      hide($class('admin'));
+    }
+  });
+}
+
 window.appfn = {
   list: app_list,
   edit: app_edit,
@@ -71,12 +85,14 @@ window.appfn = {
 
 document.addEventListener('DOMContentLoaded', function () {
   modal.init(context, "modal.html");
-  ws_api.on_connect(app_list);
+  ws_api.on_connect(() => {
+    on_key('Enter', 'iam', ev => set_iam(ev.target.value));
+    set_iam(LS.get('iam') || '');
+    app_list();
+  });
   $('create-app').onclick = app_create;
-  $('app-name').onkeydown = (ev) => {
-    if (ev.code === 'Enter') {
+  on_key('Enter', 'app-name', ev => {
       app_create();
-        $('app-name').value = '';
-    }
-  };
+      $('app-name').value = '';
+  });
 });

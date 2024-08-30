@@ -3,7 +3,7 @@
 
 import setup_file_drop from './lib/file-drop.js';
 import { ws_proxy_api } from "./lib/ws-net";
-import { $ } from './lib/util.js';
+import { $, LS } from './lib/util.js';
 
 const state = {
   topic_embed: "llm-query/org",
@@ -11,11 +11,6 @@ const state = {
   api: undefined, // set in on_load()
   ssn: undefined, // llm session id (sid) set in setup_llm_session()
   embed: false
-};
-
-const LS = {
-  get(key) { return localStorage.getItem(key) },
-  set(key, val) { return localStorage.setItem(key, val) },
 };
 
 function update_file_list() {

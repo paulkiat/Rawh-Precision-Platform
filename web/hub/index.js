@@ -1,6 +1,6 @@
-import { $, annotate_copyable } from '../lib/utils.js';
+import { $, annotate_copyable, on_key } from '../lib/utils.js';
 import WsCall from './lib/ws-call.js';
-import modal from './lib/common.js';
+import modal from './lib/modal.js';
 
 const ws_api = new WsCall("admin.api");
 const report = (o) => ws_api.report(o);
@@ -98,10 +98,8 @@ document.addEventListener('DOMContentLoaded', function () {
   modal.init(context, "modal.html");
   ws_api.on_connect(org_list);
   $('create-org').onclick = org_create;
-  $('org-name').onkeydown = (ev) => {
-    if (ev.code === 'Enter') {
+  on_key('Enter', 'org-name', (ev) => {
       org_create();
       $('org-name').value = '';
-    }
-  };
+  });
 });
