@@ -58,13 +58,13 @@ function org_edit(uid) {
     update(b) {
       org_update(rec.uid, {
         name: edit.name.value,
-        admins: edit.admin.value.split(',').map(t => t.trim()),
+        admins: edit.admin.value.split('\n').map(t => t.trim()),
       });
     },
     cancel: undefined,
   });
   edit.name.value = rec.name;
-  edit.admin.value = (rec.admins || []).join(', ');
+  edit.admin.value = (rec.admins || []).join('\n');
 }
 
 function org_delete(uid, name) {
