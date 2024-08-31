@@ -44,7 +44,6 @@ exports.on_ws_msg = async function (ws, msg) {
 }
 
 const commands = {
-  is_admin,
   app_list,
   app_create,
   app_update,
@@ -94,10 +93,10 @@ async function app_delete(args) {
   return await meta_app.del(uid);
 }
 
-async function is_admin(args) {
+async function is_org_admin(args) {
   const { meta } = context.state;
   return (await meta.get("org-admins")).indexOf(args.username) >= 0;
 }
 
 exports.web_handler = router;
-exports.is_admin = (username) => is_admin({ username });
+exports.is_org_admin = (username) => is_org_admin({ username });

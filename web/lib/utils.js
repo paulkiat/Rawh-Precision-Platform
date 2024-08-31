@@ -67,7 +67,7 @@ export function flash(el) {
 export function hide(el) {
   to_array(el).forEach(el => {
     el = typeof (el) === 'object' ? el : $(el);
-    if (el._old_display || el.style.display === "none") {
+    if (el._old_display !== undefined || el.style.display === "none") {
       // already hidden
       return;
     }
