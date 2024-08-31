@@ -82,7 +82,10 @@ async function app_list(args) {
     .map(rec => rec[1])
     .filter(app => {
       app.alive = context.alive[app.uid];
-       return admin || (app.users && app.users.indexOf(user) >= 0)
+      return admin
+          || (app.users && app.users.indexOf(user) >= 0)
+          || (app.admins && app.admins.indexOf(user) >= 0)
+      
     });
   return apps;
 }

@@ -116,7 +116,7 @@ function app_list() {
     for (let app of list) {
          const { uid, created } = app;
          const date = dayjs(created).format('YYYY/MM/DD HH:mm');
-         apps_line(html, { date, ...app, admin: context.admin });
+         apps_line(html, { date, ...app, admin: context.admin , iam: context.iam });
          apps[uid] = app;
          app_list_set(html);
     }
