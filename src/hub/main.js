@@ -7,7 +7,7 @@
 const { args } = require('../lib/util');
 const log = require('../lib/util').logpre('hub');
 const web = require('../lib/web');
-const api = require('../web-api');
+const api = require('./org-api');
 const net = require('../lib/net');
 const store = require('../lib/store');
 const crypto = require('../lib/crypto');

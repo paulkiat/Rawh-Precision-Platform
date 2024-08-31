@@ -15,7 +15,7 @@ export function apps_headers(html) {
 }
 
 export function apps_line(html, data) {
-  const { uid, type, name, creator, created, users, date, admin } = data;
+  const { uid, type, name, creator, created, users, date, admin, alive } = data;
   html.push(
     '<div class="data">',
     `<label>${type || "undefined"}</label>`,
@@ -27,7 +27,7 @@ export function apps_line(html, data) {
     `<label class="actions">`,
     admin ? `<button class="admin" onClick="appfn.edit('${uid}')">?</button>` : '',
     admin ? `<button class="admin" onClick="appfn.delete('${uid}','${name}')">X</button>` : '',
-    `<button onClick="appfn.launch('${uid}')">launch</button>`,
+    `<button  ${alive ? '' : 'diabled'} onClick="appfn.launch('${uid}')">launch</button>`,
     `</label>`,
     '</div>',
   );

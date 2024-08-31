@@ -14,7 +14,6 @@ const context = {
 };
 
 function set_user_mode(mode) {
-  console.log({ set_user_mode: mode });
   switch (mode) {
     case "admin":
       show($class('admin-mode'));
@@ -110,9 +109,9 @@ function user_reset(user) {
 
 function app_list() {
   call("app_list", { user: context.iam, admin: context.admin }).then(list => {
-    console.log({ apps: list });
     const html = [];
     apps_header(html);
+    // console.log(list);
     const apps = context.apps = {};
     for (let app of list) {
          const { uid, created } = app;
@@ -231,7 +230,7 @@ function login_show(error, init) {
 
 async function logout() {
   const { api, ssn } = context;
-  console.log({ logout: ssn });
+  // console.log({ logout: ssn });
   set_user_mode('user');
   set_edit_mode('app');
   app_list_set();
@@ -269,7 +268,7 @@ function ssn_heartbeat(user, pass, pass2, secret) {
               } 
           }
           if (context.login) {
-              console.log({ login: sid, user });
+              // console.log({ login: sid, user });
               // run once only after successful login or
               // page/session reload, not on heartbeats
               if (org_admin) {

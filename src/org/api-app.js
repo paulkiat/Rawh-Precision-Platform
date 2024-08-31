@@ -6,7 +6,9 @@ const log = require('../lib/util').logpre('api');
 const router = require('express').Router();
 const { file_drop } = require('../app/doc-client');
 const { json, parse, uuid, uid } = require('../lib/util');
-const context = { };
+const context = { 
+    alive: {}
+};
 
 exports.init = function (state) {
   context.state = state;
@@ -79,7 +81,8 @@ async function app_list(args) {
   const apps = (await meta_app.list())
     .map(rec => rec[1])
     .filter(app => {
-      return admin || (app.users && app.users.indexOf(user) >= 0)
+      app.alive = context.alive[app.uid];
+       return admin || (app.users && app.users.indexOf(user) >= 0)
     });
   return apps;
 }
@@ -107,10 +110,23 @@ async function app_delete(args) {
   return await meta_app.del(uid);
 }
 
+// marks an app as alive for the app_list()
+// returns false if app_id is invalid
+async function regiester_app(args) {
+  const { meta_app } = context;
+  const { app_id } = args;
+  const apprec = await meta_app.get(app_id);
+  if (apprec) {
+    context.alive[app_id] = Date.now();
+  }
+  return apprec ? true : false;
+}
+
 async function is_org_admin(args) {
   const { meta } = context.state;
   return (await meta.get("org-admins")).indexOf(args.username) >= 0;
 }
 
 exports.web_handler = router;
+exports.regiester_app = (app_id) => regiester_app({ app_id });
 exports.is_org_admin = (username) => is_org_admin({ username });

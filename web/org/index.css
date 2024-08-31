@@ -6,6 +6,10 @@
   }
 }
 
+button:disabled {
+  color: #888 !important;
+}
+
 #header {
     background-image: url('img/rawh-banner.jpg');
 }

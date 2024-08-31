@@ -4,10 +4,10 @@ const { args, env } = require('../lib/util');
 const { proxy } = require('../lib/net');
 const log = require('../lib/util').logpre('org');
 const web = require('../lib/web');
-const node = require('./node');
 const store = require('../lib/store');
 const crypto = require('../lib/crypto');
 const api_app = require('./api-app');
+const web_proxy = require('./web-proxy');
 const adm_handler = require('express')();
 const app_handler = require('express')();
 const web_handler = require('express')();
@@ -44,7 +44,7 @@ Object.assign(state, {
  * 6. start connection to rawh hub
  */
 
-// directs web socket messages to the `web-api_app.js` handler
+// directs web socket messages to the `api_app` handler
 // look in `src/lib/web` for `ws_proxy_path()` as an
 // example of how to handle a new web socket connection
 function ws_handler(ws, req) {
@@ -101,17 +101,16 @@ async function setup_web_handlers() {
     // localhost http app test interface
   app_handler
     .use(web.parse_query)
-    .use(node.web_handler)
     .use(api_app.web_handler)
-    .use(api_app.web_handler)
+    .use(web_proxy.web_handler)
     .use(static)
     .use(web.four_oh_four)
     ;
   // production https app production interface
   web_handler
     .use(web.parse_query)
-    .use(node.web_handler)
     .use(api_app.web_handler)
+    .use(web_proxy.web_handler)
     .use(static)
     .use(web.four_oh_four)
     ;
@@ -123,8 +122,8 @@ async function setup_org_proxy() {
 }
 
 async function setup_org_apis() {
-  app_app.init(state);
-  node.init(state);
+  api_app.init(state);
+  web_proxy.init(state);
   // inject wss handlers prior to `web.start_web_listeners()`
   // this proxy to node is needed so that proxied apps have
   // access to the broker api endpoint

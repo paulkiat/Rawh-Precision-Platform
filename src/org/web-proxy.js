@@ -1,10 +1,12 @@
-// implements org node functions
-// listen for app registrations, serve meta data
+// listen for app registrations and sets up dynamic web proxy
+// from the org web rfront end server to the app back end web server
+// secured, encrypted, authenticated endpoint for all apps
 
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const log = require('../lib/util').logpre('node');
 const net = require('../lib/net');
-const auth = require('./api-user');
+const api_app = require('./api-app');
+const user_auth = require('./api-user');
 const router = require('express').Router();
 const apps = { };
 
@@ -38,7 +40,7 @@ exports.init = function (state) {
   node = state.node = net.node('localhost', state.proxy_port);
 
   // initialize authentication services
-  auth.init(state);
+  user_auth.init(state);
 
   // allow an app to capture an url under its proxy root
   // and redirect it to a common url outside of the app
@@ -52,10 +54,15 @@ exports.init = function (state) {
   });
 
   // listen for application web-server service coming up
-  node.subscribe('service-up', (msg, cid) => {
+  node.subscribe('service-up', async (msg, cid) => {
     const { app_id, type, subtype } = msg;
     const app_rec = get_app_rec(app_id, { type, subtype });
     if (msg.type !== "web-server") {
+      return;
+    }
+    const is_valid = await api_app.register_app(app_id);
+    if (!is_valid) {
+      log({ invalid_app_id: app_id, error: "will not proxy" });
       return;
     }
     // handle app web services announcements
