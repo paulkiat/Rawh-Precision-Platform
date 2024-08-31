@@ -10,13 +10,13 @@ const { args, env } = util;
 
 const once = {};
 const settings = {
-  debug: env['DEBUG_LLM'] || args['debug-llm'] || false,
-  gpu: env['LLM_GPU'] || args['llm-gpu'] || args['gpu'] || 0,
-  model: env['LLM_MODEL'] || args['llm-model'] || args['model'],
-  batch: env['LLM_BATCH'] || args['batch'] || undefined,
-  context: env['LLM_CONTEXT'] || args['context'] || undefined,
-  threads: env['LLM_THREADS'] || args['threads'] || undefined,
-  alpaca: env['LLM_ALPACA'] || args['llm-alpaca'] || undefined,
+  gpu: env['LLM_GPU'] || args['gpu'] || 0,
+  debug: env['DEBUG_LLM'] || args['debug'] || false,
+  batch: env['LLM_BATCH'] || args['batch'],
+  model: env['LLM_MODEL'] || args['model'],
+  alpaca: env['LLM_ALPACA'] || args['alpaca'],
+  context: env['LLM_CONTEXT'] || args['context'],
+  threads: env['LLM_THREADS'] || args['threads'],
 };
 
 worker.on("message", message => {
