@@ -1,6 +1,4 @@
-@import url('../lib/common.css');
-
-
+@import url('./lib/common.css');
 
 button.selected {
     background-color: #0066cc;
@@ -144,96 +142,11 @@ textarea {
 
 /* table data */
 #file-list {
-  display: grid;
-  grid-gap: 5px;
   grid-template-columns: 3fr 1fr 1fr 1fr 0.5fr;
     /* margin-top: 20px; */
     /* flex-direction: column; */
 }
 
-#file-list > div {
-  display: contents;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    background-color: #fff;
-    justify-content: space-between;
-    align-items: center;
-    transition: background-color 0.3s ease, transform 0.3s ease;
-}
-
-#file-list > div:hover {
-    background-color: #f0f8ff;
-    transform: scale(1.03);
-}
-
-#file-list > .head > label {
-  padding: 5x;
-  background-color: #ccc;
-  border: 1px solid #eee;
-  border-radius: 5px;
-  text-align: center;
-  font-weight: bold;
-  text-transform: uppercase;
-    font-size: 18px;
-}
-
-#file-list > .data > label {
-  padding: 5x;
-  background-color: white;
-  border: 1px solid #ddd;
-  white-space: nowrap;
-  color: #333;
-}
-
-#file-list > .data:hover > label {
-  background-color: #ddd;
-    /* color: #007acc; */
-}
-
-#file-list .actions {
-  display: flex;
-  flex-direction: row;
-  gap: 5x;
-}
-
-#file-list .actions button {
-  flex-grow: 1;  
-   padding: 5px 10px;
-    background-color: #0066cc;
-    color: white;
-    border: none;
-    border-radius: 3.96px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.3s ease;
-}
-
-#file-list .actions button:hover {
-    background-color: #004d99;
-    transform: translateY(-2px);
-}
-
-/* Consistent Control Styles */
-#upload, #file-list .actions button, #parts > div {
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.001);
-}
-
-#upload:focus, #file-list .actions button:focus, #parts > div:focus {
-    outline: 2px solid #ffd502f8;
-}
-
-/* Consistent Text Focus */
-#file-list > .list > label, #parts > div {
-    font-family: 'Arial', sans-serif;
-    font-size: 14px;
-    color: #333;
-}
-
-/* Consistent Interaction Feedback */
-#upload:hover, #file-list > .list:hover > label, #parts > div:hover {
-    background-color: #e0e0e0;
-    transition: background-color 0.3s ease;
-}
 
 
 /* Circuit Board Button Styles */

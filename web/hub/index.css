@@ -1,4 +1,4 @@
-@import url('../lib/common.css');
+@import url('./lib/common.css');
 /* Header Styles */
 #header {
     background-image: url('img/red-blue-banner.jpg');

@@ -1,4 +1,4 @@
-@import url('../lib/common.css');
+@import url('./lib/common.css');
 
 @media (prefers-color-scheme: dark) {
   #edit-mode button.selected {
