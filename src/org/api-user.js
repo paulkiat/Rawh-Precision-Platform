@@ -1,7 +1,7 @@
 const util = require('../lib/util');
 const log = util.logpre('auth');
-const web_api = require('./web-api');
 const crypto = require('crypto');
+const api_app = require('./api-app');
 const context = {};
 
 exports.init = function (state) {
@@ -58,7 +58,7 @@ async function user_list(args) {
   const { meta_user } = context;
   const list = (await meta_user.keys()).map(name => { return { name } });
   for (let rec of list) {
-    rec.is_admin = await web_api.is_org_admin(rec.name);
+    rec.is_admin = await api_app.is_org_admin(rec.name);
   }
   return list;
 }
@@ -127,7 +127,7 @@ async function user_auth(args) {
       let urec = await meta_user.get(user);
       let org_admin = false;
       if (!urec) {
-        const is_admin = org_admin =  await web_api.is_org_admin(user);
+        const is_admin = org_admin =  await api_app.is_org_admin(user);
         if (is_admin && pass === pass2 && secret === state.secret) {
           // todo validate secret and create admin account
           log({ creating_admin_record: user, pass, pass2, secret });
@@ -137,7 +137,7 @@ async function user_auth(args) {
             return is_admin ? { init: true } : error("invalid credentials");
         }
       } else {
-        org_admin = await web_api.is_org_admin(user);
+        org_admin = await api_app.is_org_admin(user);
       }
       if (urec.pass !== hash(pass)) {
         throw "invalid password";

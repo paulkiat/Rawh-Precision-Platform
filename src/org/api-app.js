@@ -1,4 +1,6 @@
-/** web socket api handler (node/server) for org site admin (apps/users) */
+/** 
+ * web socket api handler (node/server) for org site admin (apps/users) 
+ */
 
 const log = require('../lib/util').logpre('api');
 const router = require('express').Router();
@@ -74,11 +76,12 @@ async function app_list(args) {
   const { meta_app } = context;
   // TODO: user and org admin status should come from session id/record
   const { user, admin } = args;
-  // for (let app of apps) {
-  //   console.log(app)
-  // } 
-  const apps = await meta_app.list();
-  return apps.map(rec => rec[1]);
+  const apps = (await meta_app.list())
+    .map(rec => rec[1])
+    .filter(app => {
+      return admin || (app.users && app.users.indexOf(user) >= 0)
+    });
+  return apps;
 }
 
 async function app_update(args) {

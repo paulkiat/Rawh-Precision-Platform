@@ -4,7 +4,7 @@
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const log = require('../lib/util').logpre('node');
 const net = require('../lib/net');
-const auth = require('./auth');
+const auth = require('./api-user');
 const router = require('express').Router();
 const apps = { };
 

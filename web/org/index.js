@@ -108,18 +108,18 @@ function user_reset(user) {
   }
 }
 
-
 function app_list() {
   call("app_list", { user: context.iam, admin: context.admin }).then(list => {
+    console.log({ apps: list });
     const html = [];
     apps_header(html);
     const apps = context.apps = {};
     for (let app of list) {
-      const { uid, created } = app;
-      const date = dayjs(created).format('YYYY/MM/DD HH:mm');
-      apps_line(html, { date, ...app });
-      apps[uid] = app;
-      app_list_set(html);
+         const { uid, created } = app;
+         const date = dayjs(created).format('YYYY/MM/DD HH:mm');
+         apps_line(html, { date, ...app, admin: context.admin });
+         apps[uid] = app;
+         app_list_set(html);
     }
     annotate_copyable();
   }).catch(report);
@@ -172,45 +172,49 @@ function app_edit(uid) {
 
 function app_delete(uid, name) {
   if (confirm(`Are you sure you want to delete "${name}"?`)) {
-    call("app_delete", { uid, name }).then(app_list).catch(report);
+      call("app_delete", { uid, name }).then(app_list).catch(report);
   }
+}
+
+function app_launch(uid) {
+  window.open(`/app/${uid}`, uid);
 }
 
 // set user and check admin flags
 function set_iam(iam, indicate = true) {
   LS.set('iam', context.iam = $('iam').value = iam);
   if (indicate) {
-    flash($('iam'));
+      flash($('iam'));
   }
 }
 
 function app_update(uid, rec) {
-  call("app_update", { uid, rec }).then(app_list).catch(report);
+   call("app_update", { uid, rec }).then(app_list).catch(report);
 }
 
 function login_submit() {
   if (!modal.show) {
-    console.log({ cannot_login: "modal not showing" });
-    return;
+      console.log({ cannot_login: "modal not showing" });
+      return;
   }
   const user = $('username').value;
   const pass = $('password').value;
   if (!(user && pass)) {
-    console.log({ cannot_login: "missing user and/or pass" });
-    return;
+      console.log({ cannot_login: "missing user and/or pass" });
+      return;
   }
   set_iam(user, false);
   if (context.admin_init) {
-    ssn_heartbeat(user, pass, $('password2').value, $('secret').value);
+      ssn_heartbeat(user, pass, $('password2').value, $('secret').value);
   } else {
-    ssn_heartbeat(user, pass);
+      ssn_heartbeat(user, pass);
   }
-      modal.hide(true);
+  modal.hide(true);
 }
   
 function login_show(error, init) {
   if (!context.admin_init) {
-    hide("login_init");
+      hide("login_init");
   }
   context.login = true;
   const show = error ? [ "login", "login-error" ] : [ "login" ];
@@ -218,9 +222,9 @@ function login_show(error, init) {
   $('password').focus();
   $('username').value = context.iam || LS.get("iam") ||"";
   if (init) {
-    $('secret').value =  "";
+      $('secret').value =  "";
   } else {
-    $('password').value = "";
+      $('password').value = "";
   }
   $("login-error").innerText = error || "...";
 }
@@ -246,53 +250,53 @@ function ssn_heartbeat(user, pass, pass2, secret) {
         const { sid, init, user, org_admin } = msg;
         // console.log(msg);
         if (init) {
-          $("login-error").classList.add("hidden");
-          if (context.admin_init) {
-            console.log({ failed_admin: user });
-            login_show("invalid secret", true);
-          }
-          show("login-init");
-          context.admin_init = true;
+            $("login-error").classList.add("hidden");
+            if (context.admin_init) {
+              console.log({ failed_admin: user });
+              login_show("invalid secret", true);
+            }
+            show("login-init");
+            context.admin_init = true;
         } else {
           delete context.admin_init;
           context.org_admin = org_admin;
           context.ssn_hb = setTimeout(ssn_heartbeat, 5000);
           if (sid) {
-            context.ssn = sid;
-            LS.set("session", sid);
-            if (context.admin_init) {
-              modal.hide(true);
-            } 
+              context.ssn = sid;
+              LS.set("session", sid);
+              if (context.admin_init) {
+                modal.hide(true);
+              } 
           }
           if (context.login) {
-            console.log({ login: sid, user });
-            // run once only after successful login or
-            // page/session reload, not on heartbeats
-            if (org_admin) {
-              context.admin = true;
-              set_user_mode('admin');
-              set_edit_mode('app');
-            } else {
-              context.admin = false;
-              set_user_mode('user');
+              console.log({ login: sid, user });
+              // run once only after successful login or
+              // page/session reload, not on heartbeats
+              if (org_admin) {
+                  context.admin = true;
+                  set_user_mode('admin');
+                  set_edit_mode('app');
+              } else {
+                  context.admin = false;
+                  set_user_mode('user');
+              }
+              if (user) {
+                  set_iam(user, false);
+              }
+              delete context.login_init;
             }
-            if (user) {
-              set_iam(user, false);
-            }
-            delete context.login_init;
-          }
           if (!context.app_list) {
-            context.app_list = (context.app_list || 0) + 1;
-            app_list();
+              context.app_list = (context.app_list || 0) + 1;
+              app_list();
           }
       } 
       })
       .catch(error => {
-        delete context.admin_init;
-        LS.delete("session");
-        login_show(error);
-        console.log({ auth_error: error });
-      });
+          delete context.admin_init;
+          LS.delete("session");
+          login_show(error);
+          console.log({ auth_error: error });
+        });
   } else {
       login_show();
   }
@@ -303,6 +307,7 @@ window.appfn = {
   edit: app_edit,
   create: app_create,
   delete: app_delete,
+  launch: app_launch,
 };
 
 window.userfn = {

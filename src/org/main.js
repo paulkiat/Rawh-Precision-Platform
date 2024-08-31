@@ -4,10 +4,10 @@ const { args, env } = require('../lib/util');
 const { proxy } = require('../lib/net');
 const log = require('../lib/util').logpre('org');
 const web = require('../lib/web');
-const api = require('./web-api');
 const node = require('./node');
 const store = require('../lib/store');
 const crypto = require('../lib/crypto');
+const api_app = require('./api-app');
 const adm_handler = require('express')();
 const app_handler = require('express')();
 const web_handler = require('express')();
@@ -44,14 +44,14 @@ Object.assign(state, {
  * 6. start connection to rawh hub
  */
 
-// directs web socket messages to the `web-api.js` handler
+// directs web socket messages to the `web-api_app.js` handler
 // look in `src/lib/web` for `ws_proxy_path()` as an
 // example of how to handle a new web socket connection
 function ws_handler(ws, req) {
   // todo: add a little auth here :)
   if (req.url === "/admin.api") {
-    api.on_ws_connect(ws);
-    ws.on("message", msg => api.on_ws_msg(ws, msg));
+    api_app.on_ws_connect(ws);
+    ws.on("message", msg => api_app.on_ws_msg(ws, msg));
     ws.on("error", error => log({ ws_error: error }) )
   } else {
     log({ invalid_ws_url: req.url });
@@ -102,7 +102,8 @@ async function setup_web_handlers() {
   app_handler
     .use(web.parse_query)
     .use(node.web_handler)
-    .use(api.web_handler)
+    .use(api_app.web_handler)
+    .use(api_app.web_handler)
     .use(static)
     .use(web.four_oh_four)
     ;
@@ -110,7 +111,7 @@ async function setup_web_handlers() {
   web_handler
     .use(web.parse_query)
     .use(node.web_handler)
-    .use(api.web_handler)
+    .use(api_app.web_handler)
     .use(static)
     .use(web.four_oh_four)
     ;
@@ -122,7 +123,7 @@ async function setup_org_proxy() {
 }
 
 async function setup_org_apis() {
-  app.init(state);
+  app_app.init(state);
   node.init(state);
   // inject wss handlers prior to `web.start_web_listeners()`
   // this proxy to node is needed so that proxied apps have
