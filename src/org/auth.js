@@ -56,7 +56,11 @@ async function user_add(args) {
 async function user_list(args) {
   // TODO requires authenticated session
   const { meta_user } = context;
-  return await meta_user.keys();
+  const list = (await meta_user.keys()).map(name => { return { name } });
+  for (let rec of list) {
+    rec.is_admin = await web_api.is_org_admin(rec.name);
+  }
+  return list;
 }
 
 async function user_del(args) {
@@ -75,7 +79,6 @@ async function user_set(args) {
   const { user, rec } = args;
   const orec = await user_get({ user });
   const nurec = Object.assign(orec, rec);
-  log({ user_set: user, orec, rec, nurec });
   return await meta_user.put(user, nurec);
 }
 
@@ -83,7 +86,6 @@ async function user_reset(args) {
   // TODO requires authenticated session
   const { user, pass } = args;
   const rec = await user_get(args);
-  log({ user, pass, rec });
   if (rec) {
     await user_set({
       user,

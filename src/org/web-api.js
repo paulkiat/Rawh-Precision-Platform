@@ -63,14 +63,20 @@ async function app_create(args) {
     name,
     creator: creator || "unknown",
     created: Date.now(),
-    users: 0
+    admins: [],
+    users: [],
   };
   await meta_app.put(app_rec.uid, app_rec);
   return app_rec;
 }
 
-async function app_list() {
+async function app_list(args) {
   const { meta_app } = context;
+  // TODO: user and org admin status should come from session id/record
+  const { user, admin } = args;
+  // for (let app of apps) {
+  //   console.log(app)
+  // } 
   const apps = await meta_app.list();
   return apps.map(rec => rec[1]);
 }
@@ -78,12 +84,17 @@ async function app_list() {
 async function app_update(args) {
   const { uid, rec } = args;
   // limits updates to a subset of fields
-  const old = await context.orgs.get(uid);
-  if (old) {
-    Object.assign(old, {
-      name: rec.name ?? old.name,
+  const apprec = await context.meta_app.get(uid);
+  const { name, users, admins } = rec;
+  if (apprec) {
+    Object.assign(apprec, {
+      name: name || apprec.name,
+      users: users || apprec.users,
+      admins: admins || apprec.admins,
     });
-    return await context.orgs.put(uid, old);
+    await context.orgs.put(uid, apprec);
+  } else {
+    throw `invalid update app name "${name}`;
   }
 }
 

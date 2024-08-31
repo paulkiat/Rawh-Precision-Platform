@@ -14,6 +14,7 @@ const context = {
 };
 
 function set_user_mode(mode) {
+  console.log({ set_user_mode: mode });
   switch (mode) {
     case "admin":
       show($class('admin-mode'));
@@ -53,8 +54,8 @@ function user_list() {
     const html = [];
     users_header(html);
     const users = context.users = {};
-    for (let name of list) {
-      users_line(html, { name });
+    for (let { name, is_admin } of list) {
+      users_line(html, { name, is_admin });
       users[name] = name;
       users_list_set(html);
     }
@@ -103,14 +104,13 @@ function user_reset(user) {
     context.api.pcall("user_reset", { user, pass }).then(reply => {
       console.log({ user_reset_said: reply });
       user_list();
-      alert(`"${user}'s" new password is : ${pass}`);
     }).catch(report);
   }
 }
 
 
 function app_list() {
-  call(app_list, {}).then(list => {
+  call("app_list", { user: context.iam, admin: context.admin }).then(list => {
     const html = [];
     apps_header(html);
     const apps = context.apps = {};
@@ -151,14 +151,23 @@ function app_edit(uid) {
   if (!rec) throw `invalid app uid: ${uid}`;
   const edit = {
     name: $('edit-name'),
+    users: $('edit-users'),
+    admins: $('edit-admins'),
   };
+  console.log(rec);
   modal.show('app-edit', 'edit app record', {
     update(b) {
-      app_update(rec.uid, { name: edit.name.value })
+      app_update(rec.uid, {
+        name: edit.name.value,
+        users: edit.users.value.split('\n').map(n => n.trim()),
+        admins: edit.admins.value.split('\n').map(n => n.trim())
+      })
     },
     cancel: undefined
   });
   edit.name.value = rec.name;
+  edit.users.value = (rec.users || []).join("\n");
+  edit.admins.value = (rec.admins  || []).join("\n");
 }
 
 function app_delete(uid, name) {
@@ -260,11 +269,13 @@ function ssn_heartbeat(user, pass, pass2, secret) {
             // run once only after successful login or
             // page/session reload, not on heartbeats
             if (org_admin) {
+              context.admin = true;
               set_user_mode('admin');
+              set_edit_mode('app');
             } else {
+              context.admin = false;
               set_user_mode('user');
             }
-            set_edit_mode('app');
             if (user) {
               set_iam(user, false);
             }

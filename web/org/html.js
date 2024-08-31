@@ -36,16 +36,18 @@ export function users_header(html) {
   html.push(
     '<div class="head">',
     '<label>name</label>',
+    '<label>org admin</label>',
     '<label>actions</label>',
     '</div>',
   );
 }
 
 export function users_line(html, data) {
-  const { name } = data;
+  const { name, is_admin } = data;
   html.push(
     '<div class="data">',
     `<label>${name}</label>`,
+    `<label>${is_admin}</label>`,
     `<label class="actions">`,
     `<button onClick="userfn.reset('${name}')">reset</button>`,
     `<button onClick="userfn.delete('${name}','${name}')">X</button>`,
