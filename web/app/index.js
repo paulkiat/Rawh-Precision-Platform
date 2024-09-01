@@ -26,14 +26,16 @@ function update_file_list() {
     const html = [];
     for (let rec of msg) {
       const { uid, name, type, state, added, chunks, length } = rec[1];
+      const title = [
+          `length: ${length}`,
+          `chunks: ${chunks}`,
+          `added: ${dayjs(added).format('YYYY/MM/DD')}`
+      ].join("\n");
       html.push([
-        `<label>${name}</label>`,
-        `<label>${length}</label>`,
-        `<label>${dayjs(added).format('YYYY/MM/DD')}</label>`,
-        `<label>${chunks}</label>`,
-        `<label class="actions">`,
-        `<button onclick="doc_delete('${uid}')")>X</button>`,
-        `</label>`
+          `<label title=${title}>${name}</label>`,
+          `<label class="actions">`,
+          `<button onclick="doc_delete('${uid}')")>X</button>`,
+          `</label>`
       ].join(''));
     }
     $('file-data').innerHTML = html.join('');

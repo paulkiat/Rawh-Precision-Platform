@@ -4,10 +4,12 @@ const { fork } = require('child_process');
 const worker = fork('./src/app/llm-work.js');
 const util = require('../lib/util');
 const { context } = require('zeromq/lib');
+const { error } = require('console');
 const state = require('./service').init();
 const log = util.logpre('llm');
 const { args, env } = util;
 
+const ctx = {};
 const once = {};
 const settings = {
   gpu: env['LLM_GPU'] || args['gpu'] || 0,
@@ -19,30 +21,55 @@ const settings = {
   threads: env['LLM_THREADS'] || args['threads'],
 };
 
-worker.on("message", message => {
-  const { mid, msg, topic, token, debug } = message;
-  if (topic) {
-    state.node.publish(topic, token);
-    return;
-  }
-  if (debug) {
-    log(debug);
-    return;
-  }
-  const fn = once[mid];
-  delete once[mid];
-  if (fn) {
-    fn(msg);
-  } else {
-    log({ missing_fn: mid, msg });
-  }
-});
+async function start_worker() {
+  worker.on("message", message => {
+    const { mid, msg, topic, token, debug } = message;
+    if (topic) {
+        state.node.publish(topic, token);
+        return;
+    }
+    if (debug) {
+        log(debug);
+        return;
+    }
+    const fn = once[mid];
+    delete once[mid];
+    if (fn) {
+        fn(msg);
+    } else {
+        log({ missing_fn: mid, msg });
+    }
+  });
+
+  worker.on("error", error => {
+    log({ worker_error: error });
+  });
+
+  worker.on("exit", (code, signal) => {
+    log({ worker_exit: code, signal, once });
+    if (code === null) {
+      log({ killing_worker: worker });
+      worker.kill();
+    }
+    start_worker();
+  });
+
+  // intialize llm
+  await call("init", {
+    alpaca: settings.alpaca,
+    threads: settings.threads,
+    context: settings.context,
+    batch: settings.batch,
+    model: settings.model,
+    gpu: settings.gpu,
+  });
+}
 
 function call(cmd, msg = {}) {
   return new Promise(resolve => {
     const mid = util.uid();
     once[mid] = resolve;
-    worker.send({ mid, cmd, msg, debug: settings.debug });
+    ctx.worker.send({ mid, cmd, msg, debug: settings.debug });
   });
 }
 
@@ -91,16 +118,8 @@ async function register_service() {
   node.handle([ "llm-ssn-query", app_id ], llm_ssn_query);
   node.handle([ "llm-ssn-end", app_id ], llm_ssn_end);
   node.handle([ "llm-query", app_id ], llm_query);
-  // initialize llm
-  const ok = await call("init", {
-    alpaca: settings.alpaca,
-    threads: settings.threads,
-    context: settings.context,
-    batch: settings.batch,
-    model: settings.model,
-    gpu: settings.gpu,
-  });
-  log({ service_up: app_id, type: "llm-server" }, ...ok);
+
+  log({ service_up: app_id, type: "llm-server" });
 }
 
 (async () => {
@@ -111,5 +130,6 @@ async function register_service() {
   Object.assign(state, { chat, chat_ssn });
 
   await node.on_recconect(register_service);
+  await start_worker();
   await register_service();
 })();

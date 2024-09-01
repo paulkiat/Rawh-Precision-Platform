@@ -132,7 +132,7 @@ textarea {
 #qna {
   display: grid;
   min-width: 40%;
-  grid-template-columns: 1fr 4fr;
+  grid-template-columns: auto 4fr;
     /* grid-gap: 5px; */
     /* border: 1px solid #ddd; */
     background-color: #fff;
@@ -141,6 +141,11 @@ textarea {
     /* margin-top: 30px; */
     /* padding: 20px; */
     /* border-radius: 5px; */
+}
+
+#qna-label {
+  padding-right: 10px;
+  text-align: right;
 }
 
 #answer {
@@ -154,7 +159,7 @@ textarea {
 
 /* table data */
 #file-list {
-  grid-template-columns: 3fr 1fr 1fr 1fr 0.5fr;
+  grid-template-columns: 6f 1fr;
     /* margin-top: 20px; */
     /* flex-direction: column; */
 }

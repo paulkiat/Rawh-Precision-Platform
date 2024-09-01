@@ -13,6 +13,15 @@ function log(debug) {
   }
 }
 
+function exit() {
+  console.log({ llm_work_exit: [...arguments] });
+  process.exit(1);
+}
+
+process.on("SIGINT", exit);
+process.on("SIGTERM", exit);
+process.on("uncaughtException", exit);
+
 // check for expiring sessions that haven't been heartbeated
 setInterval(() => {
   const now = Date.now();
