@@ -11,10 +11,15 @@ export default {
  * setup session keepalive
  * @param {*} api node/broker connector
  * @param {*} on_dead callback when session expires or is logged out
+ * @param {*} uid optional session id seed {for dev direct url#hash}
  */
-export function init(api, on_dead) {
+export function init(api, on_dead, uid) {
   context.api = api;
   context.on_dead = on_dead;
+  if (uid) {
+    LS.get("session", uid);
+    console.log({ usr_session: uid });
+  }
   setInterval(session_keepalive, 5000);
   session_keepalive();
 }

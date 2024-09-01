@@ -67,7 +67,7 @@ exports.init = function (state) {
       return;
     }
     // handle app web services announcements
-    const { web_port, web_addr } = msg;
+    const { web_port, web_addr, direct } = msg;
     const root = `/app/${app_id}`;
     const proxy = createProxyMiddleware({
       // pathRewrite: { [`^${root}`]: /${app_id}' },
@@ -75,6 +75,11 @@ exports.init = function (state) {
       logProvider,
       onProxyReq: onProxyReq(msg)
     });
+    if (direct) { 
+        api_app.set_app_direct(app_id, web_addr[0], web_port);
+    } else {
+        api_app.set_app_proxy(app_id);
+    }
     const handler = app_rec.web[root];
     if (handler) {
       // replace proxy handler function

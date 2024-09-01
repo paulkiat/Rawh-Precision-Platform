@@ -7,12 +7,13 @@ const router = require('express').Router();
 const { file_drop } = require('../app/doc-client');
 const { json, parse, uuid, uid } = require('../lib/util');
 const context = { 
-    alive: {}
+    alive: {},
+    direct: {}
 };
 
 exports.init = function (state) {
   context.state = state;
-  const { meta, logs } = context.state;
+  const { meta, logs, node } = context.state;
   context.meta_app = meta.sub("app");
   // attach file drop handler (for proxied apps)
   router.use(file_drop(state));
@@ -82,6 +83,7 @@ async function app_list(args) {
     .map(rec => rec[1])
     .filter(app => {
       app.alive = context.alive[app.uid];
+      app.direct = context.direct[app.uid];
       return admin
           || (app.users && app.users.indexOf(user) >= 0)
           || (app.admins && app.admins.indexOf(user) >= 0)
@@ -137,7 +139,21 @@ async function has_app_perms(args) {
     return (users || []).indexOf(user) >= 0 || (admins || []).indexOf(user) >= 0;
 }
 
+function set_app_direct(args) {
+  const { app_id, host, port } = args;
+  log({ app_direct: app_id, host, port });
+  context.direct[app_id] = { host, port };
+}
+
+function set_app_proxy(args) {
+  const { app_id } = args;
+  log({ app_proxy: app_id });
+  delete context.direct[app_id];
+}
+
 exports.web_handler = router;
 exports.regiester_app = (app_id) => regiester_app({ app_id });
 exports.is_org_admin = (username) => is_org_admin({ username });
 exports.has_app_perms = (app_id, user) => has_app_perms({ app_id, user });
+exports.set_app_direct = (app_id, host, port) => set_app_direct({ app_id, host, port });
+exports.set_app_proxy = (app_id) => set_app_proxy({ app_id });

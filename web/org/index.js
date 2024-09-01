@@ -10,6 +10,7 @@ const ws_api = new WsCall("admin.api");
 const report = (o) => ws_api.report(o);
 const call = (c, a) => ws_api.call(c, a);
 const context = {
+  direct: {},
   login: true
 };
 
@@ -114,11 +115,12 @@ function app_list() {
     // console.log(list);
     const apps = context.apps = {};
     for (let app of list) {
-         const { uid, created } = app;
+         const { uid, created, direct } = app;
          const date = dayjs(created).format('YYYY/MM/DD HH:mm');
          apps_line(html, { date, ...app, admin: context.admin , iam: context.iam });
          apps[uid] = app;
          app_list_set(html);
+         context.direct[uid] = direct;
     }
     annotate_copyable();
   }).catch(report);
@@ -177,6 +179,13 @@ function app_delete(uid, name) {
 
 function app_launch(uid) {
   window.open(`/app/${uid}`, uid);
+  const direct = context.direct[uid];
+  if (direct) {
+      const { host, port } = direct;
+      window.open(`http://${host}:${port}/app/${uid}#${context.ssn}`, uid);
+  } else {
+      window.open(`/app/${uid}, uid`);
+  }
 }
 
 // set user and check admin flags
@@ -297,11 +306,12 @@ function ssn_heartbeat(user, pass, pass2, secret) {
               }
       }
       })
-      .catch(error => {
-          delete context.admin_init;
-          LS.delete("session");
-          login_show(error);
-          console.log({ auth_error: error });
+        .catch(error => {
+            delete context.app_list;
+            delete context.admin_init;
+            LS.delete("session");
+            login_show(error);
+            console.log({ auth_error: error });
         });
   } else {
       login_show();

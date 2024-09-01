@@ -10,7 +10,6 @@ const state = {
   topic_embed: "llm-query/org",
   topic_chat: "llm-ssn-query/org",
   api: undefined, // set in on_load()
-  ssn: undefined, // llm session id (sid) set in setup_llm_session()
   embed: false,
   // max_tokens: 4096,
   // min_match: 0.75,
@@ -51,7 +50,7 @@ function doc_delete(uid) {
 
 function setup_session() {
   setup_subscriptions();
-  session_init(state.api, session_dead);
+  session_init(state.api, session_dead, session_uid);
   setTimeout(() => {
     $('username').value = session.username;
   }, 100);
@@ -81,7 +80,7 @@ function setup_llm_session() {
   state.api.call("llm-ssn-start/org", {}, (msg, error) => {
     if (msg && msg.sid) {
       console.log({ llm_session: msg.sid });
-      state.ssn = msg.sid;
+      state.llm_ssn = msg.sid;
       enable_query();
       // heartbeat ~ssn topic to keep from being cleaned up
       // this will end when the page or tab reloads or is closed
@@ -126,7 +125,7 @@ function query_llm(query, then, disable = true) {
 
 function query_chat(query, topic, start, then) {
   state.api.call(state.topic_chat, {
-       sid: state.ssn,
+       sid: state.llm_ssn,
        query,
        topic,
   }, msg => {

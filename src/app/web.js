@@ -9,6 +9,7 @@ const app_handler = require('express')();
 const ws_handler = web.ws_proxy_path(state.node);
 
 Object.assign(state, {
+  direct: args['direct'] || false,
   app_dir: env('APP_DIR') || arts['app-dir'] || 'app',
   app_port: env('APP_PORT') || args['app-port'] || (args.prod ? 80 : 7000),
   app_handler,
@@ -25,10 +26,12 @@ async function announce_service() {
   const { node, app_id, app_port, net_addrs } = state;
   log({ register_app_web: app_id, static_dir: state.app_dir });
   node.publish("service-up", {
-    app_id,
+    // put app into direct access dev mode vs production proxy
+    direct: state.direct,
     web_port: app_port,
     web_addr: net_addrs,
-    type: "web-server"
+    type: "web-server",
+    app_id,
   });
 }
 
