@@ -263,6 +263,8 @@ function ssn_heartbeat(user, pass, pass2, secret) {
           if (sid) {
               context.ssn = sid;
               LS.set("session", sid);
+            // valid session cookie required to serve /app/ assets
+            document.cookie = `rawh-session${uid}`;
               if (context.admin_init) {
                 modal.hide(true);
               } 

@@ -20,6 +20,24 @@ exports.init = function (state) {
   node.handle("ssn_logout", ssn_logout);
 };
 
+/**
+ * returns true if the session is valid and the user is
+ * permited access to an app_id. if the app_id is omitted,
+ * it returns true if the session is valid.
+ */
+exports.is_session_valid = async function (ssn_id, app_id) {
+  const ssn = (await context.meta_ssn.get(ssn_id));
+  if (!ssn) {
+    return false;
+  }
+  // org admins get a free pass to all apps
+  if (!ssn.org_admin && app_id) {
+    // check if session user has app access
+    return await api_app.has_app_params(app_id, ssn.user);
+  }
+  return true;
+};
+
 async function cull_dead_session() {
   const { meta_ssn } = context;
   const now = Date.now();
@@ -152,7 +170,7 @@ async function user_auth(args) {
       meta_ssn.put(sid, srec);
     return srec;
   } else {
-        console.log({ invalid_credentials: arg });
+        // console.log({ invalid_credentials: arg });
         throw "missing session and credentials";
   }
 }

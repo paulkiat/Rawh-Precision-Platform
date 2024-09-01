@@ -130,6 +130,14 @@ async function is_org_admin(args) {
   return (await meta.get("org-admins")).indexOf(args.username) >= 0;
 }
 
+async function has_app_perms(args) {
+    const { app_id, user } = args;
+    const apprec = await context_meta_app.get(app_id);
+    const { users, admins } = apprec || {};
+    return (users || []).indexOf(user) >= 0 || (admins || []).indexOf(user) >= 0;
+}
+
 exports.web_handler = router;
 exports.regiester_app = (app_id) => regiester_app({ app_id });
 exports.is_org_admin = (username) => is_org_admin({ username });
+exports.has_app_perms = (app_id, user) => has_app_perms({ app_id, user });

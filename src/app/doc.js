@@ -205,7 +205,7 @@ async function doc_delete(msg) {
 // given a query, get matching embed chunks from loaded docs
 async function docs_query(msg) {
   const { node, embed, cnk_data } = state;
-  const { query, max_tokens, llm, topic } = msg;
+  const { query, max_tokens, min_match, llm, topic } = msg;
   const vector = (await embed.vectorize([ query ]))[0];
   const index = vector_to_index(vector);
   const key = `${index.toString().padEnd(18, 0)}`;
@@ -273,15 +273,16 @@ async function docs_query(msg) {
     // sort by relevance, limit to top 10
     found.sort((a, b) => { return b.coss - a.coss });
     
-    // reduce to max chunks that will fit in embed window and
-    // limit to chunks within 75% of max cosine_similarity value
+  // reduce to max chunks that will fit in embed window and
+  // limit to chunks within 75% of max cosine_similarity value
+  const mmatch = min_match || 0.75;
     let tleft = max_t;
     let max_coss = 0;
     let cnk_used = 0;
     const embeds = found.map(r => {
       max_coss = Math.max(max_coss, r.coss);
       tleft = tleft - r.tokens;
-      const ok = tleft >= 0 && (r.coss > max_coss * 0.75 || cnk_used < 4);
+      const ok = tleft >= 0 && (r.coss > max_coss * mmatch || cnk_used < 4);
       cnk_used += ok ? 1 : 0;
       // log({ t: r.tokens, use: ok, tleft });
       return ok ? r: undefined
@@ -314,14 +315,15 @@ async function docs_query(msg) {
         text: embed.length,
         tokens: embed.reduce((acc, r) => acc + r.tokens, 0)
       });
-      const once = "llm-query/org";
+      const start = Date.now();
+      // const once = "llm-query/org";
       const answer = await node.promise
-        .call('', once, { query: embed, topic })
-        .catch(error => {
-          log({ llm_error: error });
-          return { error: "llm service not responding" };
+          .call('', llm, { query: embed, topic })
+          .catch(error => {
+            log({ llm_error: error });
+            return { error: "llm service not responding" };
         });
-      log(answer);
+      log(answer, { time: Date.now() - start });
       return answer;
     }
 

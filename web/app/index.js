@@ -1,6 +1,7 @@
 // isHot(); = onHover(), onMouseMove(x,y)
 // active(); = onClick(), onMouseDown(), onDrag(), onHover(), onMouseUp()
 
+import session from "./lib/session.js";
 import setup_file_drop from './lib/file-drop.js';
 import { ws_proxy_api } from "./lib/ws-net";
 import { $, LS, on_key } from './lib/util.js';
@@ -10,7 +11,11 @@ const state = {
   topic_chat: "llm-ssn-query/org",
   api: undefined, // set in on_load()
   ssn: undefined, // llm session id (sid) set in setup_llm_session()
-  embed: false
+  embed: false,
+  // max_tokens: 4096,
+  // min_match: 0.75,
+  // max_tokens: 8192,
+  // min_match: 0.5,
 };
 
 function update_file_list() {
@@ -42,6 +47,19 @@ function doc_delete(uid) {
   });
 }
 
+function setup_session() {
+  setup_subscriptions();
+  session_init(state.api, session_dead);
+  setTimeout(() => {
+    $('username').value = session.username;
+  }, 100);
+}
+
+function session_dead(error) {
+  // alert(error || "you have been logged out");
+  window.location = "/";
+}
+
 function setup_subscriptions() {
   state.api.subscribe("doc-loading/$", msg => {
     if (msg.state === 'ready') {
@@ -61,6 +79,7 @@ function setup_llm_session() {
       state.ssn = msg.sid;
       enable_query();
       // heartbeat ~ssn topic to keep from being cleaned up
+      // this will end when the page or tab reloads or is closed
       setInterval(() => {
         state.api.publish(`~${msg.sid}`, { sid: msg.sid })
       }, 10000);
@@ -92,27 +111,46 @@ function query_llm(query, then, disable = true) {
     tokens.push(token);
     set_answer(tokens.join(''));
   }, 120);
-  // make different call depending on the node
-  if (!state.embed)
-  state.api.call(state.topic_chat, { sid: state.ssn, query, topic }, msg => {
-    if (msg) {
-        console.log({ answer: msg.answer, time: Date.now() - start });
-        then(msg.answer);
-        enable_query();
-    } else {
-        console.log({ llm_said: msg });
-        then("there was an error processing this query");
-    }
+  // embed and chat nodes are different endpoints
+  if (state.embed) {
+    query_embed(query, topic, start, then);
+  } else {
+    query_chat(query, topic, start, then);
+  }
+}
+
+function query_chat(query, topic, start, then) {
+  state.api.call(state.topic_chat, {
+       sid: state.ssn,
+       query,
+       topic,
+  }, msg => {
+      if (msg) {
+          console.log({ answer: msg.answer, time: Date.now() - start });
+          then(msg.answer);
+          enable_query();
+      } else {
+          console.log({ llm_said: msg });
+          then("there was an error processing this query");
+      }
   });
-  if (state.embed)
-  state.api.call("docs-query/$", { sid: state.ssn, query, llm: state.topic_embed, topic }, msg => {
-    if (msg && msg.answer) {
-      console.log({ answer: msg.answer, time: Date.now() - start });
-      then(msg.answer);
-    } else {
-      console.log(msg);
-      window.answer = msg;
-    }
+}
+
+function query_embed(query, topic, start, then) {
+  state.api.call("docs-query/$", {
+       query,
+       topic,
+       llm: state.topic_embed, 
+       min_match: state.min_match,
+       max_tokens: state.max_tokens,
+  }, msg => {
+      if (msg && msg.answer) {
+          console.log({ answer: msg.answer, time: Date.now() - start });
+          then(msg.answer);
+     } else {
+          console.log(msg);
+          window.answer = msg;
+     }
   });
 }
 
@@ -159,9 +197,9 @@ function enable_query() {
 
 async function on_load() {
   const api = state.api = window.api =(state.api || await ws_proxy_api());
-  api.on_ready(setup_subscriptions);
+  api.on_ready(setup_session);
   setup_file_drop('file-drop', 'file-select');
-  setup_qna_bindings()
+  setup_qna_bindings();
   update_file_list();
   $('query').value = LS.get('last-query') || '';
 }

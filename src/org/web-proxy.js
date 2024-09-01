@@ -5,6 +5,7 @@
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const log = require('../lib/util').logpre('node');
 const net = require('../lib/net');
+const web = require('../lib/web');
 const api_app = require('./api-app');
 const user_auth = require('./api-user');
 const router = require('express').Router();
@@ -84,6 +85,26 @@ exports.init = function (state) {
       // create a proxy handler
       const newh = app_rec.web[root] = { cid, host: web_addr[0], port: web_port, proxy };
       const endpoint = async (req, res, next) => {
+        const session =  (req.headers.cookies || '')
+          .split(';')
+          .map(v => v.trim.split('='))
+          .filter(v => v[0] === 'rawh-session')
+          .map(v => v[1]);
+        const is_valid = await user_auth.is_session_valid(session, app_id);
+        // log({ proxy: req.parsed.url.pathname, is_valid, session });
+        if (!is_valid) {
+          // this is an invalid or expired sessions
+          const path = req.parsed.url.pathname;
+          if (path.indexOf(".") > 0) {
+            // 404 file assets
+            log({ "proxy ssn 404": path });
+            return web.four_oh_four(req, res);
+          } else {
+            // redirect all html and page requests to /
+            log({ "proxy ssn redirect": path });
+            return res.redirect("/");
+          }
+        }
         // look for captured app url rewrites
         for (let url of app_rec.url) {
           if (req.parsed.url.pathname === url.match) {
