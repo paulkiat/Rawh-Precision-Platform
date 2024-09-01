@@ -56,8 +56,11 @@ function setup_session() {
 }
 
 function session_dead(error) {
-  // alert(error || "you have been logged out");
-  window.location = "/";
+  console.log({ DEAD_SESSION: error });
+  setTimeout(() => {
+    // alert(error || "you have been logged out");
+    window.location = "/";
+  }, 2000);
 }
 
 function setup_subscriptions() {
