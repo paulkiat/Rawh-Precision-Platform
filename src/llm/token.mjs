@@ -52,6 +52,7 @@ export async function split(loader, opts = {}) {
       console.log({ docs });
   }
 
+
   const textSplitter = new RecursiveCharacterTextSplitter({
     chunkOverLap: opt.chunkOverlap ?? 200,
     chunkSize: opt.chunkSize ?? 1000,
@@ -71,6 +72,7 @@ export async function split(loader, opts = {}) {
 
   if (opt.debug) {
     console.log({ splitDocs });
+
 
     const sources = { };
     const pages = { };
@@ -95,11 +97,14 @@ export async function split(loader, opts = {}) {
         pages[pageid] = pageid;
         trak.pages++;
       }
+
     }
+
 
     console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
     console.log({ docs: docs.length, splitDocs: splitDocs.length, trak });
   }
 
+  
   return splitDocs;
 }
