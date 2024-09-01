@@ -25,11 +25,33 @@ export async function vectorize(docs, opt = {}) {
     await setup();
   }
 
-  const res = await state.model.embedDocuments(Array.isArray(docs) ? docs : [docs]);
+  docs = Array.isArray(docs) ? docs : [docs];
+
+  const res = await new Promise(resolve => {
+      embed_docs(docs, resolve);
+  });
   
   if (opt.debug) {
     console.log({ env, model: state.model, res });
   }
 
   return res;
+}
+
+// this construct allows us to divide up a task that would otherwise
+// block the node event loop resulting in heartbeat network failures
+async function embed_docs(docs, resolve, mark = Date.now(), index = 0, arr = []) {
+  if (index >= docs.length) {
+      resolve(arr);
+  } else if (Date.now() - mark > 1000) {
+      setTimeout(() => {
+        // unblock node event loop every 1 second
+        embed_docs(docs, resolve, undefined, index, arr);
+      }, 0);
+  } else {
+      state.model.embedQuery(docs[index]).then(vec => {
+        arr.push(vec);
+        embed_docs(docs, resolve, mark, index + 1, arr);
+      });
+  }
 }

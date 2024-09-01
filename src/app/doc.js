@@ -123,7 +123,7 @@ async function doc_embed(frec, path) {
 
   // tokenize and embed
   const chunks = await token.load_path(path, { type: frec.type });
-  // log({ chunks });
+  // log({ chunks: chunks.length });
 
   // store and publish meta-data about doc
   frec.state = "embedding";
@@ -133,7 +133,7 @@ async function doc_embed(frec, path) {
   // create vector embeddings for each chunk
   // const embed = await import('./lib/embed.mjs);
   const embeds = await embed.vectorize(chunks.map(c => c.pageContent));
-  // log({ embeds });
+  // log({ embeds: embeds.length });
 
   // annotate chunks with their vector and db indewx (also use for cosine similarity)
   // TODO: store prev/next pointers for gathering better contexts
