@@ -83,6 +83,7 @@ async function user_list(args) {
 
 async function user_del(args) {
   // TODO requires authenticated session
+  // TODO delete any user sessions
   const { meta_user } = context;
   return await neta_user.del(args.user);
 }
@@ -121,6 +122,7 @@ function error(msg) {
 }
 
 async function ssn_logout(args) {
+  const { meta_ssn } = context;
   const { ssn } = args;
   ssn && await meta_ssn.del(ssn);
   return { ssn };
@@ -145,14 +147,15 @@ async function user_auth(args) {
       let urec = await meta_user.get(user);
       let org_admin = false;
       if (!urec) {
-        const is_admin = org_admin =  await api_app.is_org_admin(user);
+        const is_admin = org_admin = await api_app.is_org_admin(user);
+        log({ mo_rec: user, is_admin });
         if (is_admin && pass === pass2 && secret === state.secret) {
-          // todo validate secret and create admin account
-          log({ creating_admin_record: user, pass, pass2, secret });
-          await user_add({ user, pass });
-          urec = await user_get(user);
+            // todo validate secret and create admin account
+            log({ creating_admin_record: user, pass, pass2, secret });
+            await user_add({ user, pass });
+            urec = await user_get({ user });
         } else {
-            return is_admin ? { init: true } : error("invalid credentials");
+            return is_admin ? { admin_init: true } : error("invalid credentials");
         }
       } else {
         org_admin = await api_app.is_org_admin(user);

@@ -208,7 +208,6 @@ function login_submit() {
   } else {
       ssn_heartbeat(user, pass);
   }
-  modal.hide(true);
 }
   
 function login_show(error, init) {
@@ -218,8 +217,12 @@ function login_show(error, init) {
   context.login = true;
   const show = error ? [ "login", "login-error" ] : [ "login" ];
   modal.show(show, "login", { login: login_submit }, { cancellable: false });
-  $('password').focus();
-  $('username').value = context.iam || LS.get("iam") ||"";
+  $("username").value = context.iam || LS.get("iam") || "";
+  if ($("username").value) {
+      $('password').focus();
+  } else {
+      $("username").focus();
+  }
   if (init) {
       $('secret').value =  "";
   } else {
@@ -244,53 +247,55 @@ function ssn_heartbeat(user, pass, pass2, secret) {
   clearTimeout(context.ssn_hb);
   const ssn = LS.get("session");
   if (ssn || (user && pass)) {
-    context.api.pcall("user_auth", { ssn, user, pass, pass2, secret })
-      .then((msg, error) => {
-        const { sid, init, user, org_admin } = msg;
-        // console.log(msg);
-        if (init) {
-            $("login-error").classList.add("hidden");
-            if (context.admin_init) {
-              console.log({ failed_admin: user });
-              login_show("invalid secret", true);
-            }
-            show("login-init");
-            context.admin_init = true;
-        } else {
-          delete context.admin_init;
-          context.org_admin = org_admin;
-          context.ssn_hb = setTimeout(ssn_heartbeat, 5000);
-          if (sid) {
-              context.ssn = sid;
-              LS.set("session", sid);
-            // valid session cookie required to serve /app/ assets
-            document.cookie = `rawh-session${uid}`;
+      context.api.pcall("user_auth", { ssn, user, pass, pass2, secret })
+        .then((msg, error) => {
+          const { sid, admin_init, user, org_admin } = msg;
+          // console.log('msg', msg);
+          if (admin_init) {
+              $("login-error").classList.add("hidden");
               if (context.admin_init) {
-                modal.hide(true);
-              } 
-          }
-          if (context.login) {
-              // console.log({ login: sid, user });
-              // run once only after successful login or
-              // page/session reload, not on heartbeats
-              if (org_admin) {
-                  context.admin = true;
-                  set_user_mode('admin');
-                  set_edit_mode('app');
-              } else {
-                  context.admin = false;
-                  set_user_mode('user');
-              }
-              if (user) {
-                  set_iam(user, false);
-              }
-              delete context.login_init;
+              console.log({ failed_admin_init: user });
+              login_show("invalid secret", true);
+            } else {
+              show("login-init");
             }
-          if (!context.app_list) {
-              context.app_list = (context.app_list || 0) + 1;
-              app_list();
-          }
-      } 
+            context.admin_init = true;
+          } else {
+              delete context.admin_init;
+              context.org_admin = org_admin;
+              context.ssn_hb = setTimeout(ssn_heartbeat, 5000);
+              if (sid) {
+                  context.ssn = sid;
+                  LS.set("session", sid);
+                  // valid session cookie required to serve /app/ assets
+                  document.cookie = `rawh-session${uid}`;
+                if (context.admin_init) {
+                    modal.hide(true);
+                }
+              }
+              if (context.login) {
+                  // console.log({ login: sid, user });
+                  // run once only after successful login or
+                  // page/session reload, not on heartbeats
+                  if (org_admin) {
+                      context.admin = true;
+                      set_user_mode('admin');
+                      set_edit_mode('app');
+                  } else {
+                      context.admin = false;
+                      set_user_mode('user');
+                  }
+                  if (user) {
+                      set_iam(user, false);
+                  }
+                  delete context.login_init;
+                  modal.hide(true);
+                  if (!context.app_list) {
+                      context.app_list = (context.app_list || 0) + 1;
+                      app_list();
+                  }
+              }
+      }
       })
       .catch(error => {
           delete context.admin_init;

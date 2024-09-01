@@ -79,7 +79,7 @@ function modal_load(url) {
 
 function modal_buttons(buttons) {
   const list = Object.keys(buttons);
-  const values = Object.values(buttons);
+  const fns = Object.values(buttons);
   $('modal-footer').innerHTML = list.map((button, idx) => {
     return `<button id="mb-${idx}">${button}</button>`;
   }).join('');

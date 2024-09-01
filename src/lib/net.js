@@ -385,12 +385,13 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
           const [ topic, msg, cid, mid ] = rec;
           const endpoint = handlers[topic];
           if (!endpoint) {
-            return log('call handle', { missing_call_handler: topic });
+              return log('call handle', { missing_call_handler: topic });
           }
           endpoint(msg, topic, cid).then(msg => {
-            client.send([ "repl", '', rmsg, cid, mid] );
+              client.send([ "repl", '', rmsg, cid, mid] );
           }).catch(error => {
-            client.send([ 'err', '', error.toString(), cid, mid ]);
+              log({ call_error: error });
+              client.send([ 'err', '', error.toString(), cid, mid ]);
           });
         }
         break;
