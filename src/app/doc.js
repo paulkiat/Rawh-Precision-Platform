@@ -7,6 +7,7 @@ const fsp = require('fs/promises');
 const util = require('../lib/util');
 const state = require('./service').init();
 const log = util.prelog('doc');
+const debug = util.args.debug;
 
 async function setup_node() {
   const { node } = state;
@@ -164,6 +165,13 @@ async function doc_embed(frec, path) {
       line_from: lines.from,
       line_to: lines.to
     });
+    if (debug) {
+        console.log(`---[ ${pageNumber} ]---[ ${lines.from}:${lines.to} ]---[ ${frec.uid} ]---`);
+        console.log(chunk.pageContent);
+    }
+  }
+  if (debug) {
+      console.log("------------------------------");
   }
 
   // store and publish meta-data about doc
@@ -184,6 +192,7 @@ async function doc_list(msg) {
 async function doc_delete(msg) {
   const { node, app_id, doc_info, cnk_data } = state;
   const { uid } = msg;
+  // delete matching meta-data and embeds
   const rec = await doc_info.get(uid);
   const batch = await cnk_data.batch();
   let recs = 0, match = 0;
@@ -197,6 +206,10 @@ async function doc_delete(msg) {
   }
   await batch.write();
   await doc_info.del(uid);
+  // delete file artifact
+  const fdir = `${state.data_dir}/docs`;
+  const fnam = `${fdir}/${uid}`;
+  await fsp.unlink(fnam);
   // log({ del_doc_info: rec, chunks: match });
   node.publish([ "doc-delete", app_id ], rec);
   return `analyzed ${recs} recs, ${match} matched`;
@@ -254,7 +267,7 @@ async function docs_query(msg) {
         index: rec.index
       });
 
-      found.push({ i: iter.pos, coss, text: rec.text, tokens: rec.tokens, key });
+      found.push({ i: iter.pos, coss, text: rec.text, tokens: rec.tokens, key, page: rec.page });
       iter.pos += iter.add;
       iter.coss = coss;
       tokens += rec.tokens;
@@ -302,11 +315,12 @@ async function docs_query(msg) {
     if (llm) {
       const embed = [
         "Based on the following context, succinctly answer the question at the end.\n",
+        "Prepend the Paragraph ID(s) used for the answer in [brackers]\n",
         // "using only the text available in the fragments, Do not improvise.\n",
         "If the answer is not found in the provided context, reply that you do not ",
         "have a document related to the question,\n",
         "-----\n",
-        ...embeds.map(r => `\n${r.text}\n`),
+        ...embeds.map((r,i) => `\n<P id='E${i}-PS${r.page}">\n${r.text}\n</P>`),
         `\nQuestion: ${query}\n\nAnswer:`
       ].join('');
       log({
