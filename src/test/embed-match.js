@@ -5,6 +5,7 @@ const { file, model } = args;
 const pdf2html = require('pdf2html');
 
 (async () => {
+  const start = Date.now();
 
   const { embed, token } = await llmapis.init();
   const { clean_text } = token;
@@ -40,15 +41,18 @@ const pdf2html = require('pdf2html');
 
   const para = pages.join("\n").split("\n\n");
   const stat = mmma(pages.map(p => p.length));
-  console.log({ paras: para.length, sample: para.slice(50, 53), stat });
+  const mid = para[Math.round(para.length/2)];
+  console.log({ paras: para.length, sample: mid, stat });
   
   // add cosine match ranking
-  chunk.slice().sort((a, b) => b.coss - a.coss).forEach((rec, idx) => {
+  const rank_coss = chunk.slice();
+  rank_coss.sort((a, b) => b.coss - a.coss).forEach((rec, idx) => {
     rec.rank_coss = idx;
   });
 
   // add cosine match ranking
-chunk.slice().sort((a, b) => b.index - a.index).forEach((rec, idx) => {
+  const rank_indx = chunk.slice();
+  rank_indx.sort((a, b) => b.index - a.index).forEach((rec, idx) => {
     rec.rank_index = idx;
   });
 
@@ -62,5 +66,15 @@ chunk.slice().sort((a, b) => b.index - a.index).forEach((rec, idx) => {
       ` | ${rec.rank_index.toString().padStart(2, ' ')}`
     ].join(''));
   });
+
+  console.log({
+    match_coss: chunk[rank_coss[0].order].text,
+    match_index: chunk[rank_indx[0].order].text,
+  });
+
+  console.log({
+    match_coss: chunk[rank_coss[0].order].text,
+    match_index: chunk[rank_indx[0].order].text,
+  })
 
 })();

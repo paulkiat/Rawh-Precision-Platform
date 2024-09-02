@@ -1,5 +1,7 @@
 // control net
 // embedding models: https://huggingface.co/sentence-transformers 
+// more accurate: Xenova/all-mpnet-base-v2 (768 dimensions)
+// faster: Xenova/all-miniLM-L6-v2 (384 dimensions)
 
 import { HuggingFaceTransformersEmbeddings } from "langchain/embeddings/hf_transformers"; 
 import { env } from '@xenova/transformers';
@@ -7,7 +9,7 @@ import { env } from '@xenova/transformers';
 const state = {
   init: false,
   modelDir: "models",
-  modelName: "Xenova/all-MiniLM-L12-v2",
+  modelName: "Xenova/all-mpnet-base-v2",
   allowRemoteModels: true
 }
 
