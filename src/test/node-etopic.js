@@ -1,6 +1,6 @@
 // test ephemeral expiring ~topics
 
-const { args, env, json } = require('../lib/util');
+const { args, env } = require('../lib/util');
 const proxy_host = env('PROXY_HOST') || args['proxy-host'] || 'localhost';
 const proxy_port = env('PROXY_PORT') || args['proxy-port'] || '6000';
 const net = require('../lib/net');

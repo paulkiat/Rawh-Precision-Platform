@@ -43,12 +43,12 @@ function ws_handler(ws, req) {
   if (req.url === "/") {
       state.org_link.setup(state, ws);
   } else if (req.url === "/admin.api") {
-    api.on_ws_connect(ws);
-    ws.on("message", msg => api.on_ws_msg(ws, msg));
-    ws.on("error", error => log({ ws_error: error }) )
+      api.on_ws_connect(ws);
+      ws.on("message", msg => api.on_ws_msg(ws, msg));
+      ws.on("error", error => log({ ws_error: error }) )
     } else {
-  log({ invalid_ws_url: req.url, host: req.headers.host });
-  ws.close();
+      log({ invalid_ws_url: req.url, host: req.headers.host });
+      ws.close();
   }
 }
 
@@ -59,11 +59,11 @@ async function setup_data_store() {
 
 async function setup_log_store() {
   log({ initializing: 'log store' });
-  state.log = await store.open("data/hub/logs");
+  state.logs = await store.open("data/hub/logs");
 }
 
 async function setup_org_adm() {
-  app.init(state);
+  api.init(state);
 }
 async function setup_keys() {
   const { meta, logs } = state;

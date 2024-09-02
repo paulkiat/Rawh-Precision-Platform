@@ -20,8 +20,10 @@ export async function setup(opt = { }) {
   state.modelName = opt.modelName ?? state.modelName;
   state.model = new HuggingFaceTransformersEmbeddings({ modelName: state.modelName });
   state.init = true;
+  // console.log({ embed_setup: opt, state });
 }
 
+// creates a vector from a document (text embed)
 export async function vectorize(docs, opt = {}) {
   if (!state.init) {
     await setup();

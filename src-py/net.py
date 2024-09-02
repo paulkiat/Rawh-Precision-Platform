@@ -11,8 +11,8 @@ import zmq.asyncio
 
 proto = "tcp"
 settings = {
-    "heartbeat": 1000, # in milliseconds
-    "dead_client": 5000, # in milliseconds
+    "heartbeat": 1, # in seconds
+    "dead_client": 5, # in seconds
     "debug_node": False,
 }
 
@@ -21,7 +21,7 @@ class ZMQClient:
         self.address = f"{tcp}://{host}:{port}"
         self.sock = None
         self.context = zmq.asyncio.Context()
-        self.sock.send_json(request)
+        self.connect()
 
     def send(self, request):
         if not self.sock:
@@ -69,9 +69,9 @@ class ZMQNode:
        self.substar = [] # Subscriptions with *
        self.lastHB = float('inf')  # Last heartbeat value
        self.lastHT = time.time() # Last heartbeat time
-       self.on_disconnect = None
-       self.on_reconnect = None
-       self.on_connect = None
+       self.on_disconnect = []
+       self.on_reconnect = []
+       self.on_connect = []
 
        asyncio.create_task(self.message_receiver())
        asyncio.create_task(self.send_heartbeat())
@@ -81,12 +81,13 @@ class ZMQNode:
             await self.next_message()
     
     async def send_heartbeat(self):
+        while True:
             if self.lastHT:
                 self.client.send(self.send)
                 delta = time.time() - self.lastHT
                 if delta > settings["dead_client"]:
                     # detect dead proxy
-                    print(f"Proxy dead after {delta} seconds")
+                    print({"Proxy dead after {delta} seconds"})
                     for fn in self.on_disconnect:
                         fn()
                     self.lastHT = 0
@@ -115,8 +116,10 @@ class ZMQNode:
             if self.lastHB != float('inf'):
                 for topic in self.subs:
                     self.client.send(["sub", topic])
-                    # print({"proxy_re_handle": topic})
+                    # print({"proxy_re_sub": topic})
+                for topic in self.handlers:
                     self.client.send({"handle", topic})
+                    # print({"proxy_re_handle": topic})
                 for fn in self.on_reconnect:
                     fn()
 

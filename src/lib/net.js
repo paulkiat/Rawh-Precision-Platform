@@ -288,7 +288,7 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
   const seed = Date.now();
   let sub_star = []; // subscriptions with *
   let lastHB = Infinity; // last heartbeat value
-  let lastHT = 0; //  last heartbeat time
+  let lastHT = Date.now(); //  last heartbeat time
   let on_disconnect = [];
   let on_reconnect = [];
   let on_connect = [];

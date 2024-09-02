@@ -122,8 +122,8 @@ async function setup_org_proxy() {
 }
 
 async function setup_org_apis() {
-  web_proxy.init(state);
   api_app.init(state);
+  web_proxy.init(state);
   // inject wss handlers prior to `web.start_web_listeners()`
   // this proxy to node is needed so that proxied apps have
   // access to the broker api endpoint

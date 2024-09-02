@@ -1,5 +1,11 @@
-const { max } = require("@xenova/transformers");
+// TEST PLAYGROUND
+
 const { args, mmma } = require("../lib/util");
+const proxy_host = args['proxy-host'] || 'localhost';
+const proxy_port = args['proxy-port'] || '6000';
+const net = require('../lib/net');
+const node = args.node ? net.node(proxy_host, proxy_port) : undefined;
+
 const llmapis = require("../llm/api");
 const { file, model } = args;
 
@@ -13,10 +19,19 @@ const max_embed = 512;
   const { clean_text } = token;
   const { vectorize, vector_to_index, cosine_similarity } = embed;
 
+  // provide cmd line option `--node` to use network embed services
+  const to_vector = node ? async function (chunks) {
+    chunks = Array.isArray(chunks) ? chunks : [chunks];
+    // return node.promise.call('', "embed/org", { text: chunks });
+    // parallelize across all embed services
+    const p = Promise.all(chunks.map(c => node.promise.call('', "embed/org", { text: [c] })));
+    return (await p).flat();
+  } : vectorize;
+
   embed.setup({ modelName: model });
   const pages = (await pdf2html.pages(file, { text: true })).map(p => clean_text(p));
 
-  // exploring chunking into paragraphs
+  // explore chunking into paragraphs
   const para = pages.map(p => clean_text(p)).join("\n").split("\n\n");
   const stat = mmma(pages.map(p => p.length));
   // const mid = para[Math.round(para.length/2)];
@@ -36,8 +51,8 @@ const max_embed = 512;
   }
   console.log({ chunks: chunks.length, ...mmma(chunks.map(c => c.length)) });
 
-  const vects = await vectorize(pages);
-  const qv = (await vectorize("what is the second number"))[0];
+  const vects = await to_vector(pages);
+  const qv = (await to_vector("what is the second number"))[0];
   const query = {
     vector: qv,
     index: vector_to_index(qv)
@@ -94,4 +109,6 @@ const max_embed = 512;
   });
 
   console.log({ runtime: Date.now() - start });
+  
+  process.exit(0);
 })();

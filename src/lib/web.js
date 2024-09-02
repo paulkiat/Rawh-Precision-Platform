@@ -44,7 +44,7 @@ async function start_web_listeners(state) {
   // log({ ws_handler, app: servers.app });
   // start insecure web socket handler (for internal app server)
   if (ws_handler && servers.app) {
-    const wss = servers.ws = new WebSocket.server({ server: servers.app });
+    const wss = servers.ws = new WebSocket.Server({ server: servers.app });
     wss.on(`connection`, ws_handler);
     wss.on(`error`, error => {
       log({ ws_serv_error: error });

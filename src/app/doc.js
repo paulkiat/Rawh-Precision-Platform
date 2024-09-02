@@ -11,7 +11,6 @@ const debug = util.args.debug;
 
 async function setup_node() {
   const { node } = state;
-
   // re-connect the doc app when the proxy connection bounces
   node.on_reconnect(register_service);
 }
@@ -31,26 +30,6 @@ async function register_service() {
   node.handle([ "doc-list", app_id ], doc_list);
   node.handle([ "doc-delete", app_id ], doc_delete);
   node.handle([ "docs-query", app_id ], docs_query);
-}
-
-// utility function that computes index from vector
-// as the sqrt(sum of squared vector elements)
-function vector_to_index(vec) {
-  return Math.sqrt(vec.map(v => v * v)).reduce((x, y) => x + y);
-}
-
-// chunks are records containing { index, vector }
-// returns a value 0 (dis-similar) to 1 (very similar)
-function cosine_similarity(ch1, ch2) {
-  const vec1 = ch1.vector;
-  const vec2 = ch2.vector;
-  let dotProduct = 0;
-
-    for (let i = 0; i < vec1.length; i++) {
-      dotProduct += vec1[i] * vec2[i];
-    }
-  
-  return  (ch1.index * ch2.index);
 }
 
 // request to a tcp socket for bulk loading a document
@@ -123,7 +102,11 @@ async function doc_embed(frec, path) {
   node.publish([ 'doc-loading', app_id ], frec);
 
   // tokenize and embed
-  const chunks = await token.load_path(path, { type: frec.type });
+  const chunks = await token.load_path(path, {
+    type: frec.type,
+    chunkSize: 786,
+    paraChunks: true, // new paragraph splitter
+  });
   // log({ chunks: chunks.length });
 
   // store and publish meta-data about doc
@@ -143,7 +126,7 @@ async function doc_embed(frec, path) {
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
     const vec = chunk.vector = embeds[i];
-    const idx = chunk.index = vector_to_index(vec);
+    const idx = chunk.index = embed.vector_to_index(vec);
     // generate a rough token count for maximizing the embed
     // chunk.tokens = chunk.pageContent.replace(/\n/g, ' ').split(' ').length;
     chunk.tokens = llama_token.encode(chunk.pageContent).length;
@@ -220,7 +203,7 @@ async function docs_query(msg) {
   const { node, embed, cnk_data } = state;
   const { query, max_tokens, min_match, llm, topic } = msg;
   const vector = (await embed.vectorize([ query ]))[0];
-  const index = vector_to_index(vector);
+  const index = embed.vector_to_index(vector);
   const key = `${index.toString().padEnd(18, 0)}`;
   log({ docs_query: msg });
 
@@ -262,7 +245,7 @@ async function docs_query(msg) {
         continue;
       }
       const [ key, rec ] = next;
-      const coss = cosine_similarity({ vector, index }, {
+      const coss = embed.cosine_similarity({ vector, index }, {
         vector: rec.vector,
         index: rec.index
       });
@@ -359,7 +342,7 @@ async function docs_query(msg) {
     token,
     doc_info,
     cnk_data,
-    llama_token
+    llama_token,
   });
 
   await setup_node();
