@@ -69,13 +69,14 @@ const max_embed = 512;
     return rec;
   });
 
-  // embeds.forEach((rec, idx) => {
-  //   console.log([
-  //     `-------------------------[ page ${idx + 1} ]-------------------------`,
-  //     rec.text,
-  //     ''
-  //   ].join(''));
-  // });
+  if (args.debug)
+  embeds.forEach((rec, idx) => {
+    console.log([
+      `-------------------------[ page ${idx + 1} ]-------------------------`,
+      rec.text,
+      ''
+    ].join(''));
+  });
   
   // add cosine match ranking
   const rank_coss = embeds.slice();

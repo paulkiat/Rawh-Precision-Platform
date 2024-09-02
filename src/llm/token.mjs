@@ -74,7 +74,7 @@ class Text_2_ParaChunks {
     console.log({ chunks: chunks.length, ...mmma(chunks.map(c => c.length)) });
 
     // remap to expected langchain structure
-    return chunks.map(text => {
+    return this.opts.raw ? chunks : chunks.map(text => {
       return {
         pageContent: text,
         metadata: {
@@ -86,9 +86,19 @@ class Text_2_ParaChunks {
           }
         }
       }
-    })
+    });
   }
 }
+
+export default {
+  clean_text,
+  pdf_to_text(path) {
+    return new PDF_2_TEXT(path).load();
+  },
+  text_to_chunks(docs, opts = {}) {
+    return new Text_2_ParaChunks({ raw: true, ...opts }).splitDocuments(docs)
+  }
+};
 
 const loaders = {
     "txt": (path) => new TextLoader(path),
