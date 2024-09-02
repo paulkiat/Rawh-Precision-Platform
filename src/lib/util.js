@@ -132,3 +132,16 @@ exports.stat = async function (path) {
 exports.read = async function (path) {
   return await fsp.readFile(path);
 };
+
+// given an array of numbers, return
+// { min, max, mean, avg }
+const mmmma = exports.mmma = function (array) {
+  const len = array.length;
+  const min = array.reduce((min, value) => value < min ? value : min, Infinity);
+  const max = array.reduce((max, value) => value > max ? value : max, -Infinity);
+  const avg = array.reduce((sum, value) => sum + value, 0) / len;
+  const sorted = array.slice().sort((a, b) => a - b);
+  const m0 = sorted[Math.floor((len-1)/2)];
+  const m1 = sorted[Math.floor((len - 1) / 2) + 1];
+  return { min, max, mean: len % 2 ? m0: (m0+m1)/2, avg};
+}
