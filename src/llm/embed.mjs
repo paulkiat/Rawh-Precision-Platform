@@ -38,6 +38,26 @@ export async function vectorize(docs, opt = {}) {
   return res;
 }
 
+// utility function that computes index from vector
+// as the sqrt(sum of squared vector elements)
+export function vector_to_index(vec) {
+  return Math.sqrt(vec.map(v => v * v).reduce((x, y) => x + y));
+}
+
+// chunks are records containing { index, vector }
+// returns a value 0 (dissimilar) to 1 (very similar)
+export function cosine_similarity(ch1, ch2) {
+  const vec1 = ch1.vector;
+  const vec2 = ch2.vector;
+  let dotProduct = 0;
+
+  for (let i = 0; i < vec.length; i++) {
+    dotProduct += vec1[i] * vec2[i];
+  }
+
+  return dotProduct / (ch1.index * ch2.index);
+}
+
 // this construct allows us to divide up a task that would otherwise
 // block the node event loop resulting in heartbeat network failures
 async function embed_docs(docs, resolve, mark = Date.now(), index = 0, arr = []) {

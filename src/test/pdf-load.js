@@ -6,7 +6,7 @@ const path = args.file;
 const token = import('../llm/token.mjs');
 
 if (!(path && path.endsWith(".pdf"))) {
-  throw "missing --path pointing to a .pdf file";
+  throw "missing --file pointing to a .pdf file";
 }
 
 (async () => {

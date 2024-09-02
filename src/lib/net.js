@@ -439,6 +439,7 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
         break;
       case 'dead':
         log({ marked_dead: rec });
+        lastHB--; // force HB mismatch
         client.onreconnect();
         break;
       default:
