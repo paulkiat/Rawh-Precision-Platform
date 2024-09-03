@@ -4,7 +4,7 @@
 import session from "./lib/session.js";
 import setup_file_drop from './lib/file-drop.js';
 import { ws_proxy_api } from "./lib/ws-net";
-import { $, LS, on_key } from './lib/util.js';
+import { $, LS, on_key, uid } from './lib/util.js';
 
 const state = {
   topic_embed: "llm-query/org",
@@ -94,14 +94,34 @@ function setup_llm_session() {
 }
 
 function set_answer(text, query) {
-  if (text !== undefined) $('answer').value = text;
+  if (text !== undefined && state.output) {
+    state.output.innerText = text;
+    const hwrap = $('hwrap');
+    hwrap.scrollTop = hwrap.scrollHeight;
+  }
   if (query !== undefined) $('query').value = query;
   $('query').focus();
 }
 
+function append_history(label, text, clazz) {
+  const elid = uid();
+  const hlog = $('chat-history');
+  const hwrap = $('hwrap');
+  hlog.innerHTML += [
+      `<div class="label ${clazz}">${label}</div>`,
+      `<div id="${elid} class="text ${clazz}">${text}</div>`,
+  ].join('');
+  hwrap.scrollTop = hwrap.scrollHeight;
+  state.output = $(elid);
+  return elid;
+}
+
+// Make append_history available globally
+window.ah = append_history;
+
+
 function query_llm(query, then, disable = true) {
   console.log({ query });
-  set_answer("...thinking");
   if (disable) {
     disable_query("...");
   }
@@ -115,6 +135,8 @@ function query_llm(query, then, disable = true) {
     tokens.push(token);
     set_answer(tokens.join(''));
   }, 120);
+  append_history("user", query, "query");
+  append_history("ai", "thinking...", "ai");
   // embed and chat nodes are different endpoints
   if (state.embed) {
     query_embed(query, topic, start, then);
@@ -170,14 +192,12 @@ function setup_qna_bindings() {
     state.embed = false;
     $('mode-chat').classList.add('selected');
     $('mode-embed').classList.remove('selected');
-    set_answer('');
   };
   $('mode-embed').onclick = () => {
     LS.set('last-mode', 'embed');
     state.embed = true;
     $('mode-chat').classList.remove('selected');
     $('mode-embed').classList.add('selected');
-    set_answer('');
   };
   if (LS.get('last-mode') === 'embed') {
     $('mode-embed').onclick();
@@ -188,9 +208,9 @@ function setup_qna_bindings() {
 
 function disable_query(answer) {
   // $('query').disabled = true;
-  if (answer) {
-    $('answer').value = answer;
-  }
+  // if (answer) {
+  //   $('answer').value = answer;
+  // }
 }
 
 function enable_query() {
@@ -210,7 +230,6 @@ async function on_load() {
 document.addEventListener('DOMContentLoaded', on_load);
 window.update_file_list = update_file_list;
 window.doc_delete = doc_delete;
-window.set_answer = set_answer;
 
 
 

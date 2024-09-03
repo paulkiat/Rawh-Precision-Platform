@@ -1,5 +1,12 @@
 @import url('./lib/common.css');
 
+@media (prefers-color-scheme: dark) {
+  #history {
+    color: #eee !important;
+    background-color: #222 !important;
+  }
+}
+
 body {
   position: absolute;
   top: 0;
@@ -34,7 +41,16 @@ textarea {
 
 /* Header Styles */
 #header {
-    background-image: url('img/app-banner.jpg');
+    background-image: url('./img/app-banner.jpg');
+    height: 70px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 10px;
+}
+
+#username {
+  text-align: center;
 }
 
 /* App Container */
@@ -47,7 +63,7 @@ textarea {
     flex-direction: column;
     gap: 5px;
       box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-      transition: all 0.3s ease-in-out;
+      /* transition: all 0.3s ease-in-out; */
       /* z-index: 0; */
 }
 
@@ -93,7 +109,7 @@ textarea {
 }
 
 #file-drop.drop-hover {
-  background-image: url('img/app-banner.jpg');
+  background-image: url('./img/app-banner.jpg');
   color: white;
   opacity: 0.25;
   font-weight: bold;
@@ -110,23 +126,6 @@ textarea {
     /* flex-wrap: wrap; */
     /* gap: 10px; */
 }
-
-#parts > div {
-    align-items: flex-start;
-    justify-content: flex-start;
-    /* flex-grow: 1 1 calc(33.333% - 10px); */
-    /* flex-grow: 1;
-      background-color: #f0f0f0;
-      padding: 6.93px;
-      border-radius: 5px;
-      text-align: center; */
-      /* transition: background-color 0.3s ease, transform 0.3s ease; */
-}
-
-/* #parts > div:hover {
-    background-color: #e6e6e6;
-    transform: translateY(-5px);
-} */
 
 #qna {
   height: 100%;
@@ -148,17 +147,52 @@ textarea {
   text-align: right;
 }
 
-#query, #answer {
+#query, #history {
   resize: none;
-  background-color: white;
   border-radius: 10px;
+  border: 1px solid #aaa;
+  background-color: white;
 }
 
-#answer {
+#history {
   height: calc(100% - 20px);
+  color: black;
+  padding: 5px;
 }
 
-#query{
+#hwrap {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  right: 5px;
+  bottom: 5px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: scroll;
+}
+
+#hlog {
+  display: grid;
+  grid-template-columns: 50px 1fr;
+  flex-direction: column;
+}
+
+#hlog .text {
+  text-align: left;
+  padding: 5px;
+}
+
+#hlog .you {
+  color: #0066cc !important;
+  font-style: italic;
+  text-align: right;
+}
+
+#hlog .ai {
+  padding-bottom: 10px;
+}
+
+#query {
   height: calc(100% - 5px);
 }
 
