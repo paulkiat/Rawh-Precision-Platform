@@ -36,11 +36,15 @@ export async function setup(opt = { }) {
   const modelPath = path.join(opt.modelDir ?? "models", modelName);
   const contextSize = opt.contextSize ?? 4096;
   const batchSize = opt.batchSize ?? 4096;
+  const useMlock = opt.mlock ? true : false;
+  const useMmap = opt.mmap ? true : false;
   const gpuLayers = opt.gpulayers ?? 0;
   const threads = opt.threads ?? undefined;
   const model = new LlamaModel({
          modelPath,
          gpuLayers,
+         useMlock,
+         useMmap,
   });
 
   Object.assign(state, {
@@ -61,6 +65,8 @@ export async function setup(opt = { }) {
       batchSize,
       contextSize,
       threads,
+      useMmap,
+      useMlock,
       aplaca: opt.alpaca
     });
   }
