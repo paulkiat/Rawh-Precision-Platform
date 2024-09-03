@@ -26,8 +26,8 @@ function update_file_list() {
     for (let rec of msg) {
       const { uid, name, type, state, added, chunks, length } = rec[1];
       const title = [
-          `length: ${length}`,
           `chunks: ${chunks}`,
+          `length: ${length}`,
           `added: ${dayjs(added).format('YYYY/MM/DD')}`
       ].join("\n");
       html.push([
@@ -123,7 +123,7 @@ window.ah = append_history;
 function query_llm(query, then, disable = true) {
   console.log({ query });
   if (disable) {
-    disable_query("...");
+    disable_query();
   }
   then = then || set_answer;
   const start = Date.now();
@@ -135,8 +135,8 @@ function query_llm(query, then, disable = true) {
     tokens.push(token);
     set_answer(tokens.join(''));
   }, 120);
-  append_history("user", query, "query");
-  append_history("ai", "thinking...", "ai");
+  append_history("You", query, "you");
+  append_history("Ai", "thinking...", "ai");
   // embed and chat nodes are different endpoints
   if (state.embed) {
     query_embed(query, topic, start, then);
@@ -173,6 +173,7 @@ function query_embed(query, topic, start, then) {
       if (msg && msg.answer) {
           console.log({ answer: msg.answer, time: Date.now() - start });
           then(msg.answer);
+          enable_query();
      } else {
           console.log(msg);
           window.answer = msg;
@@ -207,14 +208,10 @@ function setup_qna_bindings() {
 }
 
 function disable_query(answer) {
-  // $('query').disabled = true;
-  // if (answer) {
-  //   $('answer').value = answer;
-  // }
+  $('query').disabled = true;
 }
 
 function enable_query() {
-  // $('query').value = '';
   $('query').disabled = false;
   $('query').focus();
 }

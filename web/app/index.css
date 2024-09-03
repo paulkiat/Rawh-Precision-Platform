@@ -5,6 +5,11 @@
     color: #eee !important;
     background-color: #222 !important;
   }
+
+  #hlog .you {
+    color: #aaa !important;
+    font-style: italic;
+  }
 }
 
 body {
@@ -183,7 +188,7 @@ textarea {
 }
 
 #hlog .you {
-  color: #0066cc !important;
+  color: #777 !important;
   font-style: italic;
   text-align: right;
 }
