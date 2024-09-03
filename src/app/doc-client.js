@@ -34,7 +34,7 @@ function file_drop(req, res, next) {
       throw "reply missing host & port";
     }
     // connect to ephemeral bulk drop host:port
-    // log({ drop_to: reply });
+    log({ drop_to: reply });
     return new Promise((resolve, reject) => {
       const client = net.connect({ host: host[0], port }, () => {
         resolve(client);

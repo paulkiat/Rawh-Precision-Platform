@@ -7,7 +7,10 @@ const fsp = require('fs/promises');
 const util = require('../lib/util');
 const state = require('./service').init();
 const log = util.prelog('doc');
-const debug = util.args.debug;
+const { args, env } = util;
+const { debug } = args;
+const drop_host = args["drop-host"];
+const drop_port = args["drop-port"] || 0;
 
 async function setup_node() {
   const { node } = state;
@@ -83,10 +86,13 @@ async function doc_load(msg = {}) {
   });
   // once tcp server is up, send port back to caller
   return await new Promise(reply => {
-    srv.listen(() => {
+    srv.listen({ port: drop_port }, () => {
       // log({ bulk_load: srv.address() });
       // send addr to requestor to complete bulk load
-      reply({ host: net_addrs, port: srv.address().port });
+      reply({ 
+        host: drop_host ? [ drop_host ] : net_addrs,
+        port: srv.address().port
+      });
     });
   });
 }
