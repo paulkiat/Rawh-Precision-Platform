@@ -1,3 +1,6 @@
+// use an llm service to create sample test questions for embed
+// and semantic matchinc from pdf chunks
+
 (async () => {
 
   const { chat, token } = await require('../llm/api').init();

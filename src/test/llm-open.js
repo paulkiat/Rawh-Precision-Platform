@@ -1,15 +1,16 @@
+// minimum llm open test w/ sample query
+// for debug reporting to node-llama-cpp discussions
+
 async function run(opt = { }) {
   const path = require("path");
   const {
       LlamaModel,
       LlamaContext,
       LlamaChatSession,
-      LlamaChatPromptWrapper,
   } = (await import("node-llama-cpp"));
 
   const modelName = opt.modelName ?? "llama-2-7b-chat.Q2_K.gguf";
   const modelPath = path.join(opt.modelDir ?? "models", modelName);
-  const promptWrapper = new LlamaChatPromptWrapper();
   const contextSize = opt.contextSize ?? 4096;
   const batchSize = opt.batchSize ?? 4096;
   const gpuLayers = opt.gpulayers ?? 0;
@@ -28,7 +29,6 @@ async function run(opt = { }) {
 
   const session = new LlamaChatSession({
     context,
-    promptWrapper,
     systemPrompt: opt.systemPrompt,
     printLlamaSystemInfo: opt.debug ? true : false,
     contextSequence: context.getSequence ? context.getSequence() : undefined,
@@ -69,8 +69,6 @@ async function run(opt = { }) {
       return response;
     }
   };
-
-    await session.init();
 
     return fns;
 }

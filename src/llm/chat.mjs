@@ -14,36 +14,12 @@ import {
     LlamaModel,
     LlamaContext,
     LlamaChatSession,
-    GeneralChatPromptWrapper,
-    LlamaChatPromptWrapper,
     LlamaGrammar
 } from "node-llama-cpp";
 
-const state = {
-  init: false,
-};
+const state = { };
 
 export async function setup(opt = { }) {
-  if (state.init) {
-    return;
-  } else {
-    state.init = true;
-  }
-  const BasePromptClass = alpaca ? 
-    GeneralChatPromptWrapper :
-    LlamaChatPromptWrapper;
-  class CustomPromptWrapper extends BasePromptClass {
-    // let us track exactly what the llm (@).(@) --> sees   
-    wrapPrompt(str, opt) {
-      let ret = super.wrapPrompt(str, opt);
-      // to get the exact details of what the llm sees
-      if (state.debug == 42) {
-        // let { systemPrompt, promptIndex, lastStopString, lastStopStringSuffix } = opt;
-        console.log({ opt, send_to_llm: ret });
-      }
-      return ret;
-    }
-  }
 
   const systemPrompt = state.systemPrompt = alpaca ? [
     "### Instruction:\n",
@@ -58,9 +34,6 @@ export async function setup(opt = { }) {
 
   const modelName = opt.modelName ?? "llama-2-7b-chat.Q2_K.gguf";
   const modelPath = path.join(opt.modelDir ?? "models", modelName);
-  const promptWrapper = opt.alpaca ?
-    new CustomPromptWrapper({ instructionName: "Input", responseName: "Response" }) :
-    new CustomPromptWrapper();
   const contextSize = opt.contextSize ?? 4096;
   const batchSize = opt.batchSize ?? 4096;
   const gpuLayers = opt.gpulayers ?? 0;
@@ -76,7 +49,6 @@ export async function setup(opt = { }) {
     threads,
     batchSize,
     contextSize: Math.min(contextSize, model.trainContextSize || contextSize),
-    promptWrapper,
     systemPrompt: opt.systemPrompt ?? systemPrompt
   });
 
@@ -94,32 +66,20 @@ export async function setup(opt = { }) {
   }
 }
 
-// future allow aborting a runaway response
-class AbortIt extends EventTarget {
-  get aborted() {
-    return false;
-  }
-  get reason() {
-    console.log('reason() called');
-  }
-  onabort() {
-    console.log('on_abort', [...arguments]);
-  }
-  throwIfAbortedt() {
-    console.log('throwIfAborted', [...arguments]);
-  }
-}
-
 export async function create_session(opt = { }) {
   const { promptWrapper, systemPrompt } = state;
   const { model, batchSize, contextSize, threads } = state;
   const grammar = opt.grammar ? await LlamaGrammar.getFor("json") : undefined;
+
   const context = new LlamaContext({
     model,
     batchSize,
     contextSize,
     threads,
   });
+
+  // console.log({ context });
+
   const session = new LlamaChatSession({
     context,
     promptWrapper,
@@ -128,13 +88,15 @@ export async function create_session(opt = { }) {
     contextSequence: context.getSequence ? context.getSequence() : undefined,
   });
 
+  // console.log({ session });
+
   const fns = {
     async prompt(prompt, onToken) {
       return prompt_and_response(prompt, onToken, session, grammar);
     },
 
     async prompt_debug(prompt, onToken) {
-      if (opt.debug !== 42) {
+      if (opt.debug) {
         console.log({  user: prompt });
       }
       let time = Date.now();
@@ -159,19 +121,13 @@ export async function create_session(opt = { }) {
     }
   };
 
-  if (opt.init) {
-    await session.init();
-  }
-
   return fns;
 }
 
 async function prompt_and_response(prompt, onToken, session, grammar) {
   return session.prompt(prompt, {
-    signal: new AbortIt(),
     onToken,
     grammar,
-    // msxTokens: 5,
     temperature: 0.08,
     repeatPenalty: {
       lastTokens: 64,
