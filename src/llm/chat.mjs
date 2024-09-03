@@ -9,13 +9,15 @@
 
 
 /** Choose Your Player.. */
-import path from "path"; path;
+import fsp from "fs/promises";
+import path from "path";
 import {
     LlamaModel,
     LlamaContext,
     LlamaChatSession,
     LlamaGrammar
 } from "node-llama-cpp";
+
 
 const state = { };
 
@@ -88,7 +90,9 @@ export async function create_session(opt = { }) {
   const oeval = context.evaluate.bind(context);
   async function *nueval(tokens, args) {
     if (opt.debug === "inspect") {
-      console.log({ to_llm: context.decode(tokens) });
+      const prompt = context.decode(tokens);
+      console.log({ to_llm: prompt });
+      fsp.writeFile("/tmp/prompt.last", prompt);
     }
     for await (const value of oeval(tokens, args)) {
       yield value;

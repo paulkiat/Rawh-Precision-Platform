@@ -15,7 +15,7 @@
 
 * `brew install zmq`
 * `npm i`
-* `scripts/seed-model.sh`
+* `script/seed-model.sh`
 
 
 ## Testing Setup
