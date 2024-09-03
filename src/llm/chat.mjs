@@ -112,7 +112,7 @@ export async function create_session(opt = { }) {
     },
 
     async prompt_debug(prompt, onToken) {
-      if (opt.debug !== 42) {
+      if (opt.debug && opt.debug !== "inspect") {
         console.log({  user: prompt });
       }
       let time = Date.now();
