@@ -87,7 +87,7 @@ export async function create_session(opt = { }) {
   // intercept context eval so we can watch exactly what's sent to the llm
   const oeval = context.evaluate.bind(context);
   async function *nueval(tokens, args) {
-    if (opt.debug === 42) {
+    if (opt.debug === "inspect") {
       console.log({ to_llm: context.decode(tokens) });
     }
     for await (const value of oeval(tokens, args)) {
