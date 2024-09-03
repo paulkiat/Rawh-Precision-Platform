@@ -183,8 +183,13 @@ textarea {
 }
 
 #hlog .text {
+  flex-direction: column;
   text-align: left;
-  padding: 5px;
+  padding: 10px;
+}
+
+#hlog .text p, #hlog .tex pre {
+  margin: 0;
 }
 
 #hlog .you {

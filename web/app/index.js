@@ -6,6 +6,36 @@ import setup_file_drop from './lib/file-drop.js';
 import { ws_proxy_api } from "./lib/ws-net";
 import { $, LS, on_key, uid } from './lib/util.js';
 
+const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+const isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+const { markedHighlight } = globalThis.markedHighlight;
+const marker = new marked.Marked(
+  markedHighlight({
+    langPrefix: 'hljs language-',
+    highlight(code, lang, info) {
+      lang = lang || "javascript";
+      const language = hljs.getLanguage(lang) ? lang : "plaintext";
+      return hljs.highlight(code, { language }).value;
+    }
+  })
+);
+
+function loadCSS(url) {
+  const link = document.createElement('link');
+  link.href = url;
+  link.type = 'text/css';
+  link.rel = 'stylesheet';
+  document.head.appendChild(link);
+}
+
+if (isLightMode) {
+    loadCSS('https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/default.min.css');
+} else if (isDarkMode) {
+    loadCSS('https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/dark.min.css');
+}
+
+const session_uid = location.hash ? location.hash.slice(1) : undefined;
+
 const state = {
   topic_embed: "llm-query/org",
   topic_chat: "llm-ssn-query/org",
@@ -95,7 +125,8 @@ function setup_llm_session() {
 
 function set_answer(text, query) {
   if (text !== undefined && state.output) {
-    state.output.innerText = text;
+    // state.output.innerText = text;
+    state.output.innerHTML = marker.parse(text);
     const hwrap = $('hwrap');
     hwrap.scrollTop = hwrap.scrollHeight;
   }
@@ -223,6 +254,14 @@ async function on_load() {
   setup_qna_bindings();
   update_file_list();
   $('query').value = LS.get('last-query') || '';
+  // bind fancy markdown highlighting
+  // marked.setOptions({
+  //    highlight: function(code, lang) {
+  //        console.log({ highlight: code, lang });
+  //        const language = hljs.getLanguage(lang) ?? lang : 'plaintext';
+  //        return hljs.highlight(code, { language }).value;
+  //    }
+  // });
 }
 document.addEventListener('DOMContentLoaded', on_load);
 window.update_file_list = update_file_list;
