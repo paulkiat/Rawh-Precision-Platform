@@ -18,7 +18,6 @@ import {
     LlamaGrammar
 } from "node-llama-cpp";
 
-
 const state = { };
 
 export async function setup(opt = { }) {
@@ -87,21 +86,35 @@ export async function create_session(opt = { }) {
   });
 
   // intercept context eval so we can watch exactly what's sent to the llm
-  if (context.evaluate) {
+  if (context.evaluate && state.inspect) {
+      // new node-llama-cpp
       const oeval = context.evaluate.bind(context);
       async function *nueval(tokens, args) {
-        if (opt.debug === "inspect") {
-            const prompt = context.decode(tokens);
-            console.log({ to_llm: prompt });
-            fsp.writeFile("/tmp/prompt.last", prompt);
+      const prompt = context.decode(tokens);
+      console.log({ to_llm: prompt });
+      fsp.writeFile("/tmp/prompt.last", prompt);
+      for await (const value of oeval(tokens, args)) {
+          yield value;
         }
-        for await (const value of oeval(tokens, args)) {
-            yield value;
-          }
       }
       context.evaluate = nueval;
-  } else {
-      console.log({ old_node_llama_cpp: true });
+  } else if (state.inspect) {
+    // old node-llama-cpp
+    const oseq = context.getSequence.bind(context);
+    function nuseq() {
+      const seq = oseq(...arguments);
+      const oeval = seq.evaluate.bind(seq);
+      function nueval(tokens, args) {
+        const prompt = model.detokenize(tokens);
+        console.log({ to_llm: prompt });
+        fsp.writeFile("/tmp/prompt.last", prompt)
+        return oeval(tokens, args);
+      }
+      seq.evaluate = nueval;
+      return seq;
+    }
+    context.getSequence = nuseq;
+    console.log(context.getSequence);
   }
 
   const session = new LlamaChatSession({
@@ -120,7 +133,7 @@ export async function create_session(opt = { }) {
     },
 
     async prompt_debug(prompt, onToken) {
-      if (opt.debug && opt.debug !== "inspect") {
+      if (opt.debug && !state.inspect) {
         console.log({  user: prompt });
       }
       let time = Date.now();
