@@ -87,18 +87,22 @@ export async function create_session(opt = { }) {
   });
 
   // intercept context eval so we can watch exactly what's sent to the llm
-  const oeval = context.evaluate.bind(context);
-  async function *nueval(tokens, args) {
-    if (opt.debug === "inspect") {
-      const prompt = context.decode(tokens);
-      console.log({ to_llm: prompt });
-      fsp.writeFile("/tmp/prompt.last", prompt);
-    }
-    for await (const value of oeval(tokens, args)) {
-      yield value;
-    }
+  if (context.evaluate) {
+      const oeval = context.evaluate.bind(context);
+      async function *nueval(tokens, args) {
+        if (opt.debug === "inspect") {
+            const prompt = context.decode(tokens);
+            console.log({ to_llm: prompt });
+            fsp.writeFile("/tmp/prompt.last", prompt);
+        }
+        for await (const value of oeval(tokens, args)) {
+            yield value;
+          }
+      }
+      context.evaluate = nueval;
+  } else {
+      console.log({ old_node_llama_cpp: true });
   }
-  context.evaluate = nueval;
 
   const session = new LlamaChatSession({
     context,
