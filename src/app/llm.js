@@ -19,6 +19,8 @@ const settings = {
   alpaca: env['LLM_ALPACA'] || args['alpaca'],
   context: env['LLM_CONTEXT'] || args['context'],
   threads: env['LLM_THREADS'] || args['threads'],
+  mlock: (env('LLM_MLOCK') || args['mlock']) ? true : false,
+  mmap: (env('LLM_MMAP') || args['mmap']) ? true : false,
 };
 
 async function start_worker() {
@@ -60,6 +62,8 @@ async function start_worker() {
     threads: settings.threads,
     context: settings.context,
     batch: settings.batch,
+    mlock: settings.mlock,
+    mmap: settings.mmap,
     model: settings.model,
     gpu: settings.gpu,
   });

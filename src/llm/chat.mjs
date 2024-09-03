@@ -84,7 +84,17 @@ export async function create_session(opt = { }) {
     threads,
   });
 
-  // console.log({ context });
+  // intercept context eval so we can watch exactly what's sent to the llm
+  const oeval = context.evaluate.bind(context);
+  async function *nueval(tokens, args) {
+    if (opt.debug === 42) {
+      console.log({ to_llm: context.decode(tokens) });
+    }
+    for await (const value of oeval(tokens, args)) {
+      yield value;
+    }
+  }
+  context.evaluate = nueval;
 
   const session = new LlamaChatSession({
     context,
@@ -94,7 +104,7 @@ export async function create_session(opt = { }) {
     contextSequence: context.getSequence ? context.getSequence() : undefined,
   });
 
-  // console.log({ session });
+  // console.log({ session } );
 
   const fns = {
     async prompt(prompt, onToken) {
@@ -102,7 +112,7 @@ export async function create_session(opt = { }) {
     },
 
     async prompt_debug(prompt, onToken) {
-      if (opt.debug) {
+      if (opt.debug !== 42) {
         console.log({  user: prompt });
       }
       let time = Date.now();

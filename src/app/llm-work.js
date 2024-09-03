@@ -57,7 +57,9 @@ setInterval(() => {
           modelName: msg.mode,
           batchSize: msg.batch,
           contextSize: msg.context,
-          thereads: msg.threads
+          threads: msg.threads,
+          mlock: msg.mlock,
+          mmap: msg.mmap
         });
         process.send({ mid, msg: { init: true } });
         break;
