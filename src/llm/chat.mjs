@@ -25,11 +25,11 @@ export async function setup(opt = { }) {
   const systemPrompt = state.systemPrompt = alpaca ? [
     "### Instruction:\n",
     "You are an assistant that strives to answer as concisely as possible There is no need for pleasantries or extranious commentary.\n",
-    "If a question does not make any sense, try to answer based on your best understanding of the intent of the question.\n",
+    "If a question does not make sense, try to answer based on your best understanding of the intent of the question.\n",
     "If you don't know what the answer to a question, do not guess or share false or incorrect information."
   ] : [
     "You are an AI assistant that strives to answer as concisely as possible. This is no need for pleasantries or other commentary.\n",
-    "If a question does not make any sense, try to answer based on your best understanding of the intent of the question.\n",
+    "If a question does not make sense, try to answer based on your best understanding of the intent of the question.\n",
     "If you don't know what the answer to a question, do not guess or share false or incorrect information."
   ].join('');
 
@@ -105,10 +105,10 @@ export async function create_session(opt = { }) {
       const seq = oseq(...arguments);
       const oeval = seq.evaluate.bind(seq);
       function nueval(tokens, args) {
-        const prompt = model.detokenize(tokens);
-        console.log({ to_llm: prompt });
-        fsp.writeFile("/tmp/prompt.last", prompt)
-        return oeval(tokens, args);
+          const prompt = model.detokenize(tokens);
+          console.log({ to_llm: prompt });
+          fsp.writeFile("/tmp/prompt.last", prompt)
+          return oeval(tokens, args);
       }
       seq.evaluate = nueval;
       return seq;

@@ -107,21 +107,7 @@ setInterval(() => {
         break;
       case "query":
         // console.log({ mid, sid, query, debug, topic });
-        const temp = await chat.create_session({
-          debug,
-          xsystemPrompt: [
-            "You are an AI assistant that strives to answer as concisely as possible. ",
-
-            "You are being provided a set of text fragments seperated by ----- which is the ",
-            "context you must use to answer a Question at the end.\n",
-
-            "If the answer is not found in the provided texts, reply that you do not ",
-            "have a document related to the question.\n",
-
-            "If a question does not make any sense, try to answer based on your best understanding of the intent of the question.\n",
-            "If you don't know the answer to a question, do not guess or share false or incorrect information.",
-          ].join("\n")
-        });
+        const temp = await chat.create_session({ debug });
         const answer = debug ?
           await temp.prompt_debug(query, onToken) :
           await temp.prompt(query, onToken);
