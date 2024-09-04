@@ -20,13 +20,14 @@ function setup(state, ws) {
 async function link_handler(state, msg, send, socket) {
   const { meta, logs } = state;
   const adm_org = state.org_api_commands;
-  const sock_stat = socket.stat = socket.stat || { };
+  const sock_stat = socket.stat = socket.stat || { 
+      sync: { last: undefined, timer: undefined, count: 0 }
+  };
   
+  const { sync } = sock_stat;
   const org_id = sock_stat.org_id || msg.org_id;
   const org_rec = sock_stat.org_rec || await adm_org.by_uid({ uid: org_id});
   const org_log = logs.sub(org_id);
-
-  const sync = { last: undefined, timer: undefined, count: 0 };
 
   //log({ org_id, org_rec, msg });
 
@@ -65,6 +66,7 @@ async function link_handler(state, msg, send, socket) {
       clearTimeout(sync.timer);
       sync.timer = setTimeout(() => {
           send({ log_checkpoint: sync.last, count: sync.count });
+          log({ org: org_id, log_sync: sync.count });
           sync.count = 0;
           sync.timer = undefined;
       }, 1000);

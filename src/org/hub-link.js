@@ -114,7 +114,14 @@ async function handle(state, msg) {
         link.send({ sync_log: key, value });
         synced++;
     }
-    log({ hub_sync_log: synced });
+    if (synced) {
+      log({ hub_sync_log: synced });
+    }
+  }
+
+  if (msg.log_checkpoint) {
+      meta.put("org-log-checkpoint", msg.log_checkpoint);
+      log(msg);
   }
 
   if (msg.secret) {
