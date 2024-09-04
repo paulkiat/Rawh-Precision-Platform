@@ -25,13 +25,13 @@ async function setup_node() {
 async function announce_service() {
   const { node, app_id, app_port, net_addrs } = state;
   log({ register_app_web: app_id, static_dir: state.app_dir });
-  node.publish("service-up", {
+  node.publish("service-up",  {
+    app_id,
+    type: "web-server",
     // put app into direct access dev mode vs production proxy
     direct: state.direct,
     web_port: app_port,
     web_addr: net_addrs,
-    type: "web-server",
-    app_id,
   });
 }
 

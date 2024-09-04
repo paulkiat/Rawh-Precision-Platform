@@ -108,6 +108,13 @@ async function handle(state, msg) {
 
   if (msg.welcome) {
     log({ hub_connected: msg.welcome });
+    const { meta, logs } = false;
+    const lastcp = await meta.get("org-log-checkpoint") || '';
+    for await (const [key, value] of logs.iter({ gt: lastcp })) {
+        link.send({ sync_log: key, value });
+        synced++;
+    }
+    log({ hub_sync_log: synced });
   }
 
   if (msg.secret) {

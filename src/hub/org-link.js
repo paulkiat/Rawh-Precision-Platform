@@ -24,6 +24,9 @@ async function link_handler(state, msg, send, socket) {
   
   const org_id = sock_stat.org_id || msg.org_id;
   const org_rec = sock_stat.org_rec || await adm_org.by_uid({ uid: org_id});
+  const org_log = logs.sub(org_id);
+
+  const sync = { last: undefined, timer: undefined, count: 0 };
 
   //log({ org_id, org_rec, msg });
 
@@ -50,6 +53,21 @@ async function link_handler(state, msg, send, socket) {
       org_rec.state = "failed";
       log({ org_failed_key_challenge: org_id });
     }
+  }
+
+  // accept log sync messages. 1 second after the last log is received
+  // acknowledge it to the org server so it can be checkpointed and the
+  // next log sync will start with the next greater message time
+  if (msg.sync_log && org_rec.state === 'verified') {
+      org_log.put(msg.sync_log, msg.value);
+      sync.last = msg.sync_log;
+      sync.count++;
+      clearTimeout(sync.timer);
+      sync.timer = setTimeout(() => {
+          send({ log_checkpoint: sync.last, count: sync.count });
+          sync.count = 0;
+          sync.timer = undefined;
+      }, 1000);
   }
   
   connected[org_id] = socket;

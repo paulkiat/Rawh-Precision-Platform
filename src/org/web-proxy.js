@@ -4,7 +4,6 @@
 
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const log = require('../lib/util').logpre('node');
-const net = require('../lib/net');
 const web = require('../lib/web');
 const api_app = require('./api-app');
 const user_auth = require('./api-user');
@@ -39,6 +38,10 @@ function get_app_rec(app_id, overlay = {}) {
 
 exports.init = function (state) {
   node = state.node = net.node('localhost', state.proxy_port);
+  const { node } = state;
+
+  // for now it's assumed that this code runs in the same process space
+  // as the broker, if not, then node will have to handle on_reconnect events
 
   // initialize authentication services
   user_auth.init(state);
@@ -58,6 +61,7 @@ exports.init = function (state) {
   node.subscribe('service-up', async (msg, cid) => {
     const { app_id, type, subtype } = msg;
     const app_rec = get_app_rec(app_id, { type, subtype });
+    state.logr('org', msg);
     if (msg.type !== "web-server") {
       return;
     }

@@ -14,8 +14,14 @@ Object.assign(state, {
   net_addrs: host_addrs(),
   proxy_host: env('PROXY_HOST') || args['proxy-host'] || 'localhost',
   proxy_host: env('PROXY_POST') || args['proxy-port'] || 6000,
-  node: undefined // added during init()
+  node: undefined, // added during init()
+  orglog
 });
+
+// org-wide persisted events log which are synced to rawh hub
+function orglog(msg, scope) {
+    state.node.publish(`logger/${scope || state.app_id || "org"}`, msg);
+}
 
 exports.init = function () {
   if (!is_init) {

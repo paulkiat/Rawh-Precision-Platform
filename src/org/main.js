@@ -4,6 +4,7 @@ const { args, env } = require('../lib/util');
 const { proxy } = require('../lib/net');
 const log = require('../lib/util').logpre('org');
 const web = require('../lib/web');
+const net = require('../lib/net');
 const store = require('../lib/store');
 const crypto = require('../lib/crypto');
 const api_app = require('./api-app');
@@ -74,7 +75,7 @@ async function setup_log_store() {
   log({ initialize: 'log store' });
   state.log = await store.open(`data/org/${state.org_id}/logs`);
   state.logr = function () {
-    log(...arguments);
+    log('logger', ...arguments);
     state.log.put(Date.now().toString(36), [...arguments]);
   };
 }
@@ -122,6 +123,12 @@ async function setup_org_proxy() {
 }
 
 async function setup_org_apis() {
+  // setup node connection to broker (proxy)
+  const node = state.node = net.node('localhost', state.proxy_host());
+  node.subscribe("logger/*", (msg, cid, topic) => {
+    state.logr(topic.split("/")[1], msg);
+  });
+  // attach web (https/wss) handlers
   api_app.init(state);
   web_proxy.init(state);
   // inject wss handlers prior to `web.start_web_listeners()`

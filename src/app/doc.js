@@ -24,9 +24,9 @@ async function register_service() {
   // announce presence
   node.publish("service-up", {
     app_id,
-    net_addrs,
     type: "doc-server",
-    subtype: "rawh-level-v0"
+    subtype: "rawh-level-v0",
+    net_addrs
   });
   // bind api service endpoints for document operations
   node.handle([ "doc-load", app_id ], doc_load);

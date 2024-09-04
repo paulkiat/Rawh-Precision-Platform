@@ -98,7 +98,7 @@ export async function create_session(opt = { }) {
         }
       }
       context.evaluate = nueval;
-  } else if (state.inspect) {
+  } else if (context.getSequence && state.inspect) {
     // old node-llama-cpp
     const oseq = context.getSequence.bind(context);
     function nuseq() {
@@ -127,9 +127,21 @@ export async function create_session(opt = { }) {
 
   // console.log({ session } );
 
+  const decode = context.decode ?
+      context.decode :      // v3.x
+      model.detokenize;     // v2.x
+
   const fns = {
     async prompt(prompt, onToken) {
-      return prompt_and_response(prompt, onToken, session, grammar);
+      return session.promp(prompt, {
+        onToken: tokens => onToken(decode(tokens)),
+        grammar,
+        temperature: 0,
+        repeatePenalty: {
+            lastTokens: 64,
+            penalizeNewLine: true
+        }
+      });
     },
 
     async prompt_debug(prompt, onToken) {
@@ -139,9 +151,7 @@ export async function create_session(opt = { }) {
       let time = Date.now();
       let chunks = 0;
       const response = await fns.prompt(prompt, (chunk) => {
-        const text = model.detokenize ?
-          model.detokenize(chunk) : // v3.x
-          context.decode(chunk);    // v2.x
+        const text = decode(chunk);
         if (onToken) {
             onToken(text);
         }
@@ -159,16 +169,4 @@ export async function create_session(opt = { }) {
   };
 
   return fns;
-}
-
-async function prompt_and_response(prompt, onToken, session, grammar) {
-  return session.prompt(prompt, {
-    onToken,
-    grammar,
-    temperature: 0.08,
-    repeatPenalty: {
-      lastTokens: 64,
-      penalizeNewLine: true
-    }
-  });
 }
