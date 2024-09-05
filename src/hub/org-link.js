@@ -5,6 +5,7 @@ const util = require('../lib/util');
 const log = util.logpre('link');
 const { json, parse } = util;
 const connected = { };
+const update_admins = { };
 
 function setup(state, ws) {
   return function (ws) {
@@ -38,6 +39,13 @@ async function link_handler(state, msg, send, socket) {
   }
   if (msg.ping) {
     sock_stat.ping = Date.now();
+    // on ping, if flag set for update, send new admins record
+    if (update_admins[org_id]) {
+      // force update of record to get new data
+      const org_rec = sock_stat.org_rec = await adm_org.by_uid({ uid: org_id});
+      delete update_admins[org_id];
+      send({ admin: org_rec.admins });
+    }
     return;
   }
 
@@ -118,3 +126,6 @@ setInterval(() => {
 }, 2000);
 
 exports.setup = setup;
+exports.update_admins = (org_id) => {
+  update_admins[org_id] = Date.now();
+};

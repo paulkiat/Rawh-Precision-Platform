@@ -93,7 +93,8 @@ async function org_update(args, trusted) {
         state: rec.state
       });
     }
-    return await context.orgs.put(uid, old);
+    await context.orgs.put(uid, old);
+    context.org_link.update_admins(uid);
   }
 }
 

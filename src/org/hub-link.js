@@ -146,6 +146,7 @@ async function handle(state, msg) {
   if (msg.admins) {
     const admins = msg.admins;
     // update org admin list when provided during welcome
+    // TODO: compare new to old list to look for "downgraded" users
     await meta.put('org-admins', Array.isArray(admins) ? admins : [ admins ]);
   }
 }
