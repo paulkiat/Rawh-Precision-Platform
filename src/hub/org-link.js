@@ -65,8 +65,10 @@ async function link_handler(state, msg, send, socket) {
       sync.count++;
       clearTimeout(sync.timer);
       sync.timer = setTimeout(() => {
-          send({ log_checkpoint: sync.last, count: sync.count });
+        if (sync.count >= 10) {
           log({ org: org_id, log_sync: sync.count });
+        }
+          send({ log_checkpoint: sync.last, count: sync.count });
           sync.count = 0;
           sync.timer = undefined;
       }, 1000);

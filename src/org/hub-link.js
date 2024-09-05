@@ -43,7 +43,10 @@ async function start_hub_connection(state) {
   ws.on('open', function open() {
     link.state = link_states.opened;
     // hearbeat ping every 5 seconds will allow link error detection and reset
-    heartbeat_timer = setInterval(() => { link.send({ ping: Date.now() }) }, 2500);
+    heartbeat_timer = setInterval(() => { 
+      link.send({ ping: Date.now() })
+      sync_logs(state);
+     }, 2500);
     // defined send function and send a welcome message (org-id)
     link.send = (msg) => ws.send(json(msg));
     link.send({ org_id: state.org_id });
@@ -57,6 +60,7 @@ async function start_hub_connection(state) {
     handle(state, parse(data.toString()));
   });
  
+
   ws.on('close', () => {
     link.state = link_states.offline;
     link.send = (msg) => {
@@ -88,8 +92,25 @@ async function start_hub_connection(state) {
   });
 }
 
-async function handle(state, msg) {
+async function sync_logs(state) {
+  if (link.state !== link_states.authenticated) {
+    return;
+  }
   const { meta, logs } = state;
+  const lastcp = await meta.get("org-log-checkpoint") || '';
+  let syncd = 0;
+  for await (const [key, value] of logs.iter({ gt: lastcp})) {
+    link.send({ sync_log: key, value});
+    syncd++;
+  }
+  if (syncd && link.verbose_sync) {
+    log({ hub_sync_log: syncd });
+    link.verbose_sync = false;
+  }
+}
+
+async function handle(state, msg) {
+  const { meta } = state;
 
   if (msg.hub_key_public) {
     state.hub_key_public = msg.hub_key_public;
@@ -107,16 +128,10 @@ async function handle(state, msg) {
   }
 
   if (msg.welcome) {
+    link.state = link_states.authenticated;
+    link.verbose_sync = true;
     log({ hub_connected: msg.welcome });
-    const { meta, logs } = false;
-    const lastcp = await meta.get("org-log-checkpoint") || '';
-    for await (const [key, value] of logs.iter({ gt: lastcp })) {
-        link.send({ sync_log: key, value });
-        synced++;
-    }
-    if (synced) {
-      log({ hub_sync_log: synced });
-    }
+    await sync_logs(state);
   }
 
   if (msg.log_checkpoint) {
