@@ -125,8 +125,6 @@ export async function create_session(opt = { }) {
     contextSequence: context.getSequence ? context.getSequence() : undefined,
   });
 
-  // console.log({ session } );
-
   const decode = context.decode ?
       context.decode :      // v3.x
       model.detokenize;     // v2.x
@@ -150,8 +148,7 @@ export async function create_session(opt = { }) {
       }
       let time = Date.now();
       let chunks = 0;
-      const response = await fns.prompt(prompt, (chunk) => {
-        const text = decode(chunk);
+      const response = await fns.prompt(prompt, (text) => {
         if (onToken) {
             onToken(text);
         }
