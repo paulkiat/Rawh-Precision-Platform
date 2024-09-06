@@ -9,7 +9,7 @@ const state = require('./service').init();
 const log = util.logpre('llm');
 const { args, env } = util;
 
-const ctx = {};
+const ctx = { timeout: 500 };
 const once = {};
 const settings = {
   gpu: env['LLM_GPU'] || args['gpu'] || 0,
@@ -53,7 +53,8 @@ async function start_worker() {
       log({ killing_worker: worker });
       worker.kill();
     }
-    start_worker();
+    setTimeout(start_worker, ctx.timeout);
+    ctx.timeout = Math.min(ctx.timeout * 2, 32000);
   });
 
   // intialize llm
@@ -88,6 +89,7 @@ async function llm_ssn_keepalive(msg) {
 async function llm_ssn_start(msg) {
   const { node } = state;
   const reply = await call("ssn-start", {});
+  ctx.timeout(500);
   // listen for browser heartbeats to keep session alive
   // if the browser tab closes or refreshes, this stops
   // which lets us remove the context/session so they can GC

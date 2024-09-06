@@ -87,7 +87,6 @@ export async function create_session(opt = { }) {
 
   // intercept context eval so we can watch exactly what's sent to the llm
   if (context.evaluate && state.inspect) {
-      // new node-llama-cpp
       const oeval = context.evaluate.bind(context);
       async function *nueval(tokens, args) {
       const prompt = context.decode(tokens);
@@ -99,7 +98,6 @@ export async function create_session(opt = { }) {
       }
       context.evaluate = nueval;
   } else if (context.getSequence && state.inspect) {
-    // old node-llama-cpp
     const oseq = context.getSequence.bind(context);
     function nuseq() {
       const seq = oseq(...arguments);
@@ -114,7 +112,6 @@ export async function create_session(opt = { }) {
       return seq;
     }
     context.getSequence = nuseq;
-    console.log(context.getSequence);
   }
 
   const session = new LlamaChatSession({
@@ -125,9 +122,7 @@ export async function create_session(opt = { }) {
     contextSequence: context.getSequence ? context.getSequence() : undefined,
   });
 
-  const decode = context.decode ?
-      context.decode :      // v3.x
-      model.detokenize;     // v2.x
+  const decode = context.decode ? context.decode : model.detokenize;
 
   const fns = {
     async prompt(prompt, onToken) {
