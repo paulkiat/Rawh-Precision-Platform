@@ -118,7 +118,7 @@ function web_admin(state, dbkey) {
     const { url, query } =  req.parsed;
     const store = state[dbkey];
     if (query.limit !== undefined) {
-      query.limit = parseInt(qry.limit);
+      query.limit = parseInt(query.limit);
     }
     let tok, db = store;
     const { sub, key } = query;

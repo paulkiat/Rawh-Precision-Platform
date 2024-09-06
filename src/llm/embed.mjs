@@ -14,7 +14,7 @@ const state = {
 }
 
 export async function setup(opt = { }) {
-  env.allowremoteModels = opt.allowRemoteModels ?? state.allowRemoteModels;
+  env.allowRemoteModels = opt.allowRemoteModels ?? state.allowRemoteModels;
   env.localModelPath = opt.modelDir ?? state.modelDir;
   env.cacheDir = env.localModelPath;
   state.modelName = opt.modelName ?? state.modelName;

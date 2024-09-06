@@ -2,7 +2,7 @@
 // used by the org/node and app/web classes
 
 const util = require('../lib/util');
-const log = util.logpre('doc-client');
+const log = util.logpre('doccl');
 const net = require('net');
 
 function file_drop(req, res, next) {
