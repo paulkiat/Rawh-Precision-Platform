@@ -169,7 +169,7 @@ async function doc_embed(frec, path) {
   frec.state = "ready";
   await doc_info.put(frec.uid, frec);
   node.publish([ 'doc-loading', app_id ], frec);
-  // log({ doc_loaded: frec });
+  log({ doc_loaded: frec });
 }
 
 // list all docs along with the status (loading, embedding, ready)

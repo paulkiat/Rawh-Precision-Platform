@@ -19,7 +19,7 @@ function setup(state, ws) {
 }
 
 async function link_handler(state, msg, send, socket) {
-  const { meta, logs } = state;
+  const { meta, logs, debug } = state;
   const adm_org = state.org_api_commands;
   const sock_stat = socket.stat = socket.stat || { 
       sync: { last: undefined, timer: undefined, count: 0 }
@@ -102,7 +102,9 @@ async function link_handler(state, msg, send, socket) {
       break;
     case "verified":
       if (!sock_stat.verified) {
-        log({ org_connected: org_rec.name });
+        if (debug) {
+           log({ org_connected: org_rec.name });
+        }
         send({ welcome: "rawh", admins: org_rec.admins, secret: org_rec.secret });
       }
       sock_stat.verified = true.
@@ -118,7 +120,9 @@ setInterval(() => {
     const { stat } = socket;
     const { org_rec } = stat;
     if (stat.ping && Date.now() - stat.ping > 6000) {
-      log({ org_disconnect: org_rec ? org_recname: org_id });
+      if (debug) {
+        log({ org_disconnect: org_rec ? org_recname: org_id });
+      }
       socket.close();
       delete connected(org_id);
     }

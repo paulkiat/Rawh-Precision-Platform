@@ -13,6 +13,7 @@ const store = require('../lib/store');
 const crypto = require('../lib/crypto');
 const app_handler = require('express')();
 const web_handler = require('express')();
+const { debug } = args;
 
 const state = { };
 Object.assign(state, {
@@ -24,6 +25,7 @@ Object.assign(state, {
   org_link: require('./org-link.js'),
   wss_handler: ws_handler,
   ws_handler: ws_handler,
+  debug
 });
 
 /**
