@@ -114,8 +114,15 @@ function setup_llm_session() {
       enable_query();
       // heartbeat ~ssn topic to keep from being cleaned up
       // this will end when the page or tab reloads or is closed
-      setInterval(() => {
-        state.api.publish(`~${msg.sid}`, { sid: msg.sid })
+      state.llmHB = setInterval(() => {
+        if (state.lastHB && Date.now() - state.lastHB > 15000) {
+          console.log("TAB WAS PUT TO SLEEP. LLM STATE LOST. RECONNECTING");
+          clearTimeout(state.llmHB);
+          state.lastHB = undefined;
+          return setup_llm_session();
+        }
+        state.api.publish(`~${msg.sid}`, { sid: msg.sid });
+        state.lastHB = Date.now();
       }, 10000);
     } else {
       console.log({ llm_session_error: error, msg });
