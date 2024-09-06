@@ -94,7 +94,7 @@ async function start_hub_connection(state) {
 
 async function sync_logs(state) {
   if (link.state !== link_states.authenticated) {
-    return;
+     return;
   }
   const { meta, logs } = state;
   const lastcp = await meta.get("org-log-checkpoint") || '';
@@ -103,19 +103,19 @@ async function sync_logs(state) {
     link.send({ sync_log: key, value});
     syncd++;
   }
-  if (syncd && link.verbose_sync) {
-    log({ hub_sync_log: syncd });
-    link.verbose_sync = false;
-  }
+  // if (syncd && link.verbose_sync) {
+  //     log({ hub_sync_log: syncd });
+  //     link.verbose_sync = false;
+  // }
 }
 
 async function handle(state, msg) {
   const { meta } = state;
 
   if (msg.hub_key_public) {
-    state.hub_key_public = msg.hub_key_public;
-    await meta.put('hub-key-public', state.hub_key_public);
-    link.send({ org_key_public: state.org_keys.public });
+      state.hub_key_public = msg.hub_key_public;
+      await meta.put('hub-key-public', state.hub_key_public);
+      link.send({ org_key_public: state.org_keys.public });
   }
 
   if (msg.challenge) {
@@ -128,15 +128,18 @@ async function handle(state, msg) {
   }
 
   if (msg.welcome) {
-    link.state = link_states.authenticated;
-    link.verbose_sync = true;
-    log({ hub_connected: msg.welcome });
-    await sync_logs(state);
+      link.state = link_states.authenticated;
+      link.verbose_sync = true;
+      log({ hub_connected: msg.welcome });
+      await sync_logs(state);
   }
 
   if (msg.log_checkpoint) {
       meta.put("org-log-checkpoint", msg.log_checkpoint);
-      log(msg);
+      if (link.verbose_sync) {
+        log(msg);
+      }
+      link.verbose_sync = false;
   }
 
   if (msg.secret) {
@@ -147,6 +150,8 @@ async function handle(state, msg) {
     const admins = msg.admins;
     // update org admin list when provided during welcome
     // TODO: compare new to old list to look for "downgraded" users
+    const prev_admins = await meta.get('org-admins');
+    
     await meta.put('org-admins', Array.isArray(admins) ? admins : [ admins ]);
   }
 }
