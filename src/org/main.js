@@ -2,6 +2,7 @@
 
 const { args, env } = require('../lib/util');
 const { proxy } = require('../lib/net');
+const { debug } = args;
 const log = require('../lib/util').logpre('org');
 const web = require('../lib/web');
 const net = require('../lib/net');
@@ -31,7 +32,8 @@ Object.assign(state, {
   web_handler,
   app_handler: web_handler,
   wss_handler: ws_handler,
-  ws_handler: ws_handler
+  ws_handler: ws_handler,
+  debug
 });
 
 /**
@@ -75,8 +77,10 @@ async function setup_log_store() {
   log({ initialize: 'log store' });
   state.log = await store.open(`data/org/${state.org_id}/logs`);
   state.logr = function () {
-    log('logger', ...arguments);
     state.log.put(Date.now().toString(36), [...arguments]);
+    if (debug) {
+        log('logger', ...arguments);
+    }
   };
 }
 

@@ -71,18 +71,21 @@ async function org_create(args) {
 }
 
 async function org_list() {
-  return (await context.orgs.list()).map(row => {
+  const { orgs, org_link } = context;
+  return (await orgs.list()).map(row => {
     return {
       uid: row[0],
-      ...row[1]
+      ...row[1],
+      up: org_link.is_connected(row[0])
     };
   });
 }
 
 async function org_update(args, trusted) {
+  const { orgs, org_link } = context;
   const { uid, rec } = args;
   // limits updates to a subset of fields
-  const old = await context.orgs.get(uid);
+  const old = await orgs.get(uid);
   if (old) {
     Object.assign(old, {
       name: rec.name ?? old.name,
@@ -94,7 +97,7 @@ async function org_update(args, trusted) {
       });
     }
     await context.orgs.put(uid, old);
-    context.org_link.update_admins(uid);
+    org_link.update_admins(uid);
   }
 }
 

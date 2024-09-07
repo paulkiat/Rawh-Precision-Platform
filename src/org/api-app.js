@@ -54,6 +54,7 @@ const commands = {
   app_update,
   app_delete,
 };
+
 async function app_create(args) {
   const { meta_app } = context;
   const { type, name, creator } = args;
@@ -122,7 +123,7 @@ async function regiester_app(args) {
   const { app_id } = args;
   const apprec = await meta_app.get(app_id);
   if (apprec) {
-    context.alive[app_id] = Date.now();
+      context.alive[app_id] = Date.now();
   }
   return apprec ? true : false;
 }

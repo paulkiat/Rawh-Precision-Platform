@@ -1,7 +1,13 @@
 @import url('./lib/common.css');
+
+@media (prefers-color-scheme: dark) {
+  .data.connected {
+    color: #8e8 !important;
+  }
+}
 /* Header Styles */
 #header {
-    background-image: url('img/red-blue-banner.jpg');
+    background-image: url('./img/red-blue-banner.jpg');
 }
 
 #hub {

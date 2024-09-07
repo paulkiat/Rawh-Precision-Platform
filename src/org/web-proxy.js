@@ -9,14 +9,16 @@ const api_app = require('./api-app');
 const user_auth = require('./api-user');
 const router = require('express').Router();
 const apps = { };
+const ctx = { };
 
 function logProvider() {
+  const logfn = ctx.debug ? log : () => { };
   return {
-    log: log,
-    debug: log,
-    info: log,
-    warn: log,
-    error: log
+    log: logfn,
+    debug: logfn,
+    info: logfn,
+    warn: logfn,
+    error: logfn
   };  
 }
 
@@ -42,6 +44,7 @@ exports.init = function (state) {
 
   // for now it's assumed that this code runs in the same process space
   // as the broker, if not, then node will have to handle on_reconnect events
+  Object.assign(ctx, state);
 
   // initialize authentication services
   user_auth.init(state);
@@ -89,7 +92,7 @@ exports.init = function (state) {
       // replace proxy handler function
       handler.cid = cid;
       handler.proxy = proxy;
-      log({ web_proxy_update: app_id, root, host: web_addr, port: web_port });
+      log({ web_proxy: app_id, root, host: web_addr, port: web_port });
     } else {
       // create a proxy handler
       const newh = app_rec.web[root] = { cid, host: web_addr[0], port: web_port, proxy };
@@ -127,7 +130,7 @@ exports.init = function (state) {
         return newh.proxy(req, res, next);
       }
       router.use(root, endpoint);
-      log({ web_proxy_new: app_id, root, host: web_addr, port: web_port });
+      log({ web_proxy: app_id, root, host: web_addr, port: web_port });
     }
   });
 

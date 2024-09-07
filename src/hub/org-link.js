@@ -4,8 +4,8 @@ const crypto = require('../lib/crypto');
 const util = require('../lib/util');
 const log = util.logpre('link');
 const { json, parse } = util;
-const connected = { };
 const update_admins = { };
+const connected = { };
 
 function setup(state, ws) {
   return function (ws) {
@@ -130,6 +130,11 @@ setInterval(() => {
 }, 2000);
 
 exports.setup = setup;
+
 exports.update_admins = (org_id) => {
   update_admins[org_id] = Date.now();
 };
+
+exports.is_connected = (org_id) => {
+  return connected[org_id] ? true : false;
+}

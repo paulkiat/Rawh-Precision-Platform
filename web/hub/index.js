@@ -22,10 +22,10 @@ function org_list() {
     ];
     const orgs = context.orgs = {};
     for (let org of list) {
-      const { uid, name, secret, creator, created, state } = org;
+      const { uid, name, secret, creator, created, state, up } = org;
       const date = dayjs(created).format('YYYY/MM/DD HH:mm');
       html.push([
-        '<div class="data">',
+        `<div class="data${up ? " connected": ""}">`,
         `<label class="copyable">${name}</label>`,
         `<label class="copyable">${uid}</label>`,
         `<label class="copyable">${secret}</label>`,

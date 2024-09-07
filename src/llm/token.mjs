@@ -3,7 +3,9 @@ import { JSONLoader, JSONLinesLoader } from "langchain/document_loaders/fs/json"
 import { TextLoader } from "langchain/document_loaders/fs/text";
 import { CSVLoader } from "langchain/document_loaders/fs/cvs";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
+import { htmlToText } from "html-to-text";
 import { mmma } from '../lib/util';
+import fsp from "fs/promises";
 
 import pdf2html from "pdf2html";
 
@@ -35,6 +37,31 @@ class PDF_2_TEXT {
         }
       }
     });
+  }
+}
+
+// load html page and conver to text
+class HTMLLoader{
+  constructor(path){
+      this.path = path;
+  }
+  async load() {
+    const data = await fsp.readFile(this.path);
+    const text  = htmlToText(datatoString(),{
+      wordwrap: false,
+      ignoreImage: true,
+      preserveNewlines: true
+     });
+    return [{ 
+      pageContent: text,
+      metadata:{
+        source: this.path,
+        loc:{
+          pageNumber: 1,
+          lines:{ from: 0, to: 0 }
+        }
+      }
+   }];
   }
 }
 
@@ -105,6 +132,7 @@ const loaders = {
     "csv": (path, opt) => new CSVLoader(path, opt),
     // "pdf": (path, opt) => new PDFLoader(path, opt || { parsedItemSeparator: ""}),
     "pdf": (path) => new PDF_2_TEXT(path),
+    "html": (path) => new HTMLLoader(path),
     "json": (path) => new JSONLoader(path, "text"),
     "jsonl": (path) => new JSONLinesLoader(path),
 };

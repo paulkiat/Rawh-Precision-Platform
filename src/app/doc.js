@@ -6,6 +6,7 @@ const net = require('net');
 const fsp = require('fs/promises');
 const util = require('../lib/util');
 const state = require('./service').init();
+const fetchp = require('node-fetch');
 const log = util.prelog('doc');
 const { args, env } = util;
 const { debug } = args;
@@ -39,21 +40,41 @@ async function register_service() {
 // which will then be stored, chunked, and vector embedded
 async function doc_load(msg = {}) {
   log({ doc_load: msg });
-  const { name, type } = msg;
+  const { url, name, type } = msg;
   const { node, app_id, net_addrs } = state;
   // create the file drop target with time+random file uid
   const fuid = util.uid();
   const fdir = `${state.data_dir}/docs`;
   const fnam = `${fdir}/${fuid}`;
   await fsp.mkdir(fdir, { recursive: true }).catch(e => e);
-  const file = await fsp.open(fnam, 'w');
-  const fstr = await file.createWriteStream();
-  const frec = { uid: fuid, name, type, state: "loading", length: 0, added: Date.now() };
+  const frec = { uid: fuid, url, name, type, state: "loading", length: 0, added: Date.now() };
   const fdel = async function () {
     // delete partial file data
     await fsp.rm(fnam).catch(error => log({ bulk_delete_error: error }));
   }
   node.publish([ 'doc-loading', app_id ], frec);
+  if (url) {
+    return doc_load_url(frec, fnam, fdel);
+  } else {
+    return doc_load_socket(frec, fnam, fdel);
+  }
+}
+
+async function doc_load_url(frec, fnam, fdel) {
+  const fetch = (await fetchp).default;
+  const data = await fetch(frec.url, { redirect: 'follow', follow: 20 });
+  const bufr = Buffer.from(await data.arrayBuffer());
+  await fsp.writeFile(fnam, bufr);
+  // do file analysis
+  await doc_embed(frec, fnam).catch(error => {
+      log({ embed_error: error, frec });
+  });
+  return { loaded: frec.url };
+}
+
+async function doc_load_socket(frec, fnam, fdel) {
+  const file = await fsp.open(fnam, 'w');
+  const fstr = await file.createWriteStream();
   // listen on random tcp port for incoming file dump
   const srv = net.createServer(conn => {
     // log({ bulk_conn: conn });
