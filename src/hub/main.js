@@ -102,5 +102,16 @@ function setup_web_handlers() {
   await setup_org_adm();
   await setup_web_handlers();
   await web.start_web_listeners(state);
-  // log({ state });
+  // for seeding a test app
+  if (args["test-org"]) {
+    state.org_api.commands.create({
+      name: "test",
+      org_id: "test",
+      creator: "system",
+      admins: [ "admin" ],
+    }).catch(error => {
+       // ignore duplicate app name error
+       // console.log({ app_create_error: error });
+    })
+  }
 })();

@@ -128,13 +128,13 @@ async function setup_org_proxy() {
 
 async function setup_org_apis() {
   // setup node connection to broker (proxy)
-  const node = state.node = net.node('localhost', state.proxy_host());
+  const node = state.node = net.node('localhost', state.proxy_port);
   node.subscribe("logger/*", (msg, cid, topic) => {
     state.logr(topic.split("/")[1], msg);
   });
   // attach web (https/wss) handlers
-  api_app.init(state);
   web_proxy.init(state);
+  api_app.init(state);
   // inject wss handlers prior to `web.start_web_listeners()`
   // this proxy to node is needed so that proxied apps have
   // access to the broker api endpoint
@@ -155,4 +155,17 @@ async function setup_org_apis() {
   await web.start_web_listeners(state);
   await require('./hub-link').start_hub_connection(state);
   state.logr({ started: "org services" });
+  // for seeding a test app
+  if (args["test-app"]) {
+      api_app.commands.app_create({
+        name: "test",
+        type: "test",
+        app_id: "test",
+        creator: "system",
+        admins: [ "admin" ],
+      }).catch(error => {
+         // ignore duplicate app name error
+         // console.log({ app_create_error: error });
+      })
+  }
 })();

@@ -50,9 +50,9 @@ const commands = {
 };
 
 async function org_create(args) {
-  const { name, creator } = args;
-  const uid = util.uid().toUpperCase();
-  const exists = await org_by_name(name);
+  const { name, creator, admins, org_id } = args;
+  const uid = org_id || util.uid().toUpperCase();
+  const exists = await org_by_name({ name });
   // prevent creating two orgs with the same name
   if (exists) {
     throw "duplicate org name";
@@ -65,7 +65,7 @@ async function org_create(args) {
     created: Date.now(),
     state: 'pending',
     saas: true, // true if Rawh hosts
-    admins: [], // email address of org admins
+    admins: admins || [], // email address of org admins
   });
   return uid;
 }

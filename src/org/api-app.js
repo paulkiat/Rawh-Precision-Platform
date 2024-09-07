@@ -57,20 +57,20 @@ const commands = {
 
 async function app_create(args) {
   const { meta_app } = context;
-  const { type, name, creator } = args;
+  const { type, name, creator, admins, users, app_id } = args;
   const app_names = (await meta_app.vals()).map(r => r.name);
   if (app_names.indexOf(name) >= 0) {
     throw "app name already exists";
   }
-  const app_uid = uid().toUpperCase();
+  const app_uid = app_id || uid().toUpperCase();
   const app_rec = {
     uid: app_uid,
     type,
     name,
     creator: creator || "unknown",
     created: Date.now(),
-    admins: [],
-    users: [],
+    admins: admins || [],
+    users: users || [],
   };
   await meta_app.put(app_rec.uid, app_rec);
   return app_rec;
@@ -152,6 +152,7 @@ function set_app_proxy(args) {
   delete context.direct[app_id];
 }
 
+exports.commands = commands;
 exports.web_handler = router;
 exports.regiester_app = (app_id) => regiester_app({ app_id });
 exports.is_org_admin = (username) => is_org_admin({ username });
