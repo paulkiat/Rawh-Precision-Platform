@@ -5,8 +5,8 @@
 // 4. (optionally) customer llm server
 
 const util = require('../lib/util');
-const { args } = util;
 const { fork } = require('child_process');
+const { args } = util;
 const { debug } = args;
 
 let last_mod;
@@ -26,7 +26,7 @@ function log(name, data, err) {
 function launch(name, path, args) {
   if (debug) args.push("--debug");
   const mod = fork(path, args, { silent: true });
-  if (args.err) 
+  if (args.err || args.stderr) 
   mod.stderr.on('data', data => log(name, data, true));
   mod.stderr.on('data', data => log(name, data, false));
   return mod;
@@ -40,6 +40,10 @@ launch("doc", "./src/app/doc.js", [ "--app-id=test" ]);
 if (args.llm) {
   launch("llm", "./src/app/llm.js", [ 
     "--app-id=org",
-    `--model=${args.model || "llama-2-7b-chat.Q2_K.gguf"}`
+    `--model=${args.model || "llama-2-7b-chat.Q2_K.gguf"}`,
+    args.context ? `--context=${args.context}` : "",
+    args.batch ? `--context=${args.batch}` : "",
+    args.mmap ? `--gpu=${args.mmap}` : "",
+    args.gpu ? `--gpu=${args.gpu}` : "",
   ]);
 }
