@@ -6,8 +6,10 @@ const log = util.logpre('link');
 const { json, parse } = util;
 const update_admins = { };
 const connected = { };
+const context = { };
 
 function setup(state, ws) {
+  Object.assign(context, state);
   return function (ws) {
     ws.on('message', (message) => {
       link_handler(state, json(message), obj => {
@@ -19,7 +21,7 @@ function setup(state, ws) {
 }
 
 async function link_handler(state, msg, send, socket) {
-  const { meta, logs, debug } = state;
+  const { meta, logs } = state;
   const adm_org = state.org_api_commands;
   const sock_stat = socket.stat = socket.stat || { 
       sync: { last: undefined, timer: undefined, count: 0 }
@@ -37,8 +39,13 @@ async function link_handler(state, msg, send, socket) {
     socket.close();
     return;
   }
+
+  // always update ping on new message b/c there is a corner case
+  // where an org connects and disconnects before first ping which
+  // means the connection would otherwise not be cleaned up
+  sock_stat.ping = Date.now();
+
   if (msg.ping) {
-    sock_stat.ping = Date.now();
     // on ping, if flag set for update, send new admins record
     if (update_admins[org_id]) {
       // force update of record to get new data
@@ -81,6 +88,10 @@ async function link_handler(state, msg, send, socket) {
           sync.timer = undefined;
       }, 1000);
   }
+
+  if (connected[org_id] && connected[org_id] !== socket) {
+      log({ socket_smash: org_id });
+  }
   
   connected[org_id] = socket;
   sock_stat.org_id = org_id;
@@ -102,7 +113,7 @@ async function link_handler(state, msg, send, socket) {
       break;
     case "verified":
       if (!sock_stat.verified) {
-        if (debug) {
+        if (context.debug) {
            log({ org_connected: org_rec.name });
         }
         send({ welcome: "rawh", admins: org_rec.admins, secret: org_rec.secret });
@@ -120,11 +131,11 @@ setInterval(() => {
     const { stat } = socket;
     const { org_rec } = stat;
     if (stat.ping && Date.now() - stat.ping > 6000) {
-      if (debug) {
+      if (context.debug) {
         log({ org_disconnect: org_rec ? org_recname: org_id });
       }
-      socket.close();
       delete connected(org_id);
+      socket.close();
     }
   }
 }, 2000);
