@@ -41,7 +41,7 @@ async function register_service() {
 async function doc_load(msg = {}) {
   log({ doc_load: msg });
   const { url, name, type } = msg;
-  const { node, app_id, net_addrs } = state;
+  const { node, app_id } = state;
   // create the file drop target with time+random file uid
   const fuid = util.uid();
   const fdir = `${state.data_dir}/docs`;
@@ -73,6 +73,7 @@ async function doc_load_url(frec, fnam, fdel) {
 }
 
 async function doc_load_socket(frec, fnam, fdel) {
+  const { net_addrs } = state;
   const file = await fsp.open(fnam, 'w');
   const fstr = await file.createWriteStream();
   // listen on random tcp port for incoming file dump

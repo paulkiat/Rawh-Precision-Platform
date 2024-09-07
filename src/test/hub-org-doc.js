@@ -7,7 +7,6 @@
 const util = require('../lib/util');
 const { fork } = require('child_process');
 const { args } = util;
-const { debug } = args;
 
 let last_mod;
 
@@ -23,12 +22,17 @@ function log(name, data, err) {
   process.stdout.write(str);
 }
 
-function launch(name, path, args) {
-  if (debug) args.push("--debug");
-  const mod = fork(path, args, { silent: true });
+function launch(name, path, mod_args) {
+  if (args["no-doc"] && name === "doc") return;
+  if (args.prod) mod_args.push("--prod");
+  if (args.debug) mod_args.push("--debug");
+  const mod = fork(path, mod_args, { silent: true });
   if (args.err || args.stderr) 
   mod.stderr.on('data', data => log(name, data, true));
   mod.stderr.on('data', data => log(name, data, false));
+  mod.on("exit", (exit) => {
+    console.log({ module: name, exited: exit });
+  })
   return mod;
 }
 
