@@ -39,7 +39,6 @@ function get_app_rec(app_id, overlay = {}) {
 }
 
 exports.init = function (state) {
-  node = state.node = net.node('localhost', state.proxy_port);
   const { node } = state;
 
   // for now it's assumed that this code runs in the same process space

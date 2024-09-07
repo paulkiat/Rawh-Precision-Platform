@@ -10,7 +10,7 @@ const ws_handler = web.ws_proxy_path(state.node);
 
 Object.assign(state, {
   direct: args['direct'] || false,
-  app_dir: env('APP_DIR') || arts['app-dir'] || 'app',
+  app_dir: env('APP_DIR') || args['app-dir'] || 'app',
   app_port: env('APP_PORT') || args['app-port'] || (args.prod ? 80 : 7000),
   app_handler,
   ws_handler
