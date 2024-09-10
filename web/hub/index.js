@@ -1,4 +1,4 @@
-import { $, annotate_copyable, on_key } from '../lib/utils.js';
+import { $, annotate_copyable, on_key, loadHighlightCSS } from '../lib/utils.js';
 import WsCall from './lib/ws-call.js';
 import modal from './lib/modal.js';
 
@@ -6,6 +6,8 @@ const ws_api = new WsCall("admin.api");
 const report = (o) => ws_api.report(o);
 const call = (c, a) => ws_api.call(c, a);
 const context = { };
+
+loadHighlightCSS();
 
 function org_list() {
   call("org_list", {}).then(list => {
@@ -65,6 +67,31 @@ function org_edit(uid) {
   edit.admin.value = (rec.admins || []).join('\n');
 }
 
+function org_logs(uid) {
+    const rec = context.orgs[uid];
+    if (!rec) throw `Invalid org uid: ${uid}`;
+    modal.show('org-logs', "org logs", {
+        cancel: undefined,
+    });
+    call("org logs", { org_id: uid }).then(logs => {
+        const first = logs[0][0];
+        const last = logs[logs.length-1][0];
+        const output = $('show-logs');
+        console.log({ first, last });
+        output.innerHTML = logs.map(row => {
+            return [
+                '<div>',
+                '<label>',
+                dayjs(parseInt(row[0],36)).format('YYYY/MMM/DD HH:mm:ss'),
+                '</label>',
+                hljs.highlight(JSON.stringify(row[1]), { language: 'json' }).value,
+                '</div>'
+            ].join(" ");
+        }).join("\n");
+        output.scrollTop = output.scrollHeight;
+    });
+}
+
 function org_delete(uid, name) {
   confirm(`Are you sure you want to delete "${name}"?`) &&
     call("org_delete", { uid }).then(org_list).catch(report);
@@ -86,6 +113,7 @@ function org_update(uid, rec) {
 window.orgfn = {
   list: org_list,
   edit: org_edit,
+  logs: org_logs,
   create: org_create,
   delete: org_delete,
 };

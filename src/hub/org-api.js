@@ -42,6 +42,7 @@ exports.on_ws_msg = async function (ws, msg) {
 
 const commands = {
   org_list,
+  org_logs,
   org_create,
   org_update,
   org_delete,
@@ -79,6 +80,16 @@ async function org_list() {
       up: org_link.is_connected(row[0])
     };
   });
+}
+
+async function org_logs(args) {
+  const { logs } = context;
+  const { orgs_id } = args;
+  const org_log = logs.sub(org_id);
+  const dayms = 1000 * 60 * 60 * 24;
+  const start = args.start || (Date.now() - dayms).toString(36);
+  const end = args.end || Date.now().toString(36);
+  return await org_log.list({ gte: start, lte: end });
 }
 
 async function org_update(args, trusted) {
@@ -122,6 +133,7 @@ async function org_by_name(args) {
 exports.web_handler = router;
 exports.commands = {
   list: org_list,
+  logs: org_logs,
   create: org_create,
   update:  org_update,
   delete: org_delete,

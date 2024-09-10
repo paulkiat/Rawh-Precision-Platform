@@ -4,10 +4,8 @@
 import session from "./lib/session.js";
 import setup_file_drop from './lib/file-drop.js';
 import { ws_proxy_api } from "./lib/ws-net";
-import { $, LS, on_key, uid, tab_showing } from './lib/util.js';
+import { $, LS, on_key, uid, tab_showing, loadHighlightCSS } from './lib/util.js';
 
-const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-const isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
 const { markedHighlight } = globalThis.markedHighlight;
 const marker = new marked.Marked(
   markedHighlight({
@@ -20,19 +18,7 @@ const marker = new marked.Marked(
   })
 );
 
-function loadCSS(url) {
-  const link = document.createElement('link');
-  link.href = url;
-  link.type = 'text/css';
-  link.rel = 'stylesheet';
-  document.head.appendChild(link);
-}
-
-if (isLightMode) {
-    loadCSS('https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/default.min.css');
-} else if (isDarkMode) {
-    loadCSS('https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/dark.min.css');
-}
+loadHighlightCSS();
 
 const session_uid = location.hash ? location.hash.slice(1) : undefined;
 

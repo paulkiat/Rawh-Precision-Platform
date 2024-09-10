@@ -30,7 +30,6 @@ async function link_handler(state, msg, send, socket) {
   const { sync } = sock_stat;
   const org_id = sock_stat.org_id || msg.org_id;
   const org_rec = sock_stat.org_rec || await adm_org.by_uid({ uid: org_id});
-  const org_log = logs.sub(org_id);
 
   //log({ org_id, org_rec, msg });
 
@@ -75,6 +74,8 @@ async function link_handler(state, msg, send, socket) {
   // acknowledge it to the org server so it can be checkpointed and the
   // next log sync will start with the next greater message time
   if (msg.sync_log && org_rec.state === 'verified') {
+      const org_log = logs.sub(org_id);
+      log({ stuff_logs: org_id });
       org_log.put(msg.sync_log, msg.value);
       sync.last = msg.sync_log;
       sync.count++;

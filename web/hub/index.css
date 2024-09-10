@@ -37,3 +37,20 @@
   display: grid;
   grid-template-columns: 1fr 3fr;
 }
+
+#show-logs {
+  display: flex;
+  flex-direction: column;
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.5px;
+  padding: 10px 0;
+  height: calc(18px * 20 + 20px);
+  width: calc(12px * 80 + 20px);
+  overflow: scroll;
+  white-space: nowrap;
+}
+
+.data.connected {
+  color: #080;
+}
