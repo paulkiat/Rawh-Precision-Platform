@@ -3,40 +3,72 @@ const readline = require('node:readline/promises');
 const store = require('../lib/store');
 const util = require('util');
 
-const state = {
-  open: undefined,
-  level: [],
-  prompt: '>>',
-  output: console.log
-};
+function new_state() {
+  const state = {
+    open: undefined,
+    level: [],
+    prompt: '>>',
+    output: console.log
+  };
+  state.log = function() {
+      const args = [state.prompt,...arguments].map(a => typeof a === 'string' ? a : 
+                util.inspect(a, { 
+                                  depth: null, 
+                                  colors: true, 
+                                  breakLength: Infinity, 
+                                  compact: true 
+                                }));
+      return state.output(...args);
+  };
+  state.update_prompt = function() {
+      const toks = state.level.map((db, i) => {
+          const name = db.name;
+          return i === 0 ? name.split('/').pop.split('.')[0] : `  |${name}`
+      });
+      state.prompt = [ ...toks, " >>"].join('');
+  };
+  state.db_open = async function(name) {
+      if (state.open) {
+          state.log('db already open'); // isPending
+      } else {
+          state.open = await store.open(name);
+          if (state.open === false) { 
+              console.log('db not found'); // isRejected
+          } else {
+              state.open = await store.open(name);
+              state.level.push(state.open);
+              state.update_prompt();
+              state.log('db open', name); // isResolved
+          }
+      }
+  };
+  return state;
+}
 
 function parse() {
   return eval(`(${tok})`);
 }
 
-function log() {
-    const args = [...arguments].map(a => typeof a === 'string' ? a : util.inspect(a, { depth: null, colors: true, breakLength: Infinity, compact: true }));
-    return state.output(...args);
-}
-
-// cli direct
+// cli local exclusive db
 async function cmdloop(dir) {
+  const state = new_state();
+  const { log } = state;
   log('[ command line interface :: level db storage]');
   const { stdin: input, stdout: output } = require('node:process');
   const cmdline = readline.createInterface({ input, output });
   if (dir) {
-    await db_open(dir).catch(error => {
+    await state.db_open(dir).catch(error => {
       console.log('Unable to Open DB Store >>', error.cause);
       process.exit(1);
     });
   }
   while (true) {
     const answer = await cmdline.question(`${state.prompt} `);
-    await cmd(answer);
+    await cmd(state, answer);
   }
 }
 
-// cli to server
+// cli using tcp server
 async function client(port, host) {
     const { stdin: input, stdout: output } = require('node:process');
     const cmdline = readline.createInterface({ input, output });
@@ -51,12 +83,13 @@ async function client(port, host) {
     }
 }
 
-// server for cli client
+// server for cli tcp client
 async function server(db, port = 12345, logger) {
-    logger = logger ?? log;
+    const state = new_state();
+    logger = logger ?? state.log;
     state.open = db;
     state.level.push(state.open);
-    update_prompt();
+    state.update_prompt();
     const server = require('net').createServer(async socket => {
         socket.setNoDelay(true);
         state.output = function() {
@@ -69,37 +102,20 @@ async function server(db, port = 12345, logger) {
         });
         while (true) {
             const answer = await cmdline.question(`${state.prompt} `);
-            await cmd(answer);
+            await cmd(state, answer);
         }
     }).listen(port);
     logger(`[ level db cli server :: ${db.name} :: ${server.address().port} ]`);
 }
 
-function update_prompt() {
-  const toks = state.level.map((db, i) => {
-    const name = db.name;
-    return i === 0 ? name.split('/').pop().split('.')[0] : ` | ${name}`
-  });
-  state.prompt = [...toks, " >>"].join('');
-}
-
-async function db_open(name) {
-  if (state.open) {
-    log('db already open');
-  } else {
-    state.open = await store.open(name);
-    state.level.push(state.open);
-    update_prompt();
-  }
-}
-
-async function cmd(answer) {
+async function cmd(state, answer) {
+  const { log } = state;
   const toks = answer.split(' ');
   const cmd = toks.shift();
   switch (cmd) {
     case '?':
     case 'help':
-      print_help();
+      print_help(state);
       break;
     case '/':
       if (!state.open) return log('no db open');
@@ -111,10 +127,10 @@ async function cmd(answer) {
         state.open = sub;
         state.level.push(sub);
       }
-      update_prompt();
+      state.update_prompt();
       break;
     case 'open':
-      await db_open(toks[0]);
+      await state.db_open(toks[0]);
       break;
     case 'pop':
       if (!state.open) return log('no db open');
@@ -122,7 +138,7 @@ async function cmd(answer) {
         state.open.close();
         state.level.pop();
         state.open = state.level([state.level.length - 1]);
-        update_prompt();
+        state.update_prompt();
       }
       break;
     case 'close':
@@ -182,8 +198,8 @@ async function cmd(answer) {
   }
 }
 
-function print_help() {
-  log([
+function print_help(state) {
+  state.log([
     "? || help         - this help",
     "open [dir]        - open database",
     "close             - close db",
@@ -207,12 +223,12 @@ if (require.main === module) {
       store.open(args.dir).then(db => {
           server(db, args.port || 12345);
       }).catch(error => {
-          log('Unable to Open DB store', error.cause);
+          console.log('Unable to Open DB store', error.cause);
           process.exit(1);
       });
-  } else if (args.db) {
+  } else if (args.dir) {
       // cmd line exec wait forever
-      cmdloop(args.db).then(x => x);
+      cmdloop(args.dir).then(x => x);
   } else if (args.port) {
       client(args.port, args.host);
   } else {
