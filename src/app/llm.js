@@ -9,6 +9,7 @@ const state = require('./service').init();
 const log = util.logpre('llm');
 const { args, env } = util;
 
+const call_log = [];
 const ctx = { timeout: 500 };
 const once = {};
 const settings = {
@@ -24,24 +25,48 @@ const settings = {
 };
 
 // summarize query stats every 5 minutes
-setInterval(() => {
-    call("stats", {}).then(stats => {
-        if (stats.calls) {
-            log({ stats });
-            state.orglog({ llm_stats: stats });
-        } 
-    });
-}, 300000);
+setInterval(summarize_calls, 300000);
+
+function summarize_calls() {
+  const calls     = call_log.length;
+  const sum_tft   = call_log.reduce((a, r) => a + r.time_first_token, 0);
+  const max_tft   = Math.max(...call_log.map(r => r.time_first_token));
+  const sum_time  = call_log.reduce((a, r) => a + r.time_total, 0);
+  const sum_rate  = call_log.reduce((a, r) => a + r.token_rate, 0);;
+  const sum_token = call_log.reduce((a, r) => a + r.token_count, 0);;
+  const max_token = Math.max(...call_log.map(r => r.token_count));
+  const stats = {
+                    calls,
+                    avg_time: sum_time / calls,
+                    avg_time_start: sum_tft / calls,
+                    max_time_start: max_tft,
+                    avg_token_rate: 1000 / (sum_rate / calls),
+                    avg_tokens: sum_token / calls,
+                    max_tokens: max_token
+                };
+  if (stats.calls) {
+      state.orglog({ llm_stats: stats });
+      ({ log: stats });
+  }
+  call_log.length = 0;
+}
 
 async function start_worker() {
   worker.on("message", message => {
-    const { mid, msg, topic, token, debug } = message;
+    const { mid, msg, topic, token, debug, summary } = message;
     if (topic) {
         state.node.publish(topic, token);
         return;
     }
     if (debug) {
         log(debug);
+        return;
+    }
+    if (summary) {
+        call_log.push(summary);
+        if (settings.debug) {
+            log({ summary });
+        }
         return;
     }
     const fn = once[mid];

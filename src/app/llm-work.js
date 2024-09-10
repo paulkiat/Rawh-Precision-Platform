@@ -6,7 +6,6 @@
 const util = require('../lib/util');
 const sessions = {};
 const context = {};
-const call_log = [];
 
 function log(debug) {
   if (context.debug) {
@@ -55,10 +54,10 @@ setInterval(() => {
         token_count: 0
     };
     const summarize = (call) => {
-        call_log.push(call);
         const now = call.time_end = Date.now();
         call.token_rate = ((now - call.time_start + call.time_first_token) / call.token_count);
         call.time_total = now - call.time_start;
+        process.send({ summary: call });
     };
     const onToken = topic ? (token) => {
       if (call.token_count++ === 0) {
@@ -81,25 +80,7 @@ setInterval(() => {
         });
         process.send({ mid, msg: { init: true } });
         break;
-      case "stats":
-        const calls = call_log.length;
-        const sum_tft = call_log.reduce((a, r) => a + r.time_first_token, 0);
-        const max_tft = Math.max(...call_log.map(r => r.time_first_token));
-        const sum_time = call_log.reduce((a, r) => a + r.time_total, 0);
-        const sum_rate = call_log.reduce((a, r) => a + r.token_rate, 0);;
-        const sum_token = call_log.reduce((a, r) => a + r.token_count, 0);;
-        const max_token = Math.max(...call_log.map(r => r.token_count));
-        process.send({ mid, msg:{
-          calls,
-          avg_time: sum_time / calls,
-          avg_time_start: sum_tft / calls,
-          max_time_start: max_tft,
-          avg_token_rate: 1000 / (sum_rate / calls),
-          avg_tokens: sum_token / calls,
-          max_tokens: max_token
-        } });
-        call_log.length = 0;
-        break;
+
       case "ssn-start":
         const newsid = util.uid();
         sessions[newsid] = {
