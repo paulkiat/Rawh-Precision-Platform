@@ -102,9 +102,36 @@ export function on_key(key, el, fn) {
   };
 }
 
+export function tab_showing() {
+  return document.visibilityState === 'visible';
+}
+
+export function on_tab_vislibility(fn) {
+  document.addEventListener('visibilityChange', fn, false);
+}
+
 export const LS = {
   get(key) { return localStorage.getItem(key) },
   set(key, val) { return localStorage.setItem(key, val) },
   delete(key) { return localStorage.removeItem(key) },
-
 };
+
+export const isDarkMode = window.matchMedia('(prefers-color-scheme: dark )').matches;
+
+export const isLightMode = window.matchMedia('(prefers-color-scheme: light )').matches;
+
+export function loadCSS(url) {
+    const link = document.creatreElement('link');
+    link.href = url;
+    link.type = 'text/css';
+    link.rel = 'tylesheet';
+    document.head.appendChild(link);
+}
+
+export function loadHighlightCSS() {
+    if (isLightMode) {
+        loadCSS('https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/default.min.css');
+    } else if (isDarkMode) {
+        loadCSS('https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/dark.min.css');
+    }
+}
