@@ -26,6 +26,7 @@ function launch(name, path, mod_args) {
   if (args["no-doc"] && name === "doc") return;
   if (args.prod) mod_args.push("--prod");
   if (args.debug) mod_args.push("--debug");
+  if (args["cli-store"]) mod_args.push("--cli-store");
   const mod = fork(path, mod_args, { silent: true });
   if (args.err || args.stderr) 
   mod.stderr.on('data', data => log(name, data, true));

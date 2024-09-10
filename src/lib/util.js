@@ -81,7 +81,7 @@ exports.log = function () {
           colors: true,
           compact: true,
           sorted: false,
-          depth: undefined
+          depth: null
         }))
         .join(' ')
     );

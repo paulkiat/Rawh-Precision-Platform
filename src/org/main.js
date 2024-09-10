@@ -13,6 +13,8 @@ const web_proxy = require('./web-proxy');
 const adm_handler = require('express')();
 const app_handler = require('express')();
 const web_handler = require('express')();
+const cli_server = require('../cli/store');
+const cli_store = args["cli-store"];
 
 const state = { };
 Object.assign(state, {
@@ -167,5 +169,10 @@ async function setup_org_apis() {
          // ignore duplicate app name error
          // console.log({ app_create_error: error });
       })
+  }
+  // for storage / meta / logging debug
+  if (cli_store) {
+      cli_server.server(state.meta, 0, log);
+      cli_server.server(state.logs, 0, log);
   }
 })();
