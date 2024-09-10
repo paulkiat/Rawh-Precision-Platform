@@ -23,6 +23,16 @@ const settings = {
   mmap: (env('LLM_MMAP') || args['mmap']) ? true : false,
 };
 
+// summarize query stats every 5 minutes
+setInterval(() => {
+    call("stats", {}).then(stats => {
+        if (stats.calls) {
+            log({ stats });
+            state.orglog({ llm_stats: stats });
+        } 
+    });
+}, 300000);
+
 async function start_worker() {
   worker.on("message", message => {
     const { mid, msg, topic, token, debug } = message;
@@ -53,6 +63,7 @@ async function start_worker() {
       log({ killing_worker: worker });
       worker.kill();
     }
+    state.orglog({ llm_crash: { code, signal } });
     setTimeout(start_worker, ctx.timeout);
     ctx.timeout = Math.min(ctx.timeout * 2, 32000);
   });

@@ -4,7 +4,7 @@
 import session from "./lib/session.js";
 import setup_file_drop from './lib/file-drop.js';
 import { ws_proxy_api } from "./lib/ws-net";
-import { $, LS, on_key, uid } from './lib/util.js';
+import { $, LS, on_key, uid, tab_showing } from './lib/util.js';
 
 const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
 const isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
@@ -115,7 +115,7 @@ function setup_llm_session() {
       // heartbeat ~ssn topic to keep from being cleaned up
       // this will end when the page or tab reloads or is closed
       state.llmHB = setInterval(() => {
-        if (state.lastHB && Date.now() - state.lastHB > 15000) {
+        if (state.lastHB && Date.now() - state.lastHB > 15000 && tab_showing()) {
           console.log("TAB WAS PUT TO SLEEP. LLM STATE LOST. RECONNECTING");
           clearTimeout(state.llmHB);
           state.lastHB = undefined;
@@ -123,7 +123,7 @@ function setup_llm_session() {
         }
         state.api.publish(`~${msg.sid}`, { sid: msg.sid });
         state.lastHB = Date.now();
-      }, 10000);
+      }, 5000);
     } else {
       console.log({ llm_session_error: error, msg });
     }

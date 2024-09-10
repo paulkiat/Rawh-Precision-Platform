@@ -135,7 +135,7 @@ exports.read = async function (path) {
 
 // given an array of numbers, return
 // { min, max, mean, avg }
-const mmmma = exports.mmma = function (array) {
+const mmma = exports.mmma = function (array) {
   const len = array.length;
   const min = array.reduce((min, value) => value < min ? value : min, Infinity);
   const max = array.reduce((max, value) => value > max ? value : max, -Infinity);
@@ -145,3 +145,10 @@ const mmmma = exports.mmma = function (array) {
   const m1 = sorted[Math.floor((len - 1) / 2) + 1];
   return { min, max, mean: len % 2 ? m0: (m0+m1)/2, avg};
 }
+
+// given a vector, return
+// { dotProduct, length }
+const vdot = exports.vdot  = function (a, b) {
+  const len  = Math.min(a.length, b.length);
+  return a.slice(0,len).reduce((sum, value, index) => sum + (value * b[index]), 0);
+};

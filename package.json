@@ -28,6 +28,6 @@
   ],
   "workspaces": [
     "packages/net",
-    "packages/browser"
+    "packages/web"
   ]
 }
