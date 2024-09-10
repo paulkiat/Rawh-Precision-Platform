@@ -61,7 +61,7 @@ function modal_show(el_id, title, buttoms = []) {
   });
   modal_set_title(title);
   $('modal').classList.add("showing");
-  modal.buttons(buttons);
+  return modal.buttons(buttons);
 }
 
 function modal_set_title(title) {
@@ -80,15 +80,21 @@ function modal_load(url) {
 function modal_buttons(buttons) {
   const list = Object.keys(buttons);
   const fns = Object.values(buttons);
+  const btns = {};
   $('modal-footer').innerHTML = list.map((button, idx) => {
     return `<button id="mb-${idx}">${button}</button>`;
   }).join('');
   fns.forEach((fn, idx) => {
-    $(`mb-${idx}`).onclick = () => {
-      fn && fn(list[idx]);
-      modal_hide();
+  const btn = $(`mb-${idx}`);
+  btns[list[idx]] = btn;
+  btn.onClick = () => {
+      const res = (fn && fn(list[idx]));
+      if (res !== false) {
+          modal_hide();
+      }
     };
   });
+  return btns;
 }
 
 export default modal;

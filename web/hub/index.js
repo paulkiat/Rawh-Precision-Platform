@@ -2,6 +2,8 @@ import { $, annotate_copyable, on_key, loadHighlightCSS } from '../lib/utils.js'
 import WsCall from './lib/ws-call.js';
 import modal from './lib/modal.js';
 
+const hourms = 1000 * 60 * 60;
+const dayms = 1000 * 60 * 60 * 24;
 const ws_api = new WsCall("admin.api");
 const report = (o) => ws_api.report(o);
 const call = (c, a) => ws_api.call(c, a);
@@ -70,26 +72,49 @@ function org_edit(uid) {
 function org_logs(uid) {
     const rec = context.orgs[uid];
     if (!rec) throw `Invalid org uid: ${uid}`;
-    modal.show('org-logs', "org logs", {
-        cancel: undefined,
+    const range = { };
+    const buttons = { };
+    const nb = modal.show('org-logs', "org logs", {
+      '<<': () => {
+          const from = parseInt(range.from, 36) - dayms;
+          range.update(from.toString(36), (from + dayms).toString(36));
+          return false;
+      },
+      '>>': () => {
+          const from = parseInt(range.from, 36) + dayms;
+          range.update(range.from.toString(36), (from + dayms).toString(36));
+          return false;
+      },
+      closed: undefined,
     });
-    call("org logs", { org_id: uid }).then(logs => {
-        const first = logs[0][0];
-        const last = logs[logs.length-1][0];
-        const output = $('show-logs');
-        console.log({ first, last });
-        output.innerHTML = logs.map(row => {
-            return [
-                '<div>',
-                '<label>',
-                dayjs(parseInt(row[0],36)).format('YYYY/MMM/DD HH:mm:ss'),
-                '</label>',
-                hljs.highlight(JSON.stringify(row[1]), { language: 'json' }).value,
-                '</div>'
-            ].join(" ");
+    Object.assign(buttons, nb);
+    range.update = (start, end) => 
+          call("org logs", { 
+                org_id: uid, 
+                start, end 
+          }).then(logs => {
+                if (!(logs && logs.length)) {
+                  return;
+                }
+                  const first = range.from = logs[0][0];
+                  const last = range.to = logs[logs.length-1][0];
+                  const output = $('show-logs');
+                  if (!range.min || first < range.min) range.min = first;
+                  if (!range.max || last > range.min) range.max = last;
+                  buttons['>>'].disabled = range.to >= range.max;
+                  output.innerHTML = logs.map(row => {
+                      return [
+                          '<div>',
+                          '<label>',
+                          dayjs(parseInt(row[0],36)).format('YYYY/MMM/DD HH:mm:ss'),
+                          '</label>',
+                          hljs.highlight(JSON.stringify(row[1]), { language: 'json' }).value,
+                          '</div>'
+                      ].join(" ");
         }).join("\n");
         output.scrollTop = output.scrollHeight;
     });
+    range.update();
 }
 
 function org_delete(uid, name) {
