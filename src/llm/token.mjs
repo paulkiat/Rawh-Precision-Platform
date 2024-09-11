@@ -1,7 +1,7 @@
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { JSONLoader, JSONLinesLoader } from "langchain/document_loaders/fs/json";
 import { TextLoader } from "langchain/document_loaders/fs/text";
-import { CSVLoader } from "langchain/document_loaders/fs/cvs";
+import { CSVLoader } from "langchain/document_loaders/fs/csv";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { htmlToText } from "html-to-text";
 import { mmma } from '../lib/util';
@@ -105,7 +105,7 @@ class Text_2_ParaChunks {
       return {
         pageContent: text,
         metadata: {
-          source: docs[0].metadata.path,
+          source: docs[0].metadata ? docs[0].metadata.path : 'unknown',
           // recover this from sentence against search pages?
           loc: {
             pageNumber: 0,

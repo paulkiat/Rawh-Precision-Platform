@@ -74,7 +74,7 @@ function zmq_client(host = "127.0.0.1", port) {
   async function recv() {
     if (!sock) throw "not connected";
     const [ result ] = await sock.receive();
-    return JSON.parse(result);
+    return JSON.parse(result);  
   }
  
   function recvp() {
