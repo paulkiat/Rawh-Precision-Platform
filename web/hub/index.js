@@ -2,7 +2,6 @@ import { $, annotate_copyable, on_key, loadHighlightCSS } from '../lib/utils.js'
 import WsCall from './lib/ws-call.js';
 import modal from './lib/modal.js';
 
-const hourms = 1000 * 60 * 60;
 const dayms = 1000 * 60 * 60 * 24;
 const ws_api = new WsCall("admin.api");
 const report = (o) => ws_api.report(o);

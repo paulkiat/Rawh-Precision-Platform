@@ -75,7 +75,7 @@ exports.log = function () {
     console.log(
       dayjs().format('YYMMDD.HHmmss |'),
       [...arguments]
-        .map(v => util.inspect(v, {
+        .map(v => typeof v === 'string' ? v : util.inspect(v, {
           maxArrayLength: null,
           breakLength: Infinity,
           colors: true,
