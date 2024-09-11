@@ -1,8 +1,9 @@
 // starts and maintains all under one process
 // 1. rawh hub server
-// 2. customer org server
-// 3. customer doc server
-// 4. (optionally) customer llm server
+// 2. customer org proxy + broker server
+// 3. customer org llm server (optional)
+// 4. customer app web server "test"
+// 5. customer app doc server "test"
 
 const util = require('../lib/util');
 const { fork } = require('child_process');
@@ -23,7 +24,6 @@ function log(name, data, err) {
 }
 
 function launch(name, path, mod_args) {
-  if (args["no-doc"] && name === "doc") return;
   if (args.prod) mod_args.push("--prod");
   if (args.debug) mod_args.push("--debug");
   if (args["cli-store"]) mod_args.push("--cli-store");
@@ -39,8 +39,8 @@ function launch(name, path, mod_args) {
 
 launch("hub", "./src/hub/main.js", [ "--test-org" ]);
 launch("org", "./src/org/main.js", [ "--org-id=test", "--test-app" ]);
-launch("org", "./src/app/web.js", [ "--app-id=test" ]);
-launch("doc", "./src/app/doc.js", [ "--app-id=test" ]);
+launch(`app web test`, "./src/app/doc.js", [ `--app-id=test` ]);
+launch(`app doc test`, "./src/app/doc.js", [ `--app-id=test` ]);
 
 if (args.llm) {
   launch("llm", "./src/app/llm.js", [ 

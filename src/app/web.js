@@ -11,7 +11,7 @@ const ws_handler = web.ws_proxy_path(state.node);
 Object.assign(state, {
   direct: args['direct'] || false,
   app_dir: env('APP_DIR') || args['app-dir'] || 'app',
-  app_port: env('APP_PORT') || args['app-port'] || (args.prod ? 80 : 7000),
+  app_port: env('APP_PORT') ?? args['app-port'] ?? (args.prod ? 80 : 7000),
   app_handler,
   ws_handler
 });
@@ -23,14 +23,14 @@ async function setup_node() {
 
 // give the org web server an endpoint for proxying app web requests
 async function announce_service() {
-  const { node, app_id, app_port, net_addrs } = state;
+  const { node, app_id, net_addrs } = state;
   log({ register_app_web: app_id, static_dir: state.app_dir });
   node.publish("service-up",  {
     app_id,
     type: "web-server",
     // put app into direct access dev mode vs production proxy
     direct: state.direct,
-    web_port: app_port,
+    web_port: state.app_port,
     web_addr: net_addrs,
   });
 }
@@ -70,7 +70,7 @@ async function setup_app_handlers() {
 
 (async () => {
   await setup_node();
-  await announce_service();
   await setup_app_handlers();
   await web.start_web_listeners(state);
+  await announce_service();
 })();

@@ -36,9 +36,10 @@ async function start_web_listeners(state) {
 
   // app web port listens to http, but should only allow requests
   // from localhost or the organizational web proxy
-  if (state.app_port && app_handler) {
-    log({ starting_app_listener: state.app_port });
+  if (state.app_port !== undefined && app_handler) {
     servers.app = http.createServer(app_handler).listen(state.app_port);
+    state.app_port = servers.app.address().port;
+    log({ start_app_listener: state.app_port });
   }
 
   // log({ ws_handler, app: servers.app });
@@ -81,11 +82,12 @@ async function start_web_listeners(state) {
 
   // open secure web port handle customer/org requests
   if (web_handler) {
-    log({ start_web_listener: state.web_port });
     servers.web = https.createServer({
       key: state.ssl.key,
       cert: state.ssl.cert
     }, web_handler).listen(state.web_port);
+    log({ start_web_listener: state.web_port });
+
   }
   // start secure web socket handler
   if (wss_handler && servers.web) {
