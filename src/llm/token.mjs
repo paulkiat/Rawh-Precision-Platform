@@ -10,8 +10,6 @@ const default_opt = {
   separators: ["\n"]
 };
 
-
-
 const loaders = {
     "txt": (path) => new TextLoader(path),
     "csv": (path, opt) => new CSVLoader(path, opt),
@@ -61,38 +59,6 @@ export async function split(loader, opts = {}) {
   if (opt.clean) {
     splitDocs.forEach(doc => doc.pageContent = clean_text(doc.pageContent));
   }
-
-  if (opt.debug) {
-    console.log({ splitDocs });
-
-
-    const sources = { };
-    const pages = { };
-    const trak = { sources: 0, pages: 0 };
-
-    for (let doc of splitDocs) {
-      doc.pageContent = clean_text(doc.pageContent);
-      console.log('-------------------------------------------------------');
-      console.log(doc.pageContent);
-      console.log('. . . . . . . . . . . . . . . . . . . . . . . . . . . .');
-      console.log(doc.metadata);
-      const { source, pdf, loc } = doc.metadata;
-      if (!sources[source]) {
-        sources[source] = source;
-        trak.sources++;
-      }
-      const pageid = `${source}-${loc.pageNumber}`;
-      if (!pages[pageid]) {
-        pages[pageid] = pageid;
-        trak.pages++;
-      }
-
-    }
-
-    console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
-    console.log({ docs: docs.length, splitDocs: splitDocs.length, trak });
-  }
-
   return splitDocs;
 }
 
@@ -102,7 +68,7 @@ export default {
     return new PDFLoader2(path).load();
   },
   html_to_text(path) {
-    return new HTMLLoader2(path).load();
+    return new HTMLoader(path).load();
   },
   text_to_chunks(path) {
     return new TextParagraphSplitter({ raw: true, ...opts }).splitDocuments(docs)

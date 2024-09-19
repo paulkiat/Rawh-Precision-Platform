@@ -1,7 +1,7 @@
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { htmlToText } from "html-to-text";
-import pdf2html from "pdf2html";
 import { mmmma } from "../lib/util.js";
+import pdf2html from "pdf2html";
 import fsp from "fs/promises";
 
 export function clean_text(text) {
