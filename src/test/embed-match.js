@@ -1,4 +1,6 @@
 // TEST PLAYGROUND
+// this code has been incorporated into the token engine
+// as PDF_2_Text + Text_2_ParaChunks classes
 
 const { args, mmma } = require("../lib/util");
 const proxy_host = args['proxy-host'] || 'localhost';
@@ -7,7 +9,7 @@ const net = require('../lib/net');
 const node = args.node ? net.node(proxy_host, proxy_port) : undefined;
 
 const llmapis = require("../llm/api");
-const { file, model } = args;
+const { file } = args;
 
 const pdf2html = require('pdf2html');
 const max_embed = 512;
@@ -22,19 +24,17 @@ const max_embed = 512;
   // provide cmd line option `--node` to use network embed services
   const to_vector = node ? async function (chunks) {
     chunks = Array.isArray(chunks) ? chunks : [chunks];
-    // return node.promise.call('', "embed/org", { text: chunks });
-    // parallelize across all embed services
+    // allows parallelization across any number of embed servers for scale
     const p = Promise.all(chunks.map(c => node.promise.call('', "embed/org", { text: [c] })));
     return (await p).flat();
   } : vectorize;
 
-  embed.setup({ modelName: model });
+  // clean up pdf page text
   const pages = (await pdf2html.pages(file, { text: true })).map(p => clean_text(p));
 
-  // explore chunking into paragraphs
+  // chunk into paragraphs
   const para = pages.map(p => clean_text(p)).join("\n").split("\n\n");
   const stat = mmma(pages.map(p => p.length));
-  // const mid = para[Math.round(para.length/2)];
   console.log({ paras: para.length, ...stat });
 
   // switch out strategies here eg: use groupings of paragraphs instead of pages

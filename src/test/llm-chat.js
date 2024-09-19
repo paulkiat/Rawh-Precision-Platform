@@ -1,3 +1,5 @@
+// simple test for llm embred
+
 (async () => {
 
   const { chat } = await require('../llm/api').init();

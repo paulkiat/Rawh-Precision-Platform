@@ -143,7 +143,6 @@ async function doc_embed(frec, path) {
   node.publish([ 'doc-loading', app_id ], frec);
 
   // create vector embeddings for each chunk
-  // const embed = await import('./lib/embed.mjs);
   const embeds = await embed.vectorize(chunks.map(c => c.pageContent));
   // log({ embeds: embeds.length });
 
