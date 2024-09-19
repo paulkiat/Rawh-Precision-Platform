@@ -45,36 +45,48 @@ async function doc_load(msg = {}) {
   // create the file drop target with time+random file uid
   const fuid = util.uid();
   const fdir = `${state.data_dir}/docs`;
-  const fnam = `${fdir}/${fuid}`;
+  const path = `${fdir}/${fuid}`;
   await fsp.mkdir(fdir, { recursive: true }).catch(e => e);
-  const frec = { uid: fuid, url, name, type, state: "loading", length: 0, added: Date.now() };
+  const frec = { 
+    id: fuid, 
+    url, 
+    name, 
+    type,
+    path, 
+    length: 0, 
+    state: "loading",
+    added: Date.now() 
+  };
   const fdel = async function () {
     // delete partial file data
-    await fsp.rm(fnam).catch(error => log({ bulk_delete_error: error }));
+    await fsp.rm(path).catch(error => log({ bulk_delete_error: error }));
   }
   node.publish([ 'doc-loading', app_id ], frec);
   if (url) {
-    return doc_load_url(frec, fnam, fdel);
+    return doc_load_url(frec, fdel);
   } else {
-    return doc_load_socket(frec, fnam, fdel);
+    return doc_load_socket(frec, fdel);
   }
 }
 
-async function doc_load_url(frec, fnam, fdel) {
+// load a document stream from url
+async function doc_load_url(frec, fdel) {
   const fetch = (await fetchp).default;
   const data = await fetch(frec.url, { redirect: 'follow', follow: 20 });
   const bufr = Buffer.from(await data.arrayBuffer());
-  await fsp.writeFile(fnam, bufr);
+  await fsp.writeFile(frec.path, bufr);
   // do file analysis
-  await doc_embed(frec, fnam).catch(error => {
+  await doc_embed(frec).catch(error => {
       log({ embed_error: error, frec });
+      fdel();
   });
   return { loaded: frec.url };
 }
 
-async function doc_load_socket(frec, fnam, fdel) {
+// accept an inbound document stream over tcp
+async function doc_load_socket(frec, fdel) {
   const { net_addrs } = state;
-  const file = await fsp.open(fnam, 'w');
+  const file = await fsp.open(frec.path, 'w');
   const fstr = await file.createWriteStream();
   // listen on random tcp port for incoming file dump
   const srv = net.createServer(conn => {
@@ -95,7 +107,7 @@ async function doc_load_socket(frec, fnam, fdel) {
       await fstr.end();
       await file.close();
       // do file analysis
-      await doc_embed(frec, fnam).catch(error => {
+      await doc_embed(frec).catch(error => {
         log({ embed_error: error, frec });
       });
       srv.close();
@@ -119,10 +131,9 @@ async function doc_load_socket(frec, fnam, fdel) {
   });
 }
 
-async function doc_embed(frec, path) {
-  const { node, embed, token, app_id, doc_info, cnk_data, llama_token } = state;
-  log({ doc_embed: frec });
-  const start = Date.now();
+// split document into bite sized chunks
+async function doc_chunk(frec, path) {
+  const { node, token, app_id, doc_info, } = state;
 
   // store and publish meta-data about doc
   frec.state = "tokenizing";
@@ -130,12 +141,22 @@ async function doc_embed(frec, path) {
   node.publish([ 'doc-loading', app_id ], frec);
 
   // tokenize and embed
-  const chunks = await token.load_path(path, {
+  const chunks = await token.load_path(frec.path, {
     type: frec.type,
     chunkSize: 786,
     paraChunks: true, // new paragraph splitter
   });
   // log({ chunks: chunks.length });
+  return chunks;
+}
+
+async function doc_embed(frec) {
+  const { node, embed, token, app_id, doc_info, cnk_data, llama_token } = state;
+  log({ doc_embed: frec });
+  const start = Date.now();
+
+  // create text chunks from raw or paged document
+  const chunks = await doc_chunk(frec);
 
   // store and publish meta-data about doc
   frec.state = "embedding";
@@ -218,8 +239,8 @@ async function doc_delete(msg) {
   await doc_info.del(uid);
   // delete file artifact
   const fdir = `${state.data_dir}/docs`;
-  const fnam = `${fdir}/${uid}`;
-  await fsp.unlink(fnam);
+  const path = `${fdir}/${uid}`;
+  await fsp.unlink(path);
   // log({ del_doc_info: rec, chunks: match });
   node.publish([ "doc-delete", app_id ], rec);
   return `analyzed ${recs} recs, ${match} matched`;
