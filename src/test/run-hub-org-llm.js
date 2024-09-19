@@ -39,7 +39,7 @@ function launch(name, path, mod_args) {
 
 launch("hub", "./src/hub/main.js", [ "--test-org" ]);
 launch("org", "./src/org/main.js", [ "--org-id=test", "--test-app" ]);
-launch(`app web test`, "./src/app/doc.js", [ `--app-id=test` ]);
+launch(`app web test`, "./src/app/web.js", [ `--app-id=test`, '--app-port=0' ]);
 launch(`app doc test`, "./src/app/doc.js", [ `--app-id=test` ]);
 
 if (args.llm) {
