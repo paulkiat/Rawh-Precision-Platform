@@ -37,6 +37,8 @@ const dirs = (args.dirs || "app").split(",");
 console.log({ ids, dirs });
 
 ids.forEach((id, index) => {
-    launch(`app web ${id}`, "./src/app/web.js", [ `--app-id=${id}`, `app-dir=${dirs[index]}` ]);
+    const app_args = [ `--app-id=${id}`, `app-dir=${dirs[index]}`, '--app-port=0' ];
+    if (args.direct) app_args.push("--direct");
+    launch(`app web ${id}`, "./src/app/web.js", app_args);
     launch(`app web ${id}`, "./src/app/doc.js", [ `--app-id=${id}` ]);
 });
