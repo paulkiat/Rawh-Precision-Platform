@@ -244,6 +244,10 @@ async function doc_delete(msg) {
   const { uid } = msg;
   // delete matching meta-data and embeds
   const rec = await doc_chnk.get(uid);
+  if (!rec) {
+      log({ doc_delete_missing: uid });
+      return `delete: invalid document ${uid}`;
+  }
   const batch = await doc_mbed.batch();
   let recs = 0, match = 0;
   for await (const [key] of doc_mbed.iter({ values: false })) {
@@ -268,7 +272,7 @@ async function doc_delete(msg) {
 
 // given a query, get matching embed chunks from loaded docs
 async function docs_query(msg) {
-  const { node, embed, doc_chnk } = state;
+  const { node, embed, doc_mbed } = state;
   const { query, max_tokens, min_match, llm, topic } = msg;
   const vector = (await embed.vectorize([ query ]))[0];
   const index = embed.vector_to_index(vector);
@@ -276,13 +280,13 @@ async function docs_query(msg) {
   log({ docs_query: msg });
 
   const iter_lt = {
-    iter: doc_chnk.iter({ lt: key }),
+    iter: doc_mbed.iter({ lt: key }),
     coss: 1,
     pos: -1,
     add: -1
   };
   const iter_gt = {
-    iter: doc_chnk.iter({ gte: key }),
+    iter: doc_mbed.iter({ gte: key }),
     coss: 1,
     pos: 1,
     add: 1
@@ -380,6 +384,13 @@ async function docs_query(msg) {
         text: embed.length,
         tokens: embed.reduce((acc, r) => acc + r.tokens, 0)
       });
+      if (debug === 'embed') {
+          console.log("------------( embed )------------");
+          console.log(embed);
+          console.log("---------------------------------")
+      } else if (debug) {
+        log({ embed });
+      }
       const start = Date.now();
       // const once = "llm-query/org";
       const answer = await node.promise

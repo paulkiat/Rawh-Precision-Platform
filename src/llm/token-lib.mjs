@@ -29,13 +29,14 @@ export class PDFLoader2 {
     const pages = await pdf2html.pages(this.path, { text: true });
 
     return pages.map((page, i) => {
+      const pageContent = clean_text(page);
       return {
-        pageContent: clean_text(page),
+        pageContent,
         metadata: {
           source: this.path,
           loc: {
             pageNumber: i + 1,
-            lines: { from: 0, to: 0 }
+            lines: { from: 1, to: pageContent.split("\n").length }
           }
         }
       }
@@ -61,7 +62,7 @@ export class HTMLLoader{
         source: this.path,
         loc:{
           pageNumber: 1,
-          lines:{ from: 0, to: 0 }
+          lines:{ from: 1, to: text.split("\n").length }
         }
       }
    }];
