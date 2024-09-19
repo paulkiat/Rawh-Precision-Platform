@@ -50,5 +50,5 @@ if (args.llm) {
     args.batch ? `--context=${args.batch}` : "",
     args.mmap ? `--gpu=${args.mmap}` : "",
     args.gpu ? `--gpu=${args.gpu}` : "",
-  ]);
+  ].filter(a => a));
 }
