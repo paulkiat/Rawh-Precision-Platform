@@ -11,14 +11,12 @@ function new_state() {
     output: console.log
   };
   state.log = function() {
-      const args = [state.prompt,...arguments].map(a => typeof a === 'string' ? a : 
-                util.inspect(a, { 
-                                  depth: null, 
-                                  colors: true, 
-                                  breakLength: Infinity, 
-                                  compact: true 
-                                }));
-      return state.output(...args);
+    const args = [...arguments].map(a  => typeof a ==='string'? a : util.inspect(a, { depth: null, colors: true }));
+    return state.output(...args);
+  };
+  state.logw = function() {
+    const args = [state.prompt,...arguments].map(a => typeof a === 'string' ? a : util.inspect(a, { depth: null, colors: true, breakLength: Infinity, compact: true }));
+    return state.output(...args);
   };
   state.update_prompt = function() {
       const toks = state.level.map((db, i) => {
@@ -109,7 +107,7 @@ async function server(db, port = 12345, logger) {
 }
 
 async function cmd(state, answer) {
-  const { log } = state;
+  const { log, logw } = state;
   const toks = answer.split(' ');
   const cmd = toks.shift();
   switch (cmd) {
@@ -165,7 +163,7 @@ async function cmd(state, answer) {
     case 'list':
       if (!state.open) return log('no db open');
       const list = await state.open.list(parse(toks[0] || '{}'));
-      list.map(rec => { return { [rec[0]]: rec[1] } });
+      list.map(rec => log([rec[0]], rec[1]));
       // log(list.map(rec => { return { [rec[0]]: rec[1] } }));
       break;
     case 'keys':

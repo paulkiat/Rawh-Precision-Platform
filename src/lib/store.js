@@ -49,7 +49,7 @@ function wrap(db, name, closeable) {
   };
 
   const batch = async function (arg) {
-    return await arg ? db.batch(arg) : db.batch();
+    return arg ? db.batch(arg) : db.batch();
   };
 
   const clear = async function (opt = {}) {

@@ -49,11 +49,11 @@ async function doc_load(msg = {}) {
   await fsp.mkdir(fdir, { recursive: true }).catch(e => e);
   const frec = { 
     id: fuid, 
-    url, 
-    name, 
-    type,
-    path, 
-    length: 0, 
+    url,  // optional if url was the source
+    name, // file name without path (for display)
+    type, // pdf, csv, html, text, etc.
+    path, // location of artifact on disk
+    length: 0, // artifact length in bytes
     state: "loading",
     added: Date.now() 
   };
@@ -133,11 +133,11 @@ async function doc_load_socket(frec, fdel) {
 
 // split document into bite sized chunks
 async function doc_chunk(frec, path) {
-  const { node, token, app_id, doc_info, } = state;
+  const { node, token, app_id, doc_meta, doc_chnk } = state;
 
   // store and publish meta-data about doc
   frec.state = "tokenizing";
-  await doc_info.put(frec.uid, frec);
+  await doc_meta.put(frec.uid, frec);
   node.publish([ 'doc-loading', app_id ], frec);
 
   // tokenize and embed
@@ -147,11 +147,26 @@ async function doc_chunk(frec, path) {
     paraChunks: true, // new paragraph splitter
   });
   // log({ chunks: chunks.length });
+
+  const sub = doc_chnk.sub(frec, uid);
+  const batch = await sub.batch();
+  const map = chunks.map((chunk, idx) => {
+      const { pageContent, metadata } = chunk;
+      const { loc } = metadata;
+      const { pageNumber, lines } = loc;
+      const { from, to } = lines;
+      const rec = [ pageNumber, from, to, pageContent ];
+      batch.put(idx, rec);
+      // batch.put(idx.toString().padStart(4,0), rec);
+      return rec;
+  });
+  await batch.write();
+
   return chunks;
 }
 
 async function doc_embed(frec) {
-  const { node, embed, token, app_id, doc_info, cnk_data, llama_token } = state;
+  const { node, embed, app_id, doc_meta, doc_mbed, lama_token } = state;
   log({ doc_embed: frec });
   const start = Date.now();
 
@@ -160,12 +175,14 @@ async function doc_embed(frec) {
 
   // store and publish meta-data about doc
   frec.state = "embedding";
-  await doc_info.put(frec.uid, frec);
+  await doc_meta.put(frec.uid, frec);
   node.publish([ 'doc-loading', app_id ], frec);
 
   // create vector embeddings for each chunk
   const embeds = await embed.vectorize(chunks.map(c => c.pageContent));
   // log({ embeds: embeds.length });
+
+  const batch = await doc_mbed.batch();
 
   // annotate chunks with their vector and db indewx (also use for cosine similarity)
   // TODO: store prev/next pointers for gathering better contexts
@@ -186,7 +203,7 @@ async function doc_embed(frec) {
     const { pageNumber, lines } = loc;
     const key = `${chunk.index.toString().padEnd(18, 0)}:${frec.uid}`;
     // log({ key, index: chunk.index, uid: frec.uid });
-    cnk_data.put(key, {
+    batch.put(key, {
       uid: frec.uid,
       vector: chunk.vector,
       text: chunk.pageContent,
@@ -205,29 +222,31 @@ async function doc_embed(frec) {
       console.log("------------------------------");
   }
 
+  await batch.write();
+
   // store and publish meta-data about doc
   frec.elapsed = Date.now() - start;
   frec.chunks = chunks.length;
   frec.state = "ready";
-  await doc_info.put(frec.uid, frec);
+  await doc_meta.put(frec.uid, frec);
   node.publish([ 'doc-loading', app_id ], frec);
   log({ doc_loaded: frec });
 }
 
 // list all docs along with the status (loading, embedding, ready)
 async function doc_list(msg) {
-  return state.doc_info.list();
+  return state.doc_meta.list();
 }
 
 // delete a document and all of its associated embeddings
 async function doc_delete(msg) {
-  const { node, app_id, doc_info, cnk_data } = state;
+  const { node, app_id, doc_meta, doc_chnk, doc_mbed } = state;
   const { uid } = msg;
   // delete matching meta-data and embeds
-  const rec = await doc_info.get(uid);
-  const batch = await cnk_data.batch();
+  const rec = await doc_chnk.get(uid);
+  const batch = await doc_mbed.batch();
   let recs = 0, match = 0;
-  for await (const [key] of cnk_data.iter({ values: false })) {
+  for await (const [key] of doc_mbed.iter({ values: false })) {
     const [ index, doc_uid ] = key.split(":");
     if (doc_uid === uid) {
       batch.del(key);
@@ -236,7 +255,8 @@ async function doc_delete(msg) {
     recs++;
   }
   await batch.write();
-  await doc_info.del(uid);
+  await doc_meta.del(uid);
+  await doc_chunk.sub(rec.uid).clear();
   // delete file artifact
   const fdir = `${state.data_dir}/docs`;
   const path = `${fdir}/${uid}`;
@@ -248,7 +268,7 @@ async function doc_delete(msg) {
 
 // given a query, get matching embed chunks from loaded docs
 async function docs_query(msg) {
-  const { node, embed, cnk_data } = state;
+  const { node, embed, doc_chnk } = state;
   const { query, max_tokens, min_match, llm, topic } = msg;
   const vector = (await embed.vectorize([ query ]))[0];
   const index = embed.vector_to_index(vector);
@@ -256,13 +276,13 @@ async function docs_query(msg) {
   log({ docs_query: msg });
 
   const iter_lt = {
-    iter: cnk_data.iter({ lt: key }),
+    iter: doc_chnk.iter({ lt: key }),
     coss: 1,
     pos: -1,
     add: -1
   };
   const iter_gt = {
-    iter: cnk_data.iter({ gte: key }),
+    iter: doc_chnk.iter({ gte: key }),
     coss: 1,
     pos: 1,
     add: 1
@@ -379,8 +399,9 @@ async function docs_query(msg) {
   const { embed, token } = await require('../llm/api').init();
 
   const store = await require('../lib/store').open(`${state.data_dir}/embed`);
-  const doc_info = store.sub('docs'); // doc meta-data
-  const cnk_data = store.sub('chunks'); // chunked embed data
+  const doc_meta = store.sub('docs'); // document meta-data (size, type, source)
+  const doc_chnk = store.sub('chunks'); // document chunks (page, line, text)
+  const doc_mbed = store.sub('embed'); // embeds composed of chunks (vector, index)
   const llama_token = (await import('llama-tokenizer-js')).default;
   // console.log(tokenizer.encode("this is a fine day to code"));
 
@@ -388,8 +409,9 @@ async function docs_query(msg) {
     store,
     embed,
     token,
-    doc_info,
-    cnk_data,
+    doc_meta,
+    doc_chnk,
+    doc_mbed,
     llama_token,
   });
 
