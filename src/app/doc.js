@@ -133,7 +133,7 @@ async function doc_load_socket(frec, fdel) {
 
 // split document into bite sized chunks
 async function doc_chunk(frec, path) {
-  const { node, token, app_id, doc_meta, doc_chnk } = state;
+  const { node, token, app_id, doc_meta, doc_chnk, llama_token } = state;
 
   // store and publish meta-data about doc
   frec.state = "tokenizing";
@@ -155,9 +155,9 @@ async function doc_chunk(frec, path) {
       const { loc } = metadata;
       const { pageNumber, lines } = loc;
       const { from, to } = lines;
-      const rec = [ pageNumber, from, to, pageContent ];
-      batch.put(idx, rec);
-      // batch.put(idx.toString().padStart(4,0), rec);
+      const tokens = llama_token.encode(pageContent).length;
+      const rec = [ pageNumber, from, to, tokens, pageContent ];
+      batch.put(idx.toString().padStart(4,0), rec);
       return rec;
   });
   await batch.write();

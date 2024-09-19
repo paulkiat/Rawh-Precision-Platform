@@ -11,7 +11,7 @@ function new_state() {
     output: console.log
   };
   state.log = function() {
-    const args = [...arguments].map(a  => typeof a ==='string'? a : util.inspect(a, { depth: null, colors: true }));
+    const args = [...arguments].map(a  => typeof a ==='string'? a : util.inspect(a, { depth: null, colors: true, maxArrayLength: Infinity }));
     return state.output(...args);
   };
   state.logw = function() {
@@ -126,6 +126,12 @@ async function cmd(state, answer) {
         state.level.push(sub);
       }
       state.update_prompt();
+      break;
+    case 'subs':
+      if (!state.open) return log('no db open');
+      const skeys = (await state.open.keys({ gte: "!" })).map(s => s.split('!')[1]);
+      const subs = [...new Set(skeys)];
+      log(subs);
       break;
     case 'open':
       await state.db_open(toks[0]);

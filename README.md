@@ -92,15 +92,17 @@ where each docker image will have its own build directory inder `src-dock`
 
 | directory | description |
 |-----------|-------------|
-| `src/app` | organization application api-based services |
-| `src/cli` | command line utilities and wrappers for testiing |
-| `src/hub` | rawh hub that all customer organizations connect to |
-| `src/lib` | libraries share by hub, org, apps |
-| `src/llm` | llm-related services: embed, chat, etc |
-| `src/org` | organization based services (proxy, web, meta, license) |
-| `src-dock`| build directories for all docker image types based on this repo |
-| `src-py`  | python libraries ported from js (`lib/net`) |
-| `src-react` |a sample react app for testing |
-| `web/app` | a sample org app for testing apis |
-| `web/hub` | web admin interface for rawh hub |
-| `web/org` | web admin and proxy interface for organization |
+| `src/app`    | organization application api-based services |
+| `src/cli`    | command line utilities and wrappers for testiing |
+| `src/hub`    | rawh hub that all customer organizations connect to |
+| `src/lib`    | libraries share by hub, org, apps |
+| `src/llm`    | llm-related services: embed, chat, etc |
+| `src/org`    | organization based services (proxy, web, meta, license) |
+| `src/run`    | helpers to run hub + org + llm + app under one parent process |
+| `src/test`   | informal testing methods |
+| `src-dock`   | build directories for all docker image types based on this repo |
+| `src-py`     | python libraries ported from js (`lib/net`) |
+| `src-react ` | a sample react app for testing |
+| `web/app`    | a sample org app for testing apis |
+| `web/hub`    | web admin interface for rawh hub |
+| `web/org`    | web admin and proxy interface for organization | 

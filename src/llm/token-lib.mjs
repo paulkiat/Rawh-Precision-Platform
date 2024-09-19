@@ -77,12 +77,46 @@ export class HTMLLoader{
 export class TextParagraphSplitter {
   constructor(opts = {}) {
     this.opts = opts;
+    this.debug = opts.debug;
+    this.max_embed = this.opts.chunkSize ?? default_opt.chunkSize;
+  }
+
+  // group a set of splits (sentences or lines) up to max_embed
+  group(segs) {
+       const { max_embed } = this;
+       let cur = { el: [], ln: 0 };
+       let out = [ cur ];
+       for (let seg of segs) {
+         if (cur.ln + seg.length < max_embed) {
+             cur.el.push(seg);
+             cur.ln += seg.length;
+         } else {
+             cur = { el: [], ln: 0 };
+             out.push(cur);
+         }
+       }
+     return out.map(oe => oe.el.join(''));
+  }
+
+  splitParagraph(para) {
+      const { max_embed } = this;
+      if (para.length <= max_embed) {
+          return [ para ];
+      }
+      // attempt to split paragraph into sentences
+      // fails for long lists of urls (wikepedia)
+      const sentences = para.split(/(?<=\. )/);
+      if (sentences.length > 1) {
+          return this.group(sentences);
+      }
+      // split using newlines and grouping
+      const lines = para.split(/(?<=\n)/);
+      return this.group(lines);
   }
 
   splitDocuments(docs) {
-    const max_embed = this.opts.chunkSize ?? default_opt.chunkSize;
+    const { debug, max_embed }= this;
     const pages = docs.map(p => p.pageContent);
-    const debug = this.opts.debug;
 
     // explore chunking into paragraphs
     const para = pages.map(p => clean_text(p)).join("\n").split("\n\n");
@@ -92,7 +126,7 @@ export class TextParagraphSplitter {
 
     // switch out strategies here eg: use groupings of paragraphs instead of pages
     // const chunk = pages
-    const ppre = para.map(p => p.length <= max_embed ? [p] : p.split(/(?=\. )/)).flat();
+    const ppre = para.map(p => this.splitParagraph(p)).flat();
     const chunks = [''];
     for (let p of ppre) {
       const cc = chunks[chunks.length - 1];
