@@ -47,7 +47,7 @@ if (args.llm) {
     "--app-id=org",
     `--model=${args.model || "llama-2-7b-chat.Q2_K.gguf"}`,
     args.context ? `--context=${args.context}` : "",
-    args.batch ? `--context=${args.batch}` : "",
+    args.batch ? `--batch=${args.batch}` : "",
     args.mmap ? `--gpu=${args.mmap}` : "",
     args.gpu ? `--gpu=${args.gpu}` : "",
   ].filter(a => a));

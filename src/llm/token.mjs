@@ -6,6 +6,7 @@ import{ PDFLoader2, HTMLoader, TextParagraphSplitter, clean_text } from "./tokn-
 
 const default_opt = {
   chunkSize: 1000,
+  chunkSizeMax: 1000,
   chunkOverLap: 200,
   separators: ["\n"]
 };

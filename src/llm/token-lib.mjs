@@ -1,6 +1,6 @@
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { htmlToText } from "html-to-text";
-import { mmmma } from "../lib/util.js";
+import { mmma } from "../lib/util.js";
 import pdf2html from "pdf2html";
 import fsp from "fs/promises";
 
@@ -78,29 +78,31 @@ export class TextParagraphSplitter {
   constructor(opts = {}) {
     this.opts = opts;
     this.debug = opts.debug;
-    this.max_embed = this.opts.chunkSize ?? default_opt.chunkSize;
+    this.embed_min = this.opts.chunkSize;
+    this.embed_max = this.opts.chunkSize;
   }
 
   // group a set of splits (sentences or lines) up to max_embed
-  group(segs) {
-       const { max_embed } = this;
+  group(segs, join) {
+       const { embed_min } = this;
        let cur = { el: [], ln: 0 };
        let out = [ cur ];
        for (let seg of segs) {
-         if (cur.ln + seg.length < max_embed) {
+         if (cur.ln + seg.length < embed_min) {
              cur.el.push(seg);
              cur.ln += seg.length;
          } else {
-             cur = { el: [], ln: 0 };
+             cur = { el: [ seg ], ln: seg.length };
              out.push(cur);
          }
        }
-     return out.map(oe => oe.el.join(''));
+     return out.map(oe => join ? join(oe.el) : oe.el.join(''));
   }
 
+  // split paragraph when embedding embed_max
   splitParagraph(para) {
-      const { max_embed } = this;
-      if (para.length <= max_embed) {
+      const { embed_max } = this;
+      if (para.length <= embed_max) {
           return [ para ];
       }
       // attempt to split paragraph into sentences
@@ -115,39 +117,71 @@ export class TextParagraphSplitter {
   }
 
   splitDocuments(docs) {
-    const { debug, max_embed }= this;
-    const pages = docs.map(p => p.pageContent);
+    const { debug }= this;
 
-    // explore chunking into paragraphs
-    const para = pages.map(p => clean_text(p)).join("\n").split("\n\n");
-    const stat = mmma(pages.map(p => p.length));
-    // const mid = para[Math.round(para.length/2)];
-    console.log({ paras: para.length, ...stat });
+    // split pages into paragraphs
+    const pages = docs.map(p => p.pageContent.split("\n\n"));
 
-    // switch out strategies here eg: use groupings of paragraphs instead of pages
-    // const chunk = pages
-    const ppre = para.map(p => this.splitParagraph(p)).flat();
-    const chunks = [''];
-    for (let p of ppre) {
-      const cc = chunks[chunks.length - 1];
-      if (cc.length + p.length <= max_embed) {
-          chunks[chunks.length - 1] += "\n\n" + p;
-      } else {
-          chunks.push(p);
-      }
+    // turn paragraphs into records, splitting larger
+    // paragraphs into sentences or lines as needed
+    const recs = pages.map((paras, pageno) => {
+        let lineno = 1;
+        // does not accurately capture records spanning pages
+        return paras.map((para, pidx) => {
+          return this.splitParagraph(para).map(para => {
+              const lines = para.split("\n");
+              const rec = {
+                  pageno: pageno.length + 1,
+                  line_from: lineno,
+                  line_to: lineno + lines.length + 1,
+                  para: pidx + 1,
+                  text: para,
+                  length: para.length
+              };
+              lineno += lines.length;
+              return rec;
+          });
+        });
+    }).flat().flat();
+    // console.log(recs.slice(recs.length-10));
+
+    // group paragraphs which can be needed when there are
+    // lists that produce one-line and very short text segments
+    const grps = this.group(recs, grp => {
+        const rec = grp[0];
+        for (let nrec of grp.slice(1)) {
+             rec.line_to = Math.max(rec.line_to, nrec.line_to);
+             rec.para_to = Math.max(rec.para, nrec.para);
+             rec.text += "\n\n" + nrec.text;
+        }
+        return rec;
+    });
+    console.log(grps.slice(grps.length - 10));
+
+    // debug stats for chunking funnel
+    if (debug) {
+      const para = pages.flat();
+      const stat1 = mmma(para.map(p => p.length));
+      console.log({ paras: para.length, ...stat1 });
+
+      const stat2 = mmma(para.map(p => p.text.length));
+      console.log({ paras: recs.length, ...stat2 });
+
+      const stat3 = mmma(para.map(p => p.text.length));
+      console.log({ paras: grps.length, ...stat3 });
     }
-    console.log({ chunks: chunks.length, ...mmma(chunks.map(c => c.length)) });
+
 
     // remap to expected langchain structure
-    return this.opts.raw ? chunks : chunks.map(text => {
+    // this is sub-optimal for accurate attribution
+    return this.opts.raw ? grps : grps.map(rec => {
       return {
-        pageContent: text,
+        pageContent: rec.text,
         metadata: {
-          // TODO recover this from sentence against search pages?
           source: docs[0].metadata ? docs[0].metadata.path : 'unknown',
           loc: {
-            pageNumber: 0,
-            lines: { from: 0, to: 0 }
+            pageNumber: rec.pageno,
+            lines: { from: rec.line_from, to: rec.line_to }
           }
         }
       }

@@ -143,7 +143,8 @@ async function doc_chunk(frec, path) {
   // tokenize and embed
   const chunks = await token.load_path(frec.path, {
     type: frec.type,
-    chunkSize: 786,
+    chunkSize: 350,
+    chunksSizeMax: 700,
     paraChunks: true, // new paragraph splitter
   });
   // log({ chunks: chunks.length });
