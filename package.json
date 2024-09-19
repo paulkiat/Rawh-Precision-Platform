@@ -20,7 +20,9 @@
     "zeromq": "^6.0.0-beta.19"
   },
   "scripts": {
-    "build": "script/build.sh"
+    "build": "script/build.sh",
+    "setup": "script/setup.sh",
+    "update": "git pull ; npm i ; npm link node-llama-cpp"
   },
   "// comments //": [
     "testing node-llama-cpp prod v2 --> ^2.8.3",

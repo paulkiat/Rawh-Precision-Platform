@@ -16,6 +16,7 @@
 * `brew install zmq`
 * `npm i`
 * `script/seed-model.sh`
+* `npm run setup`
 
 
 ## Testing Setup
@@ -45,7 +46,7 @@
 
 The Org web server at port `9000` will proxy calls to the app server under
 the `/app/[app-id]` urls. Each app also serves their own content directly
-for testing.
+for testing. 
 
 In production, you would not use the `--app-port` setting to the org server.
 Instead, it would serve web traffic only through port `443`. When key/cert files
