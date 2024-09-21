@@ -7,7 +7,8 @@
 
 ## Developer Setup
 
-* requires node 18 or newer
+* requires NodeJS 20 or newer
+* requires Java JRE 11 or newer
 * requires 15GB of free disk space
 
 

@@ -7,11 +7,14 @@ const fsp = require('fs/promises');
 const util = require('../lib/util');
 const state = require('./service').init();
 const fetchp = import('node-fetch');
+const cli_server = require('../cli/store');
 const log = util.logpre('doc');
 const { args, env } = util;
 const { debug } = args;
 const drop_host = args["drop-host"];
 const drop_port = args["drop-port"] || 0;
+const cli_store = args["cli-store"];
+
 
 async function setup_node() {
   const { node } = state;
@@ -53,7 +56,7 @@ async function doc_load(msg = {}) {
     name, // file name without path (for display)
     type, // pdf, csv, html, text, etc.
     path, // location of artifact on disk
-    length: 0, // artifact length in bytes
+    length: 0, // artifact length in bytes,
     state: "loading",
     added: Date.now() 
   };
@@ -77,8 +80,8 @@ async function doc_load_url(frec, fdel) {
   await fsp.writeFile(frec.path, bufr);
   // do file analysis
   await doc_embed(frec).catch(error => {
-      log({ embed_error: error, frec });
-      fdel();
+        log({ embed_error: error, frec });
+        fdel();
   });
   return { loaded: frec.url };
 }
@@ -92,9 +95,9 @@ async function doc_load_socket(frec, fdel) {
   const srv = net.createServer(conn => {
     // log({ bulk_conn: conn });
     conn.on('error', (error) => {
-      log({ bulk_error: error });
-      fdel();
-      srv.close();
+         log({ bulk_error: error });
+         fdel();
+         srv.close();
     });
     conn.on('data', (data) => {
       // log({ bulk_data: data });
@@ -108,15 +111,15 @@ async function doc_load_socket(frec, fdel) {
       await file.close();
       // do file analysis
       await doc_embed(frec).catch(error => {
-        log({ embed_error: error, frec });
+            log({ embed_error: error, frec });
       });
       srv.close();
     });
   })
   .on('error', error => {
-    log({ bulk_listen_error: error });
-    fdel();
-    srv.close();
+      log({ bulk_listen_error: error });
+      fdel();
+      srv.close();
   });
   // once tcp server is up, send port back to caller
   return await new Promise(reply => {
@@ -147,8 +150,8 @@ async function doc_chunk(frec, path) {
     chunksSizeMax: 700,
     paraChunks: true, // new paragraph splitter
   });
-  // log({ chunks: chunks.length });
 
+  // extract usable data from langchain nested structure
   const sub = doc_chnk.sub(frec, uid);
   const batch = await sub.batch();
   const map = chunks.map((chunk, idx) => {
@@ -161,15 +164,18 @@ async function doc_chunk(frec, path) {
       batch.put(idx.toString().padStart(4,0), rec);
       return rec;
   });
+
+  // persist to level storage
   await batch.write();
 
-  return chunks;
+  return map;
 }
 
 async function doc_embed(frec) {
   const { node, embed, app_id, doc_meta, doc_mbed, lama_token } = state;
-  log({ doc_embed: frec });
   const start = Date.now();
+
+  log({ doc_embed: frec });
 
   // create text chunks from raw or paged document
   const chunks = await doc_chunk(frec);
@@ -179,55 +185,68 @@ async function doc_embed(frec) {
   await doc_meta.put(frec.uid, frec);
   node.publish([ 'doc-loading', app_id ], frec);
 
-  // create vector embeddings for each chunk
-  const embeds = await embed.vectorize(chunks.map(c => c.pageContent));
-  // log({ embeds: embeds.length });
-
+  // annotate chunks with their vector and db index (also used for cosine sim)
+  const low = 700;
+  const high = 1000;
+  const acc = { cnks: [], toks: [], text: [], tokens: 0, count: 0, new: 0 };
   const batch = await doc_mbed.batch();
 
-  // annotate chunks with their vector and db indewx (also use for cosine similarity)
-  // TODO: store prev/next pointers for gathering better contexts
-  let maxI = -Infinity;
-  let minI = Infinity;
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    const vec = chunk.vector = embeds[i];
-    const idx = chunk.index = embed.vector_to_index(vec);
-    // generate a rough token count for maximizing the embed
-    // chunk.tokens = chunk.pageContent.replace(/\n/g, ' ').split(' ').length;
-    chunk.tokens = llama_token.encode(chunk.pageContent).length;
-    maxI = Math.max(maxI, idx);
-    minI = Math.min(minI, idx);
-    // store in chunk data indexed by chunk.index
-    const { metadata } = chunk;
-    const { source, loc } = metadata;
-    const { pageNumber, lines } = loc;
-    const key = `${chunk.index.toString().padEnd(18, 0)}:${frec.uid}`;
-    // log({ key, index: chunk.index, uid: frec.uid });
-    batch.put(key, {
-      uid: frec.uid,
-      vector: chunk.vector,
-      text: chunk.pageContent,
-      index: chunk.index,
-      tokens: chunk.tokens,
-      page: pageNumber,
-      line_from: lines.from,
-      line_to: lines.to
-    });
+  async function (emit) {
+      if (acc.new === 0) {
+          return;
+      }
+      const vector = (await embed.vectorize(acc.text.join("\n")))[0];
+      const index = embed.vector_to_index(vector);
+      // store in chunk data indexed by chunk.index
+      const key = `${index.toString().padEnd(18, 0)}:${frec.uid}`;
+      // log({ key, index: chunk.index, uid: frec.uid });
+      batch.put(key, {
+        from: acc.cnks[0],
+        to: acc.cnks[acc.cnks.length -1],
+        tokens: acc.toks,
+        index,
+        vector,
+      });
+    acc.count++;
+    acc.new = 0;
     if (debug) {
-        console.log(`---[ ${pageNumber} ]---[ ${lines.from}:${lines.to} ]---[ ${frec.uid} ]---`);
+        const { cnks, tokens, toks, text } = acc;
+        const from = cnks[0];
+        const to = cnks[cnks.length -1] +1;
+        console.log(`---[ ${tokens} ]---[ ${from}:${to} ]---[ ${cnks.length}:${toks.length}:${text.length} ]---`);
         console.log(chunk.pageContent);
     }
   }
+
+  // loop over chunks and create rolling embeds with overlapping regions
+  for (let i = 0; i < chunks.length; i++) {
+       const tokens = chunks[i][3];
+       // roll in
+       if (acc.tokens + tokens > high) {
+           await emit();
+           // roll out
+           while (acc.cnks.length && acc.tokens > low) {
+              acc.cnks.shift();
+              acc.tokens -= acc.toks.shift();
+              acc.text.shift();
+           }
+       }
+       acc.tokens += tokens;
+       acc.cnks.push(i);
+       acc.cnks.push(tokens);
+       acc.text.path(chunks[i][4]);
+       acc.new++;
+  }
+  await emit();
   if (debug) {
       console.log("------------------------------");
   }
-
   await batch.write();
 
   // store and publish meta-data about doc
   frec.elapsed = Date.now() - start;
   frec.chunks = chunks.length;
+  frec.embeds = acc.count;
   frec.state = "ready";
   await doc_meta.put(frec.uid, frec);
   node.publish([ 'doc-loading', app_id ], frec);
@@ -273,7 +292,7 @@ async function doc_delete(msg) {
 
 // given a query, get matching embed chunks from loaded docs
 async function docs_query(msg) {
-  const { node, embed, doc_mbed } = state;
+  const { node, embed, doc_mbed, doc_chnk } = state;
   const { query, max_tokens, min_match, llm, topic } = msg;
   const vector = (await embed.vectorize([ query ]))[0];
   const index = embed.vector_to_index(vector);
@@ -295,9 +314,10 @@ async function docs_query(msg) {
   iter_lt.next = iter_gt;
   iter_gt.next = iter_lt;
 
-  const found = [];
+  const dmap = {}; // document chunk index to token count map
+  const found = []; // found chunks ranked by vector index
   const search = [ iter_gt, iter_lt ];
-  const max_t = max_tokens || 3500;
+  const max_t = max_tokens || 2048;
   let tokens = 0;
   let which = 0;
 
@@ -323,15 +343,34 @@ async function docs_query(msg) {
         index: rec.index
       });
 
-      found.push({ i: iter.pos, coss, text: rec.text, tokens: rec.tokens, key, page: rec.page });
+      // find how many new tokens this chunk range provides
+      const [ fidx, fuid ] = key.split(":");
+      const dtoks = dmap[fuid] = dmap[fuid] || {};
+      const toks = rec.tokens;
+      // log({ process : { rec.from, to: rec.to, tok: rec.tokens } });
+      for (let x = 0; x < toks.length; x++) {
+          let cidx = rec.from + x;
+          if (dtoks[ cidx ] !== toks[x]) {
+              // console.log({ set: cidx, val: toks[x], ln: toks.length });
+              tokens += toks[x];
+          }
+      }
+
+      found.push({
+          i: iter.pos,
+          coss,
+          fuid,
+          from: rec.from,
+          to: rec.to,
+      });
+
       iter.pos += iter.add;
-      iter.coss = coss;
-      tokens += rec.tokens;
+      iter.coss += coss;
 
       if (coss < iter.next.coss && !iter.next.dead) {
         which = 1 - which;
       }
-      if (tokens >= max_t * 2) {
+      if (tokens >= 8192) { //max_t * 2
         break;
       }
     }
@@ -341,31 +380,59 @@ async function docs_query(msg) {
 
     // sort by relevance, limit to top 10
     found.sort((a, b) => { return b.coss - a.coss });
-    
+
+    // console.log({ found });
+    // console.log({ dmap });
+
   // reduce to max chunks that will fit in embed window and
   // limit to chunks within 75% of max cosine_similarity value
   const mmatch = min_match || 0.75;
     let tleft = max_t;
     let max_coss = 0;
     let cnk_used = 0;
-    const embeds = found.map(r => {
-      max_coss = Math.max(max_coss, r.coss);
-      tleft = tleft - r.tokens;
-      const ok = tleft >= 0 && (r.coss > max_coss * mmatch || cnk_used < 4);
-      cnk_used += ok ? 1 : 0;
-      // log({ t: r.tokens, use: ok, tleft });
-      return ok ? r: undefined
-    }).filter(c => c);
 
-    // do a little debug reporting on what we found
-    // let report;
-    // console.log(report = embeds.map(r => {
-    //   return {
-    //     dist: r.i,
-    //     coss: r.coss,
-    //     toks: r.tokens
-    //   };
-    // }), report.reduce((acc, r) => acc + r.toks, 0);
+    outer: for (let rec of found) {
+       if (tleft <= 0) {
+          break;
+       }
+       const dtoks = dmap[rec.fuid];
+       for (let x = rec.from; x <= rec.to; x++) {
+          tleft -= dtoks[x];
+          if (tleft <= 0) {
+              break outer;
+          }
+          // console.log({ use: x, from: rec.from, to: rec.to });
+          dtoks[x] = 0;
+       }
+       cnk_used++;
+       max_coss = Math.max(max_coss, rec.coss);
+       if (rec.coss < max_coss * mmatch) {
+           tleft = 0;
+           break;
+       }
+    }
+
+    // console.log({ embeds: embeds.map(r => [ r.fuid, r.from, r.to ]) });
+    // console.llog({ dmap });
+
+    const subs = [];
+    const segs = [];
+    let totxt = 0;
+    let totkn = 0;
+    for (let [ fuid, dtoks ] of Object.entries(dmap)) {
+        const sub = subs[fuid] = subs[fuid] || doc_chnk.sub(fuid);
+        const dcnk = Object.entries(dtoks).map(r => [ parseInt(r[0]), r[1] ]);
+        dcnk.sort((a,b) => a[0] - b[0]);
+        for (let [ chunk, tokens ] of dcnk) {
+             if (tokens === 0 ) {
+                 const rec = await sub.get(parseInt(chunk.toString().padStart(4,0)));
+                 segs.push({ fuid, chunk, text: rec[4], tln: rec[4].length, tkn: rec[3] });
+                 totkn += rec[3];
+                 totxt += rec[4].length;
+             }
+        }
+    }
+    // console.log({ segs, len: segs.length, totkn, totxt, max_t });
 
     // time to consult the llm
     if (llm) {
@@ -376,14 +443,14 @@ async function docs_query(msg) {
         "If the answer is not found in the provided context, reply that you do not ",
         "have a document related to the question,\n",
         "-----\n",
-        ...embeds.map((r,i) => `\n<P id='E${i}-PS${r.page}">\n${r.text}\n</P>`),
+        // ...segs.map((r,i) => `\n<P id='E${r.fuid}-PS${r.chunk}">\n${r.text}\n</P>`),
+        ...segs.map((r,i) => `\n<P id='P${r.chunk}-PS${r.text}">\n</P>\n`),
         `\nQuestion: ${query}\n\nAnswer:`
       ].join('');
       log({
         found: found.length,
-        using: embeds.length,
+        using: segs.length,
         text: embed.length,
-        tokens: embed.reduce((acc, r) => acc + r.tokens, 0)
       });
       if (debug === 'embed') {
           console.log("------------( embed )------------");
@@ -416,6 +483,10 @@ async function docs_query(msg) {
   const doc_mbed = store.sub('embed'); // embeds composed of chunks (vector, index)
   const llama_token = (await import('llama-tokenizer-js')).default;
   // console.log(tokenizer.encode("this is a fine day to code"));
+
+  if (cli_store) {
+      cli_server.server(store, 0, log);
+  }
 
   Object.assign(state, {
     store,
