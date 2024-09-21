@@ -41,20 +41,20 @@ function file_drop(req, res, next) {
       }).on('error', reject);
     });
   }).then(client => {
-    let length = 0;
-    // save stream to disk as it arrives
-    req.on('error', error => {
-      res.end({ drop_error: error });
-      client.end();
-    });
-    req.on('data', chunk => {
-      length += chunk.byteLength || chunk.length;
-      client.write(chunk);
-    });
-    req.on('end', chunk => {
-      res.end(`bytes received: ${length}`);
-      client.end();
-    });
+      let length = 0;
+      // save stream to disk as it arrives
+      req.on('error', error => {
+        res.end({ drop_error: error });
+        client.end();
+      });
+      req.on('data', chunk => {
+        length += chunk.byteLength || chunk.length;
+        client.write(chunk);
+      });
+      req.on('end', chunk => {
+        res.end(`bytes received: ${length}`);
+        client.end();
+      });
   }).catch(error => {
     log({ file_drop_error: error });
     next();
