@@ -16,7 +16,7 @@ const drop_host = args["drop-host"];
 const drop_port = args["drop-port"] || 0;
 const cli_store = args["cli-store"];
 
-console.log({ PromiseQ });
+const debug_embed = debug === 'embed';
 
 async function setup_node() {
   const { node } = state;
@@ -137,7 +137,7 @@ async function doc_load_socket(frec, fdel) {
 }
 
 // split document into bite sized chunks
-async function doc_chunk(frec, path) {
+async function doc_chunk(frec) {
   const { node, token, app_id, doc_meta, doc_chnk, llama_token } = state;
 
   // store and publish meta-data about doc
@@ -154,18 +154,22 @@ async function doc_chunk(frec, path) {
   });
 
   // extract usable data from langchain nested structure
-  const sub = doc_chnk.sub(frec, uid);
+  const sub = doc_chnk.sub(frec.uid);
   const batch = await sub.batch();
   const map = chunks.map((chunk, idx) => {
       const { pageContent, metadata } = chunk;
       const { loc } = metadata;
       const { pageNumber, lines } = loc;
       const { from, to } = lines;
+      if (pageContent.length === 0) {
+          // eliminate empty chunks
+          return undefined;
+      }
       const tokens = llama_token.encode(pageContent).length;
       const rec = [ pageNumber, from, to, tokens, pageContent ];
       batch.put(idx.toString().padStart(4,0), rec);
       return rec;
-  });
+  }).filter(r => r); // filter empties
 
   // persist to level storage
   await batch.write();
@@ -173,6 +177,7 @@ async function doc_chunk(frec, path) {
   return map;
 }
 
+// create embeddings from one or more document chunks
 async function doc_embed(frec) {
   const { node, embed, app_id, doc_meta, doc_mbed, lama_token } = state;
   const start = Date.now();
@@ -188,15 +193,17 @@ async function doc_embed(frec) {
   node.publish([ 'doc-loading', app_id ], frec);
 
   // annotate chunks with their vector and db index (also used for cosine sim)
-  const low = 700;
-  const high = 1000;
+  const low = 200;
+  const high = 600;
   const acc = { cnks: [], toks: [], text: [], tokens: 0, count: 0, new: 0 };
   const batch = await doc_mbed.batch();
+  const pq = new PromiseQ({ concurrent: 1 });
 
   async function (emit) {
       if (acc.new === 0) {
           return;
       }
+
       const cnks = acc.cnks.slice();
       const from = cnks[0];
       const to = cnks(cnks.length -1);
@@ -204,41 +211,22 @@ async function doc_embed(frec) {
       const tokcnt = acc.tokens;
       const txtlen = acc.text.length;
       const pro = node.promise.call('', "embed/org", { text: acc.text.join("\n") }).then(vector => {
-      const key = `${index.toString().padEnd(18, 0)}:${frec.uid}`;
-      if (debug) {
+        const index = embed.vector_to_index(vector);
+        const key = `${index.toString().padEnd(18, 0)}:${frec.uid}`;
+      if (debug_embed) {
           console.log(`---[ ${tokcnt} ]---[ ${from}:${to} ]---[ ${cnks.length}:${tokens.length}:${txtlen} ]---`);
       }
       return batch.put(key, {
-        from: acc.cnks[0],
-        to: acc.cnks[acc.cnks.length -1],
-        tokens: acc.toks,
-        index,
-        vector,
+          from: acc.cnks[0],
+          to: acc.cnks[acc.cnks.length -1],
+          tokens: acc.toks,
+          index,
+          vector,
       });
     });
     acc.count++;
     acc.new = 0;
     return await pq.add(pro);
-    // const vector = (await embed.vectorize(acc.text.join("\n")))[0];
-    // const index = embed.vector_to_index(vector);
-    // // store in chunk data indexed by chunk.index
-    // const key = `${index.toString().padEnd(18, 0)}:${frec.uid}`;
-    // // log({ key, index: chunk.index, uid: frec.uid });
-    // batch.put(key, {
-    //     from: acc.cnks[0],
-    //     to: acc.cnks[acc.cnks.length-1],
-    //     tokens: acc.toks,
-    //     index,
-    //     vector
-    // });
-    // acc.count++;
-    // acc.new = 0;
-    // if (debug) {
-    //     const { cnks, tokens, toks, text } = acc;
-    //     const from = cnks[0];
-    //     const to = cnks[cnks.length-1];
-    //     console.log(`---[ ${tokens} ]---[ ${from}:${to} ]---[ ${cnks.length}:${toks.length}:${text.length} ]---`);
-    // }
   }
 
   // loop over chunks and create rolling embeds with overlapping regions
@@ -262,9 +250,6 @@ async function doc_embed(frec) {
   }
   await emit();
   await pq.drain();
-  if (debug) {
-      console.log("------------------------------");
-  }
   await batch.write();
 
   // store and publish meta-data about doc
@@ -318,9 +303,8 @@ async function doc_delete(msg) {
 async function docs_query(msg) {
   const { node, embed, doc_mbed, doc_chnk } = state;
   const { query, max_tokens, min_match, llm, topic } = msg;
-  // this is what an llm embedding call would look like
+
   const vector = await (await node.promise.call('', "embed/org", { text: query }));
-  // const vector = (await embed.vectorize([ query ]))[0];
   const index = embed.vector_to_index(vector);
   const key = `${index.toString().padEnd(18, 0)}`;
   log({ docs_query: msg });
@@ -404,45 +388,52 @@ async function docs_query(msg) {
     // close iterators to prevent mem leak
     search.forEach(iter => iter.iter.close());
 
-    // sort by relevance, limit to top 10
+    // sort by relevance, allows limiting to top matches
     found.sort((a, b) => { return b.coss - a.coss });
 
     // console.log({ found });
     // console.log({ dmap });
 
-  // reduce to max chunks that will fit in embed window and
-  // limit to chunks within 75% of max cosine_similarity value
-  const mmatch = min_match || 0.75;
-    let tleft = max_t;
-    let max_coss = 0;
+    // reduce to max chunks that will fit in embed window and
+    // limit to chunks within 90% of max cosine_similarity value
+    let min_coss = found[0].coss * (min_match || 0.90);
     let cnk_used = 0;
+    let rec_used = 0;
+    let tleft = max_t;
+    let rank = {};
 
     outer: for (let rec of found) {
-       if (tleft <= 0) {
-          break;
+       if (rec.coss < min_coss) {
+         if (debug) {
+             console.log({ similarity_limit: { cnk_used, rec_used } });
+         }
+         tleft = 0;
+         break;
        }
        const dtoks = dmap[rec.fuid];
+       // attempt to use the whole chunk range unless
+       // we hit a token limit while iterating
+       if (debug) {
+           console.log({ using: rec });
+       }
+       cnk_used++;
        for (let x = rec.from; x <= rec.to; x++) {
           tleft -= dtoks[x];
           if (tleft <= 0) {
+              console.log({ tokens_limit: { cnk_used, rec_used } });
               break outer;
           }
-          // console.log({ use: x, from: rec.from, to: rec.to });
           dtoks[x] = 0;
-       }
-       cnk_used++;
-       max_coss = Math.max(max_coss, rec.coss);
-       if (rec.coss < max_coss * mmatch) {
-           tleft = 0;
-           break;
+          rank[x] = cnk_used;
+          rec_used++;
        }
     }
 
-    // console.log({ embeds: embeds.map(r => [ r.fuid, r.from, r.to ]) });
     // console.llog({ dmap });
 
     const subs = [];
     const segs = [];
+    const plist = {};
     let totxt = 0;
     let totkn = 0;
     for (let [ fuid, dtoks ] of Object.entries(dmap)) {
@@ -450,16 +441,22 @@ async function docs_query(msg) {
         const dcnk = Object.entries(dtoks).map(r => [ parseInt(r[0]), r[1] ]);
         dcnk.sort((a,b) => a[0] - b[0]);
         for (let [ chunk, tokens ] of dcnk) {
-             if (tokens === 0 ) {
-                 const rec = await sub.get(parseInt(chunk.toString().padStart(4,0)));
-                 segs.push({ fuid, chunk, text: rec[4], tln: rec[4].length, tkn: rec[3] });
-                 totkn += rec[3];
-                 totxt += rec[4].length;
+           if (tokens === 0 ) {
+             const rec = await sub.get(parseInt(chunk).toString().padStart(4,0));
+             const [ page, from, to, tokens, text ] = rec;
+             if (debug) {
+                 console.log({ page, from, to, rank: rank[chunk] });
              }
+             if (rank[chunk] === 1) {
+                 plist[page] = page;
+             }
+             segs.push({ fuid, chunk, text, tln: text.length, tokens });
+             totkn += tokens;
+             totxt += text.length;
+            }
+          }
         }
-    }
-    // console.log({ segs, len: segs.length, totkn, totxt, max_t });
-
+ 
     // time to consult the llm
     if (llm) {
       const embed = [
@@ -469,35 +466,34 @@ async function docs_query(msg) {
         "If the answer is not found in the provided context, reply that you do not ",
         "have a document related to the question,\n",
         "-----\n",
-        // ...segs.map((r,i) => `\n<P id='E${r.fuid}-PS${r.chunk}">\n${r.text}\n</P>`),
-        ...segs.map((r,i) => `\n<P id='P${r.chunk}-PS${r.text}">\n</P>\n`),
-        `\nQuestion: ${query}\n\nAnswer:`
+        ...segs.map(r => `\n<P>${r.text}"</P>\n`),
+        `\nQuestion: ${query}\n\nAnswer: `
       ].join('');
       log({
-        found: found.length,
-        using: segs.length,
+        records: cnk_used,
+        embeds: segs.length,
+        tokens: totkn,
         text: embed.length,
       });
-      if (debug === 'embed') {
+      if (debug_embed) {
           console.log("------------( embed )------------");
           console.log(embed);
           console.log("---------------------------------")
-      } else if (debug) {
-        log({ embed });
       }
       const start = Date.now();
-      // const once = "llm-query/org";
-      const answer = await node.promise
-          .call('', llm, { query: embed, topic })
+      const pages = Object.keys(plist).map(r => parseInt(r));
+      const answer = await node.call(llm, { query: embed, topic })
           .catch(error => {
-            log({ llm_error: error });
-            return { error: "llm service not responding" };
+              log({ llm_error: error });
+              return { error: "llm service not responding" };
         });
-      log(answer, { time: Date.now() - start });
-      return answer;
+      if (debug) {
+          log({ time: Date.now() - start, pages, ...answer });
+      }
+      return { ...answer, pages };
     }
 
-    return found;
+    return segs;
 }
 
 (async () => {
@@ -508,7 +504,6 @@ async function docs_query(msg) {
   const doc_chnk = store.sub('chunks'); // document chunks (page, line, text)
   const doc_mbed = store.sub('embed'); // embeds composed of chunks (vector, index)
   const llama_token = (await import('llama-tokenizer-js')).default;
-  // console.log(tokenizer.encode("this is a fine day to code"));
 
   if (cli_store) {
       cli_server.server(store, 0, log);

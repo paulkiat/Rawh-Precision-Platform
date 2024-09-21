@@ -29,15 +29,15 @@ export async function vectorize(docs, opt = {}) {
     await setup();
   }
 
-  docs = Array.isArray(docs) ? docs : [docs];
+  let res;
 
-  const res = await new Promise(resolve => {
-    setTimeout(() => {
-        // unblock vm when this is called
-        // in a loop inside the doc server
-        embed_docs(docs, resolve);
-    }, 0);
-  });
+  if (Array.isArray(docs)) {
+      res = await new Promise(resolve => {
+          embed_docs(docs, resolve);
+    });
+  } else {
+      res = await embed_text(docs);
+  }
   
   if (opt.debug) {
     console.log({ env, model: state.model, res });
@@ -65,6 +65,11 @@ export function cosine_similarity(ch1, ch2) {
 
   return dotProduct / (ch1.index * ch2.index);
 }
+
+async function embed_text(text) {
+    return state.model.embedQuery(text);
+}
+
 
 // this construct allows us to divide up a task that would otherwise
 // block the node event loop resulting in heartbeat network failures

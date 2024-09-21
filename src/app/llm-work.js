@@ -128,7 +128,7 @@ setInterval(() => {
         break;
       case "query":
         // console.log({ mid, sid, query, debug, topic });
-        const temp = await chat.create_session({ debug });
+        const temp = await chat.create_session({ debug : debug !== 'embed' ? debug : false });
         const answer = debug ?
           await temp.prompt_debug(query, onToken) :
           await temp.prompt(query, onToken);
