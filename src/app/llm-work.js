@@ -42,7 +42,7 @@ setInterval(() => {
   const { chat } = await require('../llm/api.js').init();
 
   process.on("message", async (work) => {
-    const { cmd, mid, msg, debug } = work;
+    const { cmd, mid, msg, debug, text } = work;
     const { sid, query, topic } = msg;
     context.debug = debug;
     const call = {
@@ -78,9 +78,12 @@ setInterval(() => {
           mlock: msg.mlock,
           mmap: msg.mmap
         });
+        context.embed = chat.create_embedder();
         process.send({ mid, msg: { init: true } });
         break;
-
+      case "embed":
+          process.send({ mid, msg: (await context.embed(text)).vector });
+          break;
       case "ssn-start":
         const newsid = util.uid();
         sessions[newsid] = {

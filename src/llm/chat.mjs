@@ -15,6 +15,7 @@ import {
     LlamaModel,
     LlamaContext,
     LlamaChatSession,
+    LlamaEmbeddingContext,
     LlamaGrammar
 } from "node-llama-cpp";
 
@@ -71,6 +72,15 @@ export async function setup(opt = { }) {
       aplaca: opt.alpaca
     });
   }
+}
+
+export function create_embedder(opt = { }) {
+    const { model } = state; 
+    const context =  new LlamaEmbeddingContext({ model, ...opt });
+
+    return async function(text) {
+        return context.getEmbeddingFor(text);
+    };
 }
 
 export async function create_session(opt = { }) {

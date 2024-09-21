@@ -146,6 +146,10 @@ async function llm_query(msg) {
   return await call("query", msg);
 }
 
+async function llm_embed(msg) {
+    return await call("embed", msg);
+}
+
 async function register_service() {
   const { app_id, node } = state;
   // announce the presence
@@ -160,18 +164,19 @@ async function register_service() {
   node.handle([ "llm-ssn-query", app_id ], llm_ssn_query);
   node.handle([ "llm-ssn-end", app_id ], llm_ssn_end);
   node.handle([ "llm-query", app_id ], llm_query);
+  node.handle([ "llm-embed", app_id ], llm_embed);
 
   log({ service_up: app_id, type: "llm-server" });
 }
 
 (async () => {
-  const { node } = state;
-  const { chat } = await require('../llm/api');
-  const chat_ssn = {};
+    const { node } = state;
+    const { chat } = await require('../llm/api');
+    const chat_ssn = {};
 
-  Object.assign(state, { chat, chat_ssn });
+    Object.assign(state, { chat, chat_ssn });
 
-  await node.on_recconect(register_service);
-  await start_worker();
-  await register_service();
+    await node.on_recconect(register_service);
+    await start_worker();
+    await register_service();
 })();
