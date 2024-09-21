@@ -197,7 +197,8 @@ async function doc_embed(frec) {
       }
       // this is what an llm embedding call would look like
       // const vector = await (await node.promise.call('', "llm-embed/org", { text: acc.text.join("\n") }));
-      const vector = (await embed.vectorize(acc.text.join("\n")))[0];
+      const vector = (await node.promise.call('', "embed/org", { text: acc.text.join("\n") }));
+      // const vector = (await embed.vectorize(acc.text.join("\n")))[0];
       const index = embed.vector_to_index(vector);
       // store in chunk data indexed by chunk.index
       const key = `${index.toString().padEnd(18, 0)}:${frec.uid}`;

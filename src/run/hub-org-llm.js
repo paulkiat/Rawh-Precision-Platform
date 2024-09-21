@@ -1,7 +1,8 @@
 // starts and maintains all under one process
 // 1. rawh hub server
 // 2. customer org proxy + broker server
-// 3. customer org llm server (optional)
+// 3. customer org llm (optional)
+// 3. customer org embed server (optional)
 // 4. customer app web server "test"
 // 5. customer app doc server "test"
 
@@ -44,6 +45,7 @@ launch(`app doc test`, "./src/app/doc.js", [ `--app-id=test` ]);
 launch(`app store test`, "./src/app/store.js", [ `--app-id=test` ]);
 
 if (args.llm) {
+  launch("embed", "./src/app/embed.js", [ "--app-id=org" ]);
   launch("llm", "./src/app/llm.js", [ 
     "--app-id=org",
     `--model=${args.model || "llama-2-7b-chat.Q2_K.gguf"}`,

@@ -20,10 +20,6 @@ async function register_service() {
 }
 
 async function embed(msg) {
-  const { text } = msg;
-  if (debug) {
-    log({ embed: text.length, arr: Array.isArray(text) });    
-  }
   return state.embed.vectorize(msg.text);
 }
 
