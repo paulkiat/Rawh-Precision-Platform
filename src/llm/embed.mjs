@@ -32,7 +32,11 @@ export async function vectorize(docs, opt = {}) {
   docs = Array.isArray(docs) ? docs : [docs];
 
   const res = await new Promise(resolve => {
-      embed_docs(docs, resolve);
+    setTimeout(() => {
+        // unblock vm when this is called
+        // in a loop inside the doc server
+        embed_docs(docs, resolve);
+    }, 0);
   });
   
   if (opt.debug) {

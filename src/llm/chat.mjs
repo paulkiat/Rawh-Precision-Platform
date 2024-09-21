@@ -59,6 +59,7 @@ export async function setup(opt = { }) {
   });
 
   if (opt.debug) {
+    state.inspect = opt.debug && opt.debug === "inspect" && opt.debug !== "embed";
     console.log({
       llm_setup: opt,
       modelName,
