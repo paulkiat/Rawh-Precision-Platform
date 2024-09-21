@@ -45,8 +45,8 @@ launch(`app doc test`, "./src/app/doc.js", [ `--app-id=test` ]);
 launch(`app store test`, "./src/app/store.js", [ `--app-id=test` ]);
 
 if (args.llm) {
-  launch("embed", "./src/app/embed.js", [ "--app-id=org" ]);
-  launch("llm", "./src/app/llm.js", [ 
+  launch("org embed", "./src/app/embed.js", [ "--app-id=org" ]);
+  launch("org llm", "./src/app/llm.js", [ 
     "--app-id=org",
     `--model=${args.model || "llama-2-7b-chat.Q2_K.gguf"}`,
     args.context ? `--context=${args.context}` : "",

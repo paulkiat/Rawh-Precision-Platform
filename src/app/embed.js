@@ -6,6 +6,8 @@ const state = require('./service').init();
 const log = util.logpre('embed');
 const { debug, model } = util.args;
 
+const uid = util.uid();
+
 // respond to requests looking for docs services for an app
 async function register_service() {
   const { app_id, node } = state;

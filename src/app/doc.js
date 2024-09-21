@@ -11,10 +11,12 @@ const cli_server = require('../cli/store');
 const log = util.logpre('doc');
 const { args, env } = util;
 const { debug } = args;
+const { PromiseQ } = require('../lib/pqueue');
 const drop_host = args["drop-host"];
 const drop_port = args["drop-port"] || 0;
 const cli_store = args["cli-store"];
 
+console.log({ PromiseQ });
 
 async function setup_node() {
   const { node } = state;
@@ -195,30 +197,48 @@ async function doc_embed(frec) {
       if (acc.new === 0) {
           return;
       }
-      // this is what an llm embedding call would look like
-      // const vector = await (await node.promise.call('', "llm-embed/org", { text: acc.text.join("\n") }));
-      const vector = (await node.promise.call('', "embed/org", { text: acc.text.join("\n") }));
-      // const vector = (await embed.vectorize(acc.text.join("\n")))[0];
-      const index = embed.vector_to_index(vector);
-      // store in chunk data indexed by chunk.index
+      const cnks = acc.cnks.slice();
+      const from = cnks[0];
+      const to = cnks(cnks.length -1);
+      const tokens = acc.toks.slice();
+      const tokcnt = acc.tokens;
+      const txtlen = acc.text.length;
+      const pro = node.promise.call('', "embed/org", { text: acc.text.join("\n") }).then(vector => {
       const key = `${index.toString().padEnd(18, 0)}:${frec.uid}`;
-      // log({ key, index: chunk.index, uid: frec.uid });
-      batch.put(key, {
+      if (debug) {
+          console.log(`---[ ${tokcnt} ]---[ ${from}:${to} ]---[ ${cnks.length}:${tokens.length}:${txtlen} ]---`);
+      }
+      return batch.put(key, {
         from: acc.cnks[0],
         to: acc.cnks[acc.cnks.length -1],
         tokens: acc.toks,
         index,
         vector,
       });
+    });
     acc.count++;
     acc.new = 0;
-    if (debug) {
-        const { cnks, tokens, toks, text } = acc;
-        const from = cnks[0];
-        const to = cnks[cnks.length -1] +1;
-        console.log(`---[ ${tokens} ]---[ ${from}:${to} ]---[ ${cnks.length}:${toks.length}:${text.length} ]---`);
-        console.log(chunk.pageContent);
-    }
+    return await pq.add(pro);
+    // const vector = (await embed.vectorize(acc.text.join("\n")))[0];
+    // const index = embed.vector_to_index(vector);
+    // // store in chunk data indexed by chunk.index
+    // const key = `${index.toString().padEnd(18, 0)}:${frec.uid}`;
+    // // log({ key, index: chunk.index, uid: frec.uid });
+    // batch.put(key, {
+    //     from: acc.cnks[0],
+    //     to: acc.cnks[acc.cnks.length-1],
+    //     tokens: acc.toks,
+    //     index,
+    //     vector
+    // });
+    // acc.count++;
+    // acc.new = 0;
+    // if (debug) {
+    //     const { cnks, tokens, toks, text } = acc;
+    //     const from = cnks[0];
+    //     const to = cnks[cnks.length-1];
+    //     console.log(`---[ ${tokens} ]---[ ${from}:${to} ]---[ ${cnks.length}:${toks.length}:${text.length} ]---`);
+    // }
   }
 
   // loop over chunks and create rolling embeds with overlapping regions
@@ -241,6 +261,7 @@ async function doc_embed(frec) {
        acc.new++;
   }
   await emit();
+  await pq.drain();
   if (debug) {
       console.log("------------------------------");
   }
@@ -298,8 +319,8 @@ async function docs_query(msg) {
   const { node, embed, doc_mbed, doc_chnk } = state;
   const { query, max_tokens, min_match, llm, topic } = msg;
   // this is what an llm embedding call would look like
-  // const vector = await (await node.promise.call('', "llm-embed/org", { text: acc.text.join("\n") }));
-  const vector = (await embed.vectorize([ query ]))[0];
+  const vector = await (await node.promise.call('', "embed/org", { text: query }));
+  // const vector = (await embed.vectorize([ query ]))[0];
   const index = embed.vector_to_index(vector);
   const key = `${index.toString().padEnd(18, 0)}`;
   log({ docs_query: msg });
