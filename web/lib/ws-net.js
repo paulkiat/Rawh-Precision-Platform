@@ -1,6 +1,9 @@
 // provides web-socket handlers for net (node/api/proxy) access
 
-import { uuid, json, parse } from '../lib/utils';
+const util = require('../lib/util');
+const { uuid, json, parse } = util;
+
+
 const { protocol, hostname, port, pathname } = window.location;
 
 export function ws_connect(wsPath = "", on_open, on_msg, retry = 10000) {
@@ -46,6 +49,10 @@ async function ws_proxy_api() {
       ctx.send({ fn: "subscribe", topic, timeout });
     },
     call: (topic, msg, handler) => {
+      if (!handler) {
+          // return promise when handler not present
+          return api.pcall({ topic, msg });
+      }
       const mid = uuid();
       ctx.once[mid] = handler;
       ctx.send({ fn: "call", topic, msg, mid });
@@ -53,9 +60,31 @@ async function ws_proxy_api() {
     send: (topic, msg) => {
       ctx.send({ fn: "send", topic, msg });
     },
+    locate: (topic, handler) => {
+        if (!handler) {
+            // return promise when handler not present
+            return api.plocate(topic);
+        }
+        const mid = uuid();
+        ctx.once[mid] = handler;
+        ctx.send({ fn: "locate", topic, mid });
+    },
     pcall: (topic, msg) => {
+      // promise version of api.call
       return new Promise((resolve, reject) => {
-        api.call(topic, msg, (msg, error, topic) => {
+        api.call(topic, msg, (msg, error) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(msg);
+          }
+        });
+      })
+    },
+    plocate: (topic) => {
+      // promise version of api.locate
+      return new Promise((resolve, reject) => {
+        api.locate(topic, (msg, error) => {
           if (error) {
             reject(error);
           } else {

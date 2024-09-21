@@ -123,6 +123,8 @@ function four_oh_four(req, res, next) {
 // return web-server handle to support browser-side proxy/api calls
 // in the browser, use the 'web/lib/ws-net.js' class
 function ws_proxy_handler(node, ws, ws_msg) {
+  // ensure top is not null (which locate allows)
+  topic = topic || '';
   let { fn, topic, msg, mid, timeout } = util.parse(ws_msg);
   // rewrite topics containing $ and replace with app-id
   if (topic.indexOf("$") >= 0) {
@@ -139,9 +141,14 @@ function ws_proxy_handler(node, ws, ws_msg) {
       }, timeout);
       break;
     case 'call':
-      node.call('', topic, msg, (msg, error) => {
+      node.call(topic, msg, (msg, error) => {
         ws.send(util.json({ mid, msg, topic, error }));
       })
+      break;
+    case 'locate':
+      node.locate(topic, (msg, error) => {
+        ws.send(util.json({ pub: topic, msg }));
+      });
       break;
     default:
       ws.send(util.json({ mid, topic, error: `invalid proxy fn: ${fn}` }));

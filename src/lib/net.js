@@ -4,6 +4,7 @@ const zeromq = require("zeromq");
 const util = require('./util');
 const log = util.logpre('zmq');
 const os = require('os');
+const { P } = require("pdf-parse/lib/pdf.js/v1.10.100/build/pdf");
 
 const { Dealer, Router } = zeromq;
 const { args, env, json } = util;
@@ -220,10 +221,10 @@ function zmq_proxy(port = 6000) {
         (direct[topic] = direct[topic] || []).push(cid);
         break;
       case 'locate':
-      // returns a list of topic subscribers and direct listeners
+        // returns a list of topic subscribers and direct listeners
         send(cid, ['loc', 
-            topics[topic], // subs
-            direct[topic], // direct
+            topic ? topics[topic] : topics, // subs
+            topic ? direct[topic] : direct, // direct
             mid ]);
         break;
       default:
@@ -468,13 +469,39 @@ function zmq_node(host = "127.0.0.1", port = 6000) {
     },
     // client id can only be derived by subscribing
     // to a topic and receiving a message
-    call: (cid, topic, message, on_reply) => {
-      if (!(topic && message && on_reply)) {
-        throw "invalid call args";
-      }
-      const mid = util.uid();
-      once[mid] = on_reply;
-      client.send([ "call", flat(topic), message, cid, mid ]);
+    call: function() {
+        let cid = '', topic, message, on_reply;
+        const args = [...arguments];
+        if (typeof(args[ args.length -1]) === 'function') {
+            if (args.length === 4) {
+                [ cid, topic, message, on_reply ] = args;
+                if (cid === '' && settings.debug_node) {
+                    console.trace({ antique_call_sig: topic });
+                }
+            } else if (args.length === 3) {
+                [ topic, message, on_reply ] = args;
+            } else {
+                throw "invalid call signature";
+            }
+        } else {
+            if (args.length === 3) {
+                [ cid, topic, message ] = args;
+            } else if (args.length === 2) {
+                  [ cid, topic ] = args;
+            } else {
+                throw "Invalide call signature";
+            }
+            return api.promise.call(cid, topic, message);
+        }
+        // console.log('call', [ cid, topic, message, on_reply ? 'fn() : '' ]);
+        if (!(topic && message && on_reply)) {
+            throw "invalid call args";
+        }
+        // detect call mode and auto-switch to promises
+        // also allow for missing cid and new call signatures
+        const mid = util.uid();
+        once[mid] = on_reply;
+        client.send([ "call", flat(topic), message, cid, mid ]);
     },
     // like call but does not setup a reply path
     send: (cid, topic, message) => {
